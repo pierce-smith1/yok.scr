@@ -1,0 +1,20 @@
+# yok.scr
+
+**The doughbyte-themed windows screensaver** - built with ancient Win32 + OpenGL, just like you would in the early 00's. Half doughbyte shitpost, half love letter to classic screensavers.
+
+[Home page](https://doughbyte.com/aut/yokscr)
+
+## Building
+
+_You can get a pre-compiled binary from the Releases page or the Home page above._
+
+There are two steps to building:
+* Run the `compile_resources.py` script to generate the `resources.h` file. This script depends on [Pillow](https://pillow.readthedocs.io/en/stable/installation.html), so you'll have to install that first. **Invoke it as `python <repo>\compile_resources.py gooky <repo>`.**
+* Load the `.sln` in Visual Studio and build the project in Release mode.
+
+## Contributing
+
+I certainly don't expect anyone to, but I encourage you to! :)
+I won't be adding anything more to this project, but that doesn't mean you can't. You don't need to be familiar with Win32 or OpenGL, since they make up relatively little of the project and they're well isolated from the core logic, which is all good old fashioned C++ (14).
+
+Just don't commit to master - be nice and make a PR.
