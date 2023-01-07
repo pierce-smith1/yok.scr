@@ -46,8 +46,6 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 		case WM_COMMAND: {
 			return cfg_dialog->command(wparam, lparam);
 		}
-		// Yes, the same message for *moving a scrollbar*
-		// Is used for notify
 		case WM_HSCROLL: {
 			HWND handle = (HWND) lparam;
 
