@@ -1,5 +1,7 @@
 # yok.scr
 
+![lkthink](https://user-images.githubusercontent.com/50504215/211129980-9516e63c-790a-484f-8fb8-3f9fa38f69cb.png)
+
 **The doughbyte-themed windows screensaver** - built with ancient Win32 + OpenGL, just like you would in the early 00's. Half doughbyte shitpost, half love letter to classic screensavers.
 
 [Home page](https://doughbyte.com/aut/yokscr)
