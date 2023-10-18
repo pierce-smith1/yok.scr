@@ -136,8 +136,8 @@
     <ClInclude Include="context.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="noise.h" />
-    <ClInclude Include="resourcew.h" />
     <ClInclude Include="resources.h" />
+    <ClInclude Include="resourcew.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="spritecontrol.h" />
@@ -150,12 +150,32 @@
     <ClCompile Include="graphics.cpp" />
     <ClCompile Include="noise.cpp" />
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="resources.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="spritecontrol.cpp" />
     <ClCompile Include="yokscr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="bitmaps\cvjoy.bmp" />
+    <Image Include="bitmaps\fn.bmp" />
+    <Image Include="bitmaps\fnplead.bmp" />
+    <Image Include="bitmaps\lk.bmp" />
+    <Image Include="bitmaps\lkconcern.bmp" />
+    <Image Include="bitmaps\lkcool.bmp" />
+    <Image Include="bitmaps\lkexhausted.bmp" />
+    <Image Include="bitmaps\lkhusk.bmp" />
+    <Image Include="bitmaps\lkjoy.bmp" />
+    <Image Include="bitmaps\lkmoyai.bmp" />
+    <Image Include="bitmaps\lksix.bmp" />
+    <Image Include="bitmaps\lkthink.bmp" />
+    <Image Include="bitmaps\lkthumbsup.bmp" />
+    <Image Include="bitmaps\lkunamused.bmp" />
+    <Image Include="bitmaps\lkxd.bmp" />
+    <Image Include="bitmaps\nx.bmp" />
+    <Image Include="bitmaps\vx.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
