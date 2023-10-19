@@ -35,7 +35,7 @@ const static std::map<ConfigOption, std::pair<float, float>> config_ranges = {
 	{ YonkHomeDrift, { 0.0f, 5.0f }},
 	{ YonkEmotionScale, { 0.0f, 10.0f }},
 	{ TimeDivisor, { 10.0f, 300.0f }},
-	{ MaxColors, { 2.0f, 20.0f }},
+	{ MaxColors, { 2.0f, 47.0f }},
 	{ SpriteCount, { 10.f, 200.0f }},
 	{ SpriteSize, { 10.0f, 200.0f }},
 	{ YonkShakeFactor, { 0.0f, 5.0f }},
