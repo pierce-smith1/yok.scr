@@ -11,7 +11,7 @@
 _You can get a pre-compiled binary from the Releases page or the Home page above._
 
 There are two steps to building:
-* Run the `compile_resources.py` script to generate the `resources.h` file. This script depends on [Pillow](https://pillow.readthedocs.io/en/stable/installation.html), so you'll have to install that first. **Invoke it as `python <repo>\compile_resources.py bitmaps <repo>`.**
+* In the repo root, run `python bitmaps_to_bmp.py` to generate the `bitmaps` folder. This script depends on [Pillow](https://pillow.readthedocs.io/en/stable/installation.html), so you'll have to install that first.
 * Load the `.sln` in Visual Studio and build the project in Release mode.
 
 ## Contributing

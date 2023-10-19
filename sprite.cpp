@@ -126,7 +126,7 @@ const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 		},
 	};
 
-	return *BITMAPS.at(emotion_map[empathetic][optimistic][ambitious]);
+	return *load_bitmap(emotion_map[empathetic][optimistic][ambitious]);
 }
 
 std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) const {
