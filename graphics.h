@@ -58,6 +58,7 @@ public:
 class Bitmap : public Identifiable<std::array<GLubyte, BITMAP_WH * BITMAP_WH>> {
 public:
 	Bitmap(const std::initializer_list<GLubyte> &i_list);
+	Bitmap(const GLubyte *data);
 };
 
 class Texture {
