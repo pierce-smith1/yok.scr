@@ -65,3 +65,11 @@ public:
 protected:
 	static BitmapName random_bitmap();
 };
+
+class Yoy : public Sprite {
+public:
+	Yoy(PaletteName palette, const Point& home);
+
+protected:
+	static BitmapName random_bitmap();
+};

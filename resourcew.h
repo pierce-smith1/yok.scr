@@ -20,6 +20,10 @@
 #define IDB_BITMAP15                    152
 #define IDB_BITMAP16                    153
 #define IDB_BITMAP17                    154
+#define IDB_BITMAP18                    155
+#define IDB_BITMAP19                    156
+#define IDB_BITMAP20                    157
+#define IDB_BITMAP21                    158
 #define IDC_COMBO1                      1001
 #define IDC_YONK_PATTERN                1001
 #define IDC_YONK_SHAKE_FACTOR           1002
@@ -37,7 +41,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        155
+#define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1019
 #define _APS_NEXT_SYMED_VALUE           101
