@@ -50,7 +50,7 @@ const static std::map<BitmapName, int> BITMAP_RESOURCE_IDS({
 	{ lkyoyapprove, IDB_BITMAP19 },
 	{ fnyoy, IDB_BITMAP20 },
 	{ cvyoy, IDB_BITMAP21 },
-	});
+});
 
 enum PaletteName {
 	autumn,

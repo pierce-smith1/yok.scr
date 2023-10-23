@@ -24,12 +24,8 @@ std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 
 	for (float y = -1.2f; y < 1.2f; y += 1.0f / sqrt(cfg.at(SpriteCount))) {
 		for (float x = -1.2f; x < 1.2f; x += 1.0f / sqrt(cfg.at(SpriteCount))) {
-			if (Noise::random() < 0.002f) {		// Chances may or may not be placeholder
-				if (Noise::random() < 0.5f) {
-					sprites.push_back(new Yoy(next_palette(), Point(x, y)));
-				} else {
-					sprites.push_back(new Impostor(next_palette(), Point(x, y)));
-				}
+			if (Noise::random() < 0.002f) {
+				sprites.push_back(new Impostor(next_palette(), Point(x, y)));
 			} else {
 				sprites.push_back(new Yonker(next_texture(), Point(x, y)));
 			}
