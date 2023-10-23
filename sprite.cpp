@@ -150,3 +150,12 @@ BitmapName Impostor::random_bitmap() {
 	static std::vector<BitmapName> impostors = { cvjoy, nx, vx, lkmoyai, fn, fnplead };
 	return impostors[(int) (Noise::random() * impostors.size())];
 }
+
+// <Insert funny Pierce comment>
+Yoy::Yoy(PaletteName palette, const Point& home)
+	: Sprite(Texture::of(palette, random_bitmap()), home) { }
+
+BitmapName Yoy::random_bitmap() {
+	static std::vector<BitmapName> yoy = { lkyoy, lkyoyapprove, fnyoy, cvyoy };
+	return yoy[(int)(Noise::random() * yoy.size())];
+}
