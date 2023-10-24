@@ -40,6 +40,7 @@ const static std::map<ConfigOption, std::pair<float, float>> config_ranges = {
 	{ SpriteSize, { 10.0f, 200.0f }},
 	{ YonkShakeFactor, { 0.0f, 5.0f }},
 	{ PatternChangeInterval, { 30.0f, 60.0f * 30.0f }},
+	{ ImpostorChance, {0.0f, 1.0f }},
 };
 
 const static std::map<ConfigOption, int> slider_ids = {
@@ -53,6 +54,7 @@ const static std::map<ConfigOption, int> slider_ids = {
 	{ YonkShakeFactor, IDC_YONK_SHAKE_FACTOR },
 	{ YonkPattern, IDC_YONK_PATTERN },
 	{ PatternChangeInterval, IDC_PATTERN_CHANGE_INTERVAL },
+	{ ImpostorChance, IDC_IMPOSTOR_CHANCE },
 };
 
 const static std::map<SpritePattern, std::wstring> pattern_strings = {

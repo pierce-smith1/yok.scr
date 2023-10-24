@@ -70,6 +70,18 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetExt>.scr</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetExt>.scr</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <TargetExt>.scr</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetExt>.scr</TargetExt>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -160,8 +172,10 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="bitmaps\cvjoy.bmp" />
+    <Image Include="bitmaps\cvyoy.bmp" />
     <Image Include="bitmaps\fn.bmp" />
     <Image Include="bitmaps\fnplead.bmp" />
+    <Image Include="bitmaps\fnyoy.bmp" />
     <Image Include="bitmaps\lk.bmp" />
     <Image Include="bitmaps\lkconcern.bmp" />
     <Image Include="bitmaps\lkcool.bmp" />
@@ -174,6 +188,8 @@
     <Image Include="bitmaps\lkthumbsup.bmp" />
     <Image Include="bitmaps\lkunamused.bmp" />
     <Image Include="bitmaps\lkxd.bmp" />
+    <Image Include="bitmaps\lkyoy.bmp" />
+    <Image Include="bitmaps\lkyoyapprove.bmp" />
     <Image Include="bitmaps\nx.bmp" />
     <Image Include="bitmaps\vx.bmp" />
   </ItemGroup>
