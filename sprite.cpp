@@ -148,5 +148,11 @@ Impostor::Impostor(PaletteName palette, const Point &home)
 
 BitmapName Impostor::random_bitmap() {
 	static std::vector<BitmapName> impostors = { cvjoy, nx, vx, lkmoyai, fn, fnplead };
-	return impostors[(int) (Noise::random() * impostors.size())];
+	static std::vector<BitmapName> yoy = { lkyoy, lkyoyapprove, fnyoy, cvyoy };
+
+	if (Noise::random() < 0.5f) {
+		return impostors[(int)(Noise::random() * impostors.size())];
+	} else {
+		return yoy[(int)(Noise::random() * yoy.size())];
+	}
 }

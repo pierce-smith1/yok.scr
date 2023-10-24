@@ -21,6 +21,10 @@ enum BitmapName {
 	lkxd,
 	nx,
 	vx,
+	lkyoy,
+	lkyoyapprove,
+	fnyoy,
+	cvyoy,
 	_BITMAP_COUNT,
 };
 
@@ -42,6 +46,10 @@ const static std::map<BitmapName, int> BITMAP_RESOURCE_IDS({
 	{ lkxd, IDB_BITMAP15 },
 	{ nx, IDB_BITMAP16 },
 	{ vx, IDB_BITMAP17 },
+	{ lkyoy, IDB_BITMAP18 },
+	{ lkyoyapprove, IDB_BITMAP19 },
+	{ fnyoy, IDB_BITMAP20 },
+	{ cvyoy, IDB_BITMAP21 },
 });
 
 enum PaletteName {
