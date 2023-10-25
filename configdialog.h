@@ -55,6 +55,7 @@ const static std::map<ConfigOption, int> slider_ids = {
 	{ YonkPattern, IDC_YONK_PATTERN },
 	{ PatternChangeInterval, IDC_PATTERN_CHANGE_INTERVAL },
 	{ ImpostorChance, IDC_IMPOSTOR_CHANCE },
+	{ YonkPalette, IDC_YONK_PALETTE },
 };
 
 const static std::map<SpritePattern, std::wstring> pattern_strings = {
@@ -65,4 +66,10 @@ const static std::map<SpritePattern, std::wstring> pattern_strings = {
 	{ Lissajous, L"Lissajous" },
 	{ Rose, L"Rose" },
 	{ Lattice, L"Lattice" },
+};
+
+const static std::map<SpritePalette, std::wstring> palette_strings = {
+	{ All, L"All" },
+	{ Canon, L"Canon" },
+	{ NonCanon, L"Non-Canon" },
 };

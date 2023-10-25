@@ -18,6 +18,11 @@ ConfigDialog::ConfigDialog(HWND dialog)
 		ComboBox_AddString(pattern_box, entry.second.c_str());
 	}
 
+	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
+	for (const auto& entry : palette_strings) {
+		ComboBox_AddString(palette_box, entry.second.c_str());
+	}
+
 	refresh();
 }
 
@@ -48,6 +53,11 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 				return combobox_changed((HWND) lparam);
 			}
 		}
+		case IDC_YONK_PALETTE: {
+			if (HIWORD(wparam) == CBN_SELENDOK) {
+				return combobox_changed((HWND) lparam);
+			}
+		}
 	}
 
 
@@ -67,9 +77,12 @@ BOOL ConfigDialog::combobox_changed(HWND combobox) {
 	wchar_t str[1 << 6];
 	ComboBox_GetText(combobox, str, 1 << 6);
 	std::wstring pattern_name(str);
+	std::wstring palette_name(str);
 
 	m_current_config[YonkPattern] = (float) reverse_lookup(pattern_strings, pattern_name);
+	m_current_config[YonkPalette] = (float) reverse_lookup(palette_strings, palette_name);
 	OutputDebugString(pattern_name.c_str());
+	OutputDebugString(palette_name.c_str());
 
 	return FALSE;
 }
@@ -95,5 +108,10 @@ void ConfigDialog::refresh() {
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
 		(SpritePattern) m_current_config.at(YonkPattern)).c_str()
+	);
+
+	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
+	ComboBox_SelectString(palette_box, -1, palette_strings.at(
+		(SpritePalette)m_current_config.at(YonkPalette)).c_str()
 	);
 }

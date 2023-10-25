@@ -9,13 +9,38 @@ SpriteGenerator::SpriteGenerator() {
 	using namespace std::chrono;
 	std::srand(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
-	std::vector<int> bag_of_palettes(_PALETTE_COUNT);
-	std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
+	if ((SpritePalette)cfg.at(YonkPalette) == Canon)
+	{
+		std::vector<int> bag_of_palettes(static_cast<int>(CanonPaletteName::_PALETTE_COUNT));
+		std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
 
-	for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
-		size_t random_palette_index = std::rand() % bag_of_palettes.size();
-		m_palettes.push_back((PaletteName) bag_of_palettes[random_palette_index]);
-		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
+		for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
+			size_t random_palette_index = std::rand() % bag_of_palettes.size();
+			m_palettes.push_back((AllPaletteName)bag_of_palettes[random_palette_index]);
+			bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
+		}
+	}
+	else if ((SpritePalette)cfg.at(YonkPalette) == NonCanon)
+	{
+		std::vector<int> bag_of_palettes(static_cast<int>(NonCanonPaletteName::_PALETTE_COUNT));
+		std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
+
+		for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
+			size_t random_palette_index = std::rand() % bag_of_palettes.size();
+			m_palettes.push_back((AllPaletteName)bag_of_palettes[random_palette_index]);
+			bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
+		}
+	}
+	else if ((SpritePalette)cfg.at(YonkPalette) == All)
+	{
+		std::vector<int> bag_of_palettes(static_cast<int>(AllPaletteName::_PALETTE_COUNT));
+		std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
+
+		for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
+			size_t random_palette_index = std::rand() % bag_of_palettes.size();
+			m_palettes.push_back((AllPaletteName)bag_of_palettes[random_palette_index]);
+			bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
+		}
 	}
 }
 
@@ -39,11 +64,11 @@ const Texture *SpriteGenerator::next_texture() const {
 	return Texture::of(next_palette(), lk);
 }
 
-PaletteName SpriteGenerator::next_palette() const {
+AllPaletteName SpriteGenerator::next_palette() const {
 	// A weighted coin?! Now that's certainly cheating!
 	// You'd be kicked outta Vegas for logarithmic repeating.
 	while (true) {
-		for (PaletteName palette_name : m_palettes) {
+		for (AllPaletteName palette_name : m_palettes) {
 			if (Noise::random() < 1.8f / cfg.at(MaxColors)) {
 				return palette_name;
 			}

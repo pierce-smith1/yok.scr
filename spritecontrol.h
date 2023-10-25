@@ -19,6 +19,13 @@ enum SpritePattern {
 	_PATTERN_COUNT
 };
 
+enum SpritePalette {
+	All,
+	Canon,
+	NonCanon,
+	_PALETTE_OPTION_COUNT
+};
+
 class SpriteGenerator {
 public:
 	SpriteGenerator();
@@ -27,9 +34,9 @@ public:
 
 private:
 	const Texture *next_texture() const;
-	PaletteName next_palette() const;
+	AllPaletteName next_palette() const;
 
-	std::vector<PaletteName> m_palettes;
+	std::vector<AllPaletteName> m_palettes;
 };
 
 class SpriteChoreographer {
