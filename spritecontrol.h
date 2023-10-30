@@ -37,6 +37,8 @@ public:
 	SpriteChoreographer(SpritePattern pattern, Sprites sprites, Context *ctx);
 
 	void update();
+	bool should_change_pattern();
+	void change_pattern();
 
 private:
 	using MoveFunction = std::function<void(Sprite *, Context *, float)>;

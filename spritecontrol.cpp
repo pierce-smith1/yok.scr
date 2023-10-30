@@ -60,12 +60,24 @@ void SpriteChoreographer::update() {
 		sprite->update(*m_ctx);
 	}
 
+	if (should_change_pattern()) {
+		change_pattern();
+	}
+}
+
+bool SpriteChoreographer::should_change_pattern() {
+	if (cfg.at(IsPatternFixed)) {
+		return false;
+	}
+
 	// We must change the pattern every so often...
 	// But not, of course, when we're just getting started.
-	if (m_ctx->frame_count() % (int) cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0) {
-		m_pattern = (SpritePattern) (Noise::random() * _PATTERN_COUNT);
-		m_id_offset++;
-	}
+	return m_ctx->frame_count() % (int)cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0;
+}
+
+void SpriteChoreographer::change_pattern() {
+	m_pattern = (SpritePattern) (Noise::random() * _PATTERN_COUNT);
+	m_id_offset++;
 }
 
 float SpriteChoreographer::hash(unsigned int n) {
