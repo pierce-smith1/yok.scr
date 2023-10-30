@@ -35,6 +35,8 @@
 #define IDC_SPRITE_COUNT                1013
 #define IDC_MAX_COLORS                  1014
 #define IDC_DEFAULTS_BUTTON             1015
+#define IDC_CHECK1                      1019
+#define IDC_PATTERN_FIX                 1019
 #define DLG_SCREENSAVERCONFIGURE        2003
 
 // Next default values for new objects
@@ -43,7 +45,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

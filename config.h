@@ -17,6 +17,7 @@ enum ConfigOption {
 	YonkShakeFactor,
 	YonkPattern,
 	PatternChangeInterval,
+	IsPatternFixed,
 	_CONFIG_OPTIONS_END
 };
 
@@ -44,6 +45,7 @@ const static Config cfg_defaults = {
 	{ SpriteSize, 50.0f },
 	{ YonkShakeFactor, 2.0f },
 	{ YonkPattern, 0.0f },
-	{ PatternChangeInterval, 60.0f * 15.0f }
+	{ PatternChangeInterval, 60.0f * 15.0f },
+	{ IsPatternFixed, 0.0f },
 };
 const static Config cfg = Registry().get_config();

@@ -138,5 +138,17 @@
     <Image Include="bitmaps\vx.bmp">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="bitmaps\lkyoy.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="bitmaps\lkyoyapprove.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="bitmaps\fnyoy.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="bitmaps\cvyoy.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

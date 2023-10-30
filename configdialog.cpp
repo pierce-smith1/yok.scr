@@ -48,6 +48,11 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 				return combobox_changed((HWND) lparam);
 			}
 		}
+		case IDC_PATTERN_FIX: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return pattern_fix_checked(wparam, (HWND)lparam);
+			}
+		}
 	}
 
 
@@ -74,6 +79,13 @@ BOOL ConfigDialog::combobox_changed(HWND combobox) {
 	return FALSE;
 }
 
+BOOL ConfigDialog::pattern_fix_checked(WPARAM wparam, HWND checkbox) {
+	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
+	m_current_config[IsPatternFixed] = checked ? 1.0f : 0.0f;
+	refresh();
+	return FALSE;
+}
+
 // Continuous sliders use integers only...
 // What Redmond designer responds to this folly?!
 int ConfigDialog::encodef(float value) {
@@ -96,4 +108,10 @@ void ConfigDialog::refresh() {
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
 		(SpritePattern) m_current_config.at(YonkPattern)).c_str()
 	);
+
+	bool is_pattern_fixed = m_current_config.at(IsPatternFixed) == 1.0f;
+	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
+	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
+	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);
+	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
 }

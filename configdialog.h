@@ -14,6 +14,7 @@ public:
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	BOOL slider_changed(WPARAM wparam, HWND slider);
 	BOOL combobox_changed(HWND combobox);
+	BOOL pattern_fix_checked(WPARAM wparam, HWND checkbox);
 	
 private:
 	int encodef(float value);
