@@ -30,6 +30,13 @@ LRESULT WINAPI ScreenSaverProc(HWND window, UINT message, WPARAM wparam, LPARAM 
 			scene->draw();
 			return 0;
 		}
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_MOUSEMOVE:
+		case WM_ACTIVATE:
+		case WM_ACTIVATEAPP:
+		case WM_NCACTIVATE:
+			return 0;
 	}
 
 	return DefScreenSaverProc(window, message, wparam, lparam);

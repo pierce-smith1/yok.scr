@@ -26,6 +26,8 @@ public:
 		return std::get<C>(m_home) + std::get<C>(m_relpos);
 	}
 
+	Point &home();
+
 protected:
 	void transform();
 
@@ -33,8 +35,6 @@ protected:
 	Point m_relpos;
 	Point m_home;
 	GLfloat m_size;
-
-	friend class SpriteChoreographer;
 };
 
 class Yonker : public Sprite {

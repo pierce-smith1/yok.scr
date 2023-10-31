@@ -94,6 +94,6 @@ void ConfigDialog::refresh() {
 
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
-		(SpritePattern) m_current_config.at(YonkPattern)).c_str()
+		(PatternName) m_current_config.at(YonkPattern)).c_str()
 	);
 }

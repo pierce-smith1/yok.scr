@@ -2,13 +2,16 @@
 
 #include <vector>
 #include <functional>
+#include <cmath>
 
 #include "graphics.h"
 #include "sprite.h"
 
+const static float M_PI = std::acos(-1);
+
 using Sprites = std::vector<Sprite *>;
 
-enum SpritePattern {
+enum PatternName {
 	Roamers,
 	Waves,
 	Square,
@@ -16,6 +19,7 @@ enum SpritePattern {
 	Lissajous,
 	Rose,
 	Lattice,
+	Bubbles,
 	_PATTERN_COUNT
 };
 
@@ -32,21 +36,62 @@ private:
 	std::vector<PaletteName> m_palettes;
 };
 
-class SpriteChoreographer {
+class PatternPlayer {
 public:
-	SpriteChoreographer(SpritePattern pattern, Sprites sprites, Context *ctx);
+	void set_pattern(PatternName pattern);
 
-	void update();
+	virtual void update() = 0;
+	virtual std::set<PatternName> &compatible_patterns() = 0;
 
-private:
-	using MoveFunction = std::function<void(Sprite *, Context *, float)>;
+protected:
+	PatternPlayer(Sprites *sprites, Context *ctx);
 
 	static float hash(unsigned int n);
 
-	Sprites m_sprites;
+	static unsigned int m_hash_offset;
+	PatternName m_pattern;
+	Sprites *m_sprites;
 	Context *m_ctx;
-	SpritePattern m_pattern;
-	unsigned int m_id_offset;
-
-	static std::map<SpritePattern, MoveFunction> move_functions;
 };
+
+class SinglePassPlayer : public PatternPlayer {
+public:
+	SinglePassPlayer(Sprites *sprites, Context *ctx);
+
+	void update() override;
+	std::set<PatternName> &compatible_patterns() override;
+
+protected:
+	using MoveFunction = std::function<void(Sprite *, Context *, float offset)>;
+	static std::map<PatternName, MoveFunction> move_functions;
+};
+
+class GlobalPlayer : public PatternPlayer {
+public:
+	GlobalPlayer(Sprites *sprites, Context *ctx);
+
+	void update() override;
+	std::set<PatternName> &compatible_patterns() override;
+
+protected:
+	using MoveFunction = std::function<void(Sprites *, Context *, std::function<float(Id)>)>;
+	static std::map<PatternName, MoveFunction> move_functions;
+};
+
+class SpriteChoreographer {
+public:
+	SpriteChoreographer(PatternName pattern, Sprites *sprites, Context *ctx);
+
+	void update();
+
+protected:
+	void change_pattern();
+	void update_player();
+
+	Sprites *m_sprites;
+	Context *m_ctx;
+	PatternName m_pattern;
+	std::vector<PatternPlayer *> m_players;
+	PatternPlayer *m_current_player;
+};
+
