@@ -13,7 +13,7 @@ public:
 	void save();
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	BOOL slider_changed(WPARAM wparam, HWND slider);
-	BOOL combobox_changed(HWND combobox);
+	BOOL combobox_changed(HWND combobox, int option);
 	
 private:
 	int encodef(float value);
