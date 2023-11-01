@@ -14,11 +14,11 @@ cpp_indent_multi_line_relative_to = innermost_parenthesis
 cpp_indent_within_parentheses = indent
 cpp_indent_preserve_within_parentheses = true
 cpp_indent_case_contents = true
-cpp_indent_case_labels = false
+cpp_indent_case_labels = true
 cpp_indent_case_contents_when_block = false
-cpp_indent_lambda_braces_when_parameter = true
+cpp_indent_lambda_braces_when_parameter = false
 cpp_indent_goto_labels = one_left
-cpp_indent_preprocessor = leftmost_column
+cpp_indent_preprocessor = one_left
 cpp_indent_access_specifiers = false
 cpp_indent_namespace_contents = true
 cpp_indent_preserve_comments = false
@@ -73,4 +73,3 @@ cpp_wrap_preserve_blocks = one_liners
 
 cpp_include_cleanup_add_missing_error_tag_type = suggestion
 cpp_include_cleanup_remove_unused_error_tag_type = dimmed
-
