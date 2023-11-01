@@ -2,6 +2,7 @@
 #include "resources.h"
 #include "config.h"
 #include "noise.h"
+#include "configdialog.h"
 
 using std::get;
 
@@ -13,7 +14,9 @@ SpriteGenerator::SpriteGenerator() {
 	//std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
 	std::vector<PaletteName> bag_of_palettes = PALETTES_BY_GROUP.at((PaletteGroup) (cfg.at(YonkPalette)));
 
-	for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
+	float maxColors = cfg.at(MaxColors) * (bag_of_palettes.size() / config_ranges.at(MaxColors).second);
+
+	for (int i = 0; i < round(maxColors); i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
 		m_palettes.push_back((PaletteName)bag_of_palettes[random_palette_index]);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
