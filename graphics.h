@@ -10,7 +10,7 @@
 
 #include "context.h"
 
-enum class AllPaletteName;
+enum class PaletteName;
 enum BitmapName;
 
 constexpr static unsigned int BITMAP_WH = 128;
@@ -64,7 +64,7 @@ public:
 class Texture {
 public:
 	static const Texture *get(const Palette &palette, const Bitmap &bitmap);
-	static const Texture *of(AllPaletteName palette_name, BitmapName bitmap_name);
+	static const Texture *of(PaletteName palette_name, BitmapName bitmap_name);
 
 	const Palette &palette() const;
 

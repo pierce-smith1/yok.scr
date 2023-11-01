@@ -24,7 +24,7 @@ const Texture *Texture::get(const Palette &palette, const Bitmap &bitmap) {
 }
 
 // And make calling convenient, 'fore I wish any crimes.
-const Texture *Texture::of(AllPaletteName palette_name, BitmapName bitmap_name) {
+const Texture *Texture::of(PaletteName palette_name, BitmapName bitmap_name) {
 	return get(PALETTES.at(palette_name), *load_bitmap(bitmap_name));
 }
 

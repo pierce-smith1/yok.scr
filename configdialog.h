@@ -68,8 +68,8 @@ const static std::map<SpritePattern, std::wstring> pattern_strings = {
 	{ Lattice, L"Lattice" },
 };
 
-const static std::map<SpritePalette, std::wstring> palette_strings = {
-	{ All, L"All" },
-	{ Canon, L"Canon" },
-	{ NonCanon, L"Non-Canon" },
+const static std::map<PaletteGroup, std::wstring> palette_strings = {
+	{ PaletteGroup::All, L"All" },
+	{ PaletteGroup::Canon, L"Canon" },
+	{ PaletteGroup::NonCanon, L"Non-Canon" },
 };

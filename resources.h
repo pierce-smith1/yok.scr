@@ -2,6 +2,7 @@
 
 #include "graphics.h"
 #include "resourcew.h"
+#include "spritecontrol.h"
 
 enum BitmapName {
 	cvjoy,
@@ -52,7 +53,7 @@ const static std::map<BitmapName, int> BITMAP_RESOURCE_IDS({
 	{ cvyoy, IDB_BITMAP21 },
 });
 
-enum class AllPaletteName {
+enum class PaletteName {
 	aemil,
 	dzune,
 	ellai,
@@ -105,67 +106,114 @@ enum class AllPaletteName {
 	_PALETTE_COUNT,
 };
 
-enum class CanonPaletteName {
-	aemil = static_cast<int>(AllPaletteName::aemil),
-	dzune = static_cast<int>(AllPaletteName::dzune),
-	ellai = static_cast<int>(AllPaletteName::ellai),
-	evjar = static_cast<int>(AllPaletteName::evjar),
-	gimeljoy = static_cast<int>(AllPaletteName::gimeljoy),
-	gimelsad = static_cast<int>(AllPaletteName::gimelsad),
-	gimelYOO = static_cast<int>(AllPaletteName::gimelYOO),
-	jaela = static_cast<int>(AllPaletteName::jaela),
-	jergh = static_cast<int>(AllPaletteName::jergh),
-	kirii = static_cast<int>(AllPaletteName::kirii),
-	kraza = static_cast<int>(AllPaletteName::kraza),
-	llema = static_cast<int>(AllPaletteName::llema),
-	lotus = static_cast<int>(AllPaletteName::lotus),
-	loxxe = static_cast<int>(AllPaletteName::loxxe),
-	meazs = static_cast<int>(AllPaletteName::meazs),
-	metis = static_cast<int>(AllPaletteName::metis),
-	romal = static_cast<int>(AllPaletteName::romal),
-	sillh = static_cast<int>(AllPaletteName::sillh),
-	vette = static_cast<int>(AllPaletteName::vette),
-	zoog = static_cast<int>(AllPaletteName::zoog),
+const static std::map<PaletteGroup, std::vector<PaletteName>> PALETTES_BY_GROUP({
+	{ PaletteGroup::Canon, {
+		PaletteName::aemil,
+		PaletteName::dzune,
+		PaletteName::ellai,
+		PaletteName::evjar,
+		PaletteName::gimeljoy,
+		PaletteName::gimelsad,
+		PaletteName::gimelYOO,
+		PaletteName::jaela,
+		PaletteName::jergh,
+		PaletteName::kirii,
+		PaletteName::kraza,
+		PaletteName::llema,
+		PaletteName::lotus,
+		PaletteName::loxxe,
+		PaletteName::meazs,
+		PaletteName::metis,
+		PaletteName::romal,
+		PaletteName::sillh,
+		PaletteName::vette,
+		PaletteName::zoog,
+	}},
+	{ PaletteGroup::NonCanon, {
+		PaletteName::autumn,
+		PaletteName::ascent,
+		PaletteName::azul,
+		PaletteName::bliss,
+		PaletteName::chasnah,
+		PaletteName::crystal,
+		PaletteName::dejil,
+		PaletteName::follow,
+		PaletteName::friend_,
+		PaletteName::fruit,
+		PaletteName::home,
+		PaletteName::moonflower,
+		PaletteName::nachi,
+		PaletteName::oom,
+		PaletteName::peace,
+		PaletteName::power,
+		PaletteName::purpleflower,
+		PaletteName::radiance,
+		PaletteName::redmoondesert,
+		PaletteName::ripple,
+		PaletteName::stonehenge,
+		PaletteName::tulips,
+		PaletteName::vortecspace,
+		PaletteName::wind,
+		PaletteName::windowsxp,
+		PaletteName::yette,
+		PaletteName::zehal,
+	}},
+	{ PaletteGroup::All, {	// :lkfear:
+		PaletteName::aemil,
+		PaletteName::dzune,
+		PaletteName::ellai,
+		PaletteName::evjar,
+		PaletteName::gimeljoy,
+		PaletteName::gimelsad,
+		PaletteName::gimelYOO,
+		PaletteName::jaela,
+		PaletteName::jergh,
+		PaletteName::kirii,
+		PaletteName::kraza,
+		PaletteName::llema,
+		PaletteName::lotus,
+		PaletteName::loxxe,
+		PaletteName::meazs,
+		PaletteName::metis,
+		PaletteName::romal,
+		PaletteName::sillh,
+		PaletteName::vette,
+		PaletteName::zoog,
 
-	_PALETTE_COUNT,
-};
-
-enum class NonCanonPaletteName {
-	autumn = static_cast<int>(AllPaletteName::autumn),
-	ascent = static_cast<int>(AllPaletteName::ascent),
-	azul = static_cast<int>(AllPaletteName::azul),
-	bliss = static_cast<int>(AllPaletteName::bliss),
-	chasnah = static_cast<int>(AllPaletteName::chasnah),
-	crystal = static_cast<int>(AllPaletteName::crystal),
-	dejil = static_cast<int>(AllPaletteName::dejil),
-	follow = static_cast<int>(AllPaletteName::follow),
-	friend_ = static_cast<int>(AllPaletteName::friend_),
-	fruit = static_cast<int>(AllPaletteName::fruit),
-	home = static_cast<int>(AllPaletteName::home),
-	moonflower = static_cast<int>(AllPaletteName::moonflower),
-	nachi = static_cast<int>(AllPaletteName::nachi),
-	oom = static_cast<int>(AllPaletteName::oom),
-	peace = static_cast<int>(AllPaletteName::peace),
-	power = static_cast<int>(AllPaletteName::power),
-	purpleflower = static_cast<int>(AllPaletteName::purpleflower),
-	radiance = static_cast<int>(AllPaletteName::radiance),
-	redmoondesert = static_cast<int>(AllPaletteName::redmoondesert),
-	ripple = static_cast<int>(AllPaletteName::ripple),
-	stonehenge = static_cast<int>(AllPaletteName::stonehenge),
-	tulips = static_cast<int>(AllPaletteName::tulips),
-	vortecspace = static_cast<int>(AllPaletteName::vortecspace),
-	wind = static_cast<int>(AllPaletteName::wind),
-	windowsxp = static_cast<int>(AllPaletteName::windowsxp),
-	yette = static_cast<int>(AllPaletteName::yette),
-	zehal = static_cast<int>(AllPaletteName::zehal),
-
-	_PALETTE_COUNT = static_cast<int>(AllPaletteName::_PALETTE_COUNT) - static_cast<int>(CanonPaletteName::_PALETTE_COUNT),		// gods damn it
-};
+		PaletteName::autumn,
+		PaletteName::ascent,
+		PaletteName::azul,
+		PaletteName::bliss,
+		PaletteName::chasnah,
+		PaletteName::crystal,
+		PaletteName::dejil,
+		PaletteName::follow,
+		PaletteName::friend_,
+		PaletteName::fruit,
+		PaletteName::home,
+		PaletteName::moonflower,
+		PaletteName::nachi,
+		PaletteName::oom,
+		PaletteName::peace,
+		PaletteName::power,
+		PaletteName::purpleflower,
+		PaletteName::radiance,
+		PaletteName::redmoondesert,
+		PaletteName::ripple,
+		PaletteName::stonehenge,
+		PaletteName::tulips,
+		PaletteName::vortecspace,
+		PaletteName::wind,
+		PaletteName::windowsxp,
+		PaletteName::yette,
+		PaletteName::zehal,
+	}}}
+);
 
 Bitmap *load_bitmap(BitmapName name);
 
-const static std::map<AllPaletteName, Palette> PALETTES({
-	{ AllPaletteName::aemil, {{0,   0,   0,   0  },
+const static std::map<PaletteName, Palette> PALETTES({
+	{ PaletteName::aemil, {{0,   0,   0,   0  },
 			  {86,  235, 142, 255},
 			  {132, 245, 195, 255},
 			  {29,  149, 80,  255},
@@ -174,7 +222,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {223, 249, 235, 255},
 			  {150, 99,  54,  255}}
 	},
-	{ AllPaletteName::autumn, {{ 0,   0,   0,   0   },
+	{ PaletteName::autumn, {{ 0,   0,   0,   0   },
 	           { 219, 131, 19,  255 }, 
 	           { 190, 146, 117, 255 }, 
 	           { 144, 74,  8,   255 }, 
@@ -183,7 +231,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	           { 243, 230, 233, 255 }, 
 	           { 0,   0,   0,   255 }}
 	},
-	{ AllPaletteName::ascent, {{ 0,   0,   0,   0   },
+	{ PaletteName::ascent, {{ 0,   0,   0,   0   },
 	           { 25,  99,  196, 255 }, 
 	           { 25,  99,  196, 255 }, 
 	           { 11,  64,  125, 255 }, 
@@ -192,7 +240,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	           { 255, 255, 255, 255 }, 
 	           { 80,  107, 188, 255 }}
 	},
-	{ AllPaletteName::azul, {{ 0,   0,   0,   0   },
+	{ PaletteName::azul, {{ 0,   0,   0,   0   },
 	         { 26,  173, 217, 255 }, 
 	         { 161, 208, 229, 255 }, 
 	         { 41,  109, 158, 255 }, 
@@ -201,7 +249,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	         { 255, 255, 255, 255 }, 
 	         { 16,  48,  80,  255 }}
 	},
-	{ AllPaletteName::bliss, {{ 0,   0,   0,   0   },
+	{ PaletteName::bliss, {{ 0,   0,   0,   0   },
 	          { 115, 152, 30,  255 }, 
 	          { 115, 152, 30,  255 }, 
 	          { 61,  83,  23,  255 }, 
@@ -210,7 +258,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	          { 234, 242, 255, 255 }, 
 	          { 59,  115, 238, 255 }}
 	},
-	{ AllPaletteName::chasnah, {{0,   0,   0,   0  },
+	{ PaletteName::chasnah, {{0,   0,   0,   0  },
 				{111, 49,  221, 255},
 				{147, 45,  227, 255},
 				{58,  18,  162, 255},
@@ -219,7 +267,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 				{246, 245, 244, 255},
 				{233, 89,  245, 255}}
 	},
-	{ AllPaletteName::crystal, {{ 0,   0,   0,   0   },
+	{ PaletteName::crystal, {{ 0,   0,   0,   0   },
 	            { 56,  57,  158, 255 }, 
 	            { 81,  183, 207, 255 },
 	            { 28,  99,  216, 255 }, 
@@ -228,7 +276,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	            { 234, 242, 255, 255 }, 
 	            { 10,  26,  74,  255 }}
 	},
-	{ AllPaletteName::dejil, {{0,   0,   0,   0  },
+	{ PaletteName::dejil, {{0,   0,   0,   0  },
 			  {240, 240, 240, 255},
 			  {255, 255, 255, 255},
 			  {190, 190, 190, 255},
@@ -237,7 +285,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {240, 240, 240, 255},
 			  {171, 146, 94,  255}}
 	},
-	{ AllPaletteName::dzune, {{0,   0,   0,   0  },
+	{ PaletteName::dzune, {{0,   0,   0,   0  },
 			  {229, 97,  97,  255},
 			  {199, 86,  83,  255},
 			  {171, 50,  50,  255},
@@ -246,7 +294,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {250, 236, 236, 255},
 			  {55,  8,   8,   255}}
 	},
-	{ AllPaletteName::ellai, {{0,   0,   0,   0  },
+	{ PaletteName::ellai, {{0,   0,   0,   0  },
 			  {151, 204, 114, 255},
 			  {202, 236, 177, 255},
 			  {51,  133, 39,  255},
@@ -255,7 +303,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {69,  22,  14,  255}}
 	},
-	{ AllPaletteName::evjar, {{0,   0,   0,   0  },
+	{ PaletteName::evjar, {{0,   0,   0,   0  },
 			  {108, 39,  23,  255},
 			  {139, 66,  49,  255},
 			  {47,  28,  49,  255},
@@ -264,7 +312,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {14,  0,   25,  255}}
 	},
-	{ AllPaletteName::follow, {{ 0,   0,   0,   0   },
+	{ PaletteName::follow, {{ 0,   0,   0,   0   },
 	           { 222, 90,  41,  255 }, 
 	           { 208, 116, 45,  255 }, 
 	           { 10,  26,  74,  255 }, 
@@ -273,7 +321,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	           { 234, 242, 255, 255 }, 
 	           { 159, 137, 78,  255 }}
 	},
-	{ AllPaletteName::friend_, {{ 0,   0,   0,   0   },
+	{ PaletteName::friend_, {{ 0,   0,   0,   0   },
 	            { 160, 141, 119, 255 }, 
 	            { 188, 171, 150, 255 }, 
 	            { 67,  58,  45,  255 }, 
@@ -282,7 +330,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	            { 227, 221, 213, 255 },
 	            { 25,  23,  19,  255 }}
 	},
-	{ AllPaletteName::fruit, {{0,   0,   0,   0  },
+	{ PaletteName::fruit, {{0,   0,   0,   0  },
 			  {240, 95,  124, 255},
 			  {237, 120, 144, 255},
 			  {211, 64,  94,  255},
@@ -291,7 +339,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {222, 173, 91,  255},
 			  {235, 222, 110, 255}}
 	},
-	{ AllPaletteName::gimeljoy, {{0,   0,   0,   0  },
+	{ PaletteName::gimeljoy, {{0,   0,   0,   0  },
 				 {255, 222, 196, 255},
 				 {250, 196, 153, 255},
 				 {255, 179, 118, 255},
@@ -300,7 +348,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 				 {255, 161, 84,  255},
 				 {206, 145, 97,  255}}
 	},
-	{ AllPaletteName::gimelsad, {{0,   0,   0,   0  },
+	{ PaletteName::gimelsad, {{0,   0,   0,   0  },
 				 {196, 231, 255, 255},
 				 {129, 192, 236, 255},
 				 {95,  167, 218, 255},
@@ -309,7 +357,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 				 {55,  171, 252, 255},
 				 {61,  128, 175, 255}}
 	},
-	{ AllPaletteName::gimelYOO, {{0,   0,   0,   0  },
+	{ PaletteName::gimelYOO, {{0,   0,   0,   0  },
 				 {249, 196, 255, 255},
 				 {244, 146, 255, 255},
 				 {240, 108, 255, 255},
@@ -318,7 +366,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 				 {237, 68,  255, 255},
 				 {199, 103, 209, 255}}
 	},
-	{ AllPaletteName::home, {{ 0,   0,   0,   0   },
+	{ PaletteName::home, {{ 0,   0,   0,   0   },
 	         { 162, 97,  119, 255 }, 
 	         { 125, 90,  124, 255 }, 
 	         { 89,  59,  66,  255 }, 
@@ -327,7 +375,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	         { 255, 225, 231, 255 }, 
 	         { 89,  59,  66,  255 }}
 	},
-	{ AllPaletteName::jaela, {{0,   0,   0,   0  },
+	{ PaletteName::jaela, {{0,   0,   0,   0  },
 			  {248, 183, 101, 255},
 			  {246, 213, 142, 255},
 			  {169, 90,  46,  255},
@@ -336,7 +384,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {181, 40,  43,  255}}
 	},
-	{ AllPaletteName::jergh, {{0,   0,   0,   0  },
+	{ PaletteName::jergh, {{0,   0,   0,   0  },
 			  {231, 231, 231, 255},
 			  {243, 243, 235, 255},
 			  {180, 188, 209, 255},
@@ -345,7 +393,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {240, 240, 240, 255},
 			  {207, 144, 184, 255}}
 	},
-	{ AllPaletteName::kirii, {{0,   0,   0,   0  },
+	{ PaletteName::kirii, {{0,   0,   0,   0  },
 			  {74,  212, 191, 255},
 			  {68,  224, 209, 255},
 			  {44,  145, 151, 255},
@@ -354,7 +402,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {216, 255, 249, 255},
 			  {82,  83,  83,  255}}
 	},
-	{ AllPaletteName::kraza, {{0,   0,   0,   0  },
+	{ PaletteName::kraza, {{0,   0,   0,   0  },
 			  {89,  60,  43,  255},
 			  {119, 83,  54,  255},
 			  {59,  38,  32,  255},
@@ -363,7 +411,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {129, 206, 58,  255},
 			  {185, 58,  114, 255}}
 	},
-	{ AllPaletteName::llema, {{0,   0,   0,   0  },
+	{ PaletteName::llema, {{0,   0,   0,   0  },
 			  {78,  174, 139, 255},
 			  {132, 193, 156, 255},
 			  {61,  145, 119, 255},
@@ -372,7 +420,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 239, 225, 255},
 			  {22,  36,  50,  255}}
 	},
-	{ AllPaletteName::lotus, {{0,   0,   0,   0  },
+	{ PaletteName::lotus, {{0,   0,   0,   0  },
 			  {240, 37,  85,  255},
 			  {242, 82,  120, 255},
 			  {124, 27,  61,  255},
@@ -381,7 +429,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {243, 230, 233, 255},
 			  {171, 94,  57,  255}}
 	},
-	{ AllPaletteName::loxxe, {{0,   0,   0,   0  },
+	{ PaletteName::loxxe, {{0,   0,   0,   0  },
 			  {36,  57,  102, 255},
 			  {49,  72,  122, 255},
 			  {22,  39,  77,  255},
@@ -390,7 +438,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {164, 178, 182, 255},
 			  {11,  22,  44,  255}}
 	},
-	{ AllPaletteName::meazs, {{0,   0,   0,   0  },
+	{ PaletteName::meazs, {{0,   0,   0,   0  },
 			  {234, 130, 65,  255},
 			  {243, 171, 88,  255},
 			  {158, 59,  31,  255},
@@ -399,7 +447,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {185, 106, 194, 255}}
 	},
-	{ AllPaletteName::metis, {{0,   0,   0,   0  },
+	{ PaletteName::metis, {{0,   0,   0,   0  },
 			  {80,  193, 105, 255},
 			  {114, 211, 135, 255},
 			  {27,  112, 63,  255},
@@ -408,7 +456,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {41,  6,   59,  255}}
 	},
-	{ AllPaletteName::moonflower, {{ 0,   0,   0,   0   },
+	{ PaletteName::moonflower, {{ 0,   0,   0,   0   },
 	               { 234, 74,  113, 255 }, 
 	               { 246, 100, 204, 255 }, 
 	               { 180, 29,  61,  255 }, 
@@ -417,7 +465,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	               { 255, 255, 255, 255 }, 
 	               { 249, 183, 12,  255 }}
 	},
-	{ AllPaletteName::nachi, {{0,   0,   0,   0  },
+	{ PaletteName::nachi, {{0,   0,   0,   0  },
 			  {255, 84,  84,  255},
 			  {214, 56,  56,  255},
 			  {0,   255, 255, 255},
@@ -426,7 +474,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {0,   201, 201, 255}}
 	},
-	{ AllPaletteName::oom, {{0,   0,   0,   0  },
+	{ PaletteName::oom, {{0,   0,   0,   0  },
 			{6,   0,   132, 255},
 			{0,   0,   255, 255},
 			{4,   0,   77,  255},
@@ -435,7 +483,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			{255, 255, 255, 255},
 			{0,   0,   255, 255}}
 	},
-	{ AllPaletteName::peace, {{ 0,   0,   0,   0   },
+	{ PaletteName::peace, {{ 0,   0,   0,   0   },
 	          { 221, 253, 254, 255 }, 
 	          { 255, 255, 255, 255 }, 
 	          { 155, 219, 222, 255 }, 
@@ -444,7 +492,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	          { 221, 253, 254, 255 }, 
 	          { 155, 219, 222, 255 }}
 	},
-	{ AllPaletteName::power, {{ 0,   0,   0,   0   },
+	{ PaletteName::power, {{ 0,   0,   0,   0   },
 	          { 254, 160, 248, 255 }, 
 	          { 255, 195, 200, 255 },
 	          { 254, 10,  180, 255 }, 
@@ -453,7 +501,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	          { 255, 195, 200, 255 }, 
 	          { 254, 160, 248, 255 }}
 	},
-	{ AllPaletteName::purpleflower, {{ 0,   0,   0,   0   },
+	{ PaletteName::purpleflower, {{ 0,   0,   0,   0   },
                      { 121, 75,  124, 255 }, 
                      { 162, 124, 184, 255 }, 
                      { 70,  31,  62,  255 },
@@ -462,7 +510,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                      { 219, 255, 255, 255 }, 
                      { 20,  106, 114, 255 }}
 	},
-	{ AllPaletteName::radiance, {{ 0,   0,   0,   0   },
+	{ PaletteName::radiance, {{ 0,   0,   0,   0   },
                  { 55,  44,  36,  255 }, 
                  { 108, 102, 92,  255 }, 
                  { 0,   0,   0,   255 }, 
@@ -471,7 +519,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                  { 218, 195, 177, 255 }, 
                  { 146, 137, 122, 255 }}
 	},
-	{ AllPaletteName::redmoondesert, {{ 0,   0,   0,   0   },
+	{ PaletteName::redmoondesert, {{ 0,   0,   0,   0   },
                       { 137, 40,  11,  255 }, 
                       { 205, 83,  41,  255 }, 
                       { 62,  17,  9,   255 }, 
@@ -480,7 +528,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                       { 206, 219, 255, 255 }, 
                       { 21,  54,  122, 255 }}
 	},
-	{ AllPaletteName::ripple, {{ 0,   0,    0,   0   },
+	{ PaletteName::ripple, {{ 0,   0,    0,   0   },
                { 10,  164, 245, 255 }, 
                { 0,   189, 247, 255 }, 
                { 0,   87,  218, 255 }, 
@@ -489,7 +537,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                { 204, 204, 255, 255 }, 
                { 0,   49,  95,  255 }}
 	},
-	{ AllPaletteName::romal, {{0,   0,   0,   0  },
+	{ PaletteName::romal, {{0,   0,   0,   0  },
 			  {90,  49,  120, 255},
 			  {130, 81,  151, 255},
 			  {63,  31,  86,  255},
@@ -498,7 +546,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {101, 91,  107, 255}}
 	},
-	{ AllPaletteName::sillh, {{0,   0,   0,   0  },
+	{ PaletteName::sillh, {{0,   0,   0,   0  },
 			  {248, 221, 209, 255},
 			  {255, 238, 231, 255},
 			  {191, 146, 127, 255},
@@ -507,7 +555,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {255, 255, 255, 255},
 			  {198, 63,  59,  255}}
 	},
-	{ AllPaletteName::stonehenge, {{ 0,   0,   0,   0   },
+	{ PaletteName::stonehenge, {{ 0,   0,   0,   0   },
                    { 98,  126, 196, 255 }, 
                    { 166, 181, 226, 255 }, 
                    { 67,  88,  154, 255 }, 
@@ -516,7 +564,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                    { 238, 238, 255, 255 }, 
                    { 24,  43,  17,  255 }}
 	},
-	{ AllPaletteName::tulips, {{ 0,   0,   0,   0   },
+	{ PaletteName::tulips, {{ 0,   0,   0,   0   },
                { 211, 158, 14,  255 }, 
                { 183, 192, 230, 255 }, 
                { 123, 85,  5,   255 }, 
@@ -525,7 +573,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                { 255, 255, 238, 255 }, 
                { 28,  35,  40,  255 }}
 	},
-	{ AllPaletteName::vette, {{0,   0,   0,   0  },
+	{ PaletteName::vette, {{0,   0,   0,   0  },
 			  {170, 176, 207, 255},
 			  {112, 127, 202, 255},
 			  {116, 124, 168, 255},
@@ -534,7 +582,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 			  {213, 220, 255, 255},
 			  {77,  80,  100, 255}}
 	},
-	{ AllPaletteName::vortecspace, {{ 0,   0,   0,   0   },
+	{ PaletteName::vortecspace, {{ 0,   0,   0,   0   },
                     { 2,   156, 254, 255 }, 
                     { 2,   64,  222, 255 }, 
                     { 12,  31,  136, 255 }, 
@@ -543,7 +591,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                     { 12,  20,  42,  255 }, 
                     { 12,  31,  136, 255 }}
 	},
-	{ AllPaletteName::wind, {{ 0,   0,   0,   0   },
+	{ PaletteName::wind, {{ 0,   0,   0,   0   },
              { 203, 125, 84,  255 }, 
              { 243, 139, 65,  255 }, 
              { 107, 76,  48,  255 }, 
@@ -552,7 +600,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
              { 255, 238, 221, 255 }, 
              { 85,  105, 173, 255 }}
 	},
-	{ AllPaletteName::windowsxp, {{ 0,   0,   0,   0   },
+	{ PaletteName::windowsxp, {{ 0,   0,   0,   0   },
                   { 103, 157, 74,  255 }, 
                   { 91,  166, 49,  255 }, 
                   { 68,  99,  51,  255 }, 
@@ -561,7 +609,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
                   { 255, 238, 255, 255 }, 
                   { 68,  99,  51,  255 }}
 	},
-	{ AllPaletteName::yette, {{0,   0,   0,   0  },
+	{ PaletteName::yette, {{0,   0,   0,   0  },
 	 		  {69,  176, 238, 255},
 	 		  {96,  193, 249, 255},
 	 		  {35,  140, 201, 255},
@@ -570,7 +618,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	 		  {232, 249, 255, 255},
 	 		  {133, 135, 193, 255}}
 	},
-	{ AllPaletteName::zehal, {{0,   0,   0,   0  },
+	{ PaletteName::zehal, {{0,   0,   0,   0  },
 	 		  {234, 179, 117, 255},
 	 		  {232, 198, 133, 255},
 	 		  {173, 116, 85,  255},
@@ -579,7 +627,7 @@ const static std::map<AllPaletteName, Palette> PALETTES({
 	 		  {251, 251, 215, 255},
 	 		  {79,  45,  27,  255}}
 	},
-	{ AllPaletteName::zoog, {{0,   0,   0,   0  },
+	{ PaletteName::zoog, {{0,   0,   0,   0  },
 	 		 {159, 41,  54,  255},
 	 		 {199, 69,  69,  255},
 	 		 {133, 26,  38,  255},

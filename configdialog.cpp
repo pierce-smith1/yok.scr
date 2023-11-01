@@ -112,6 +112,6 @@ void ConfigDialog::refresh() {
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	ComboBox_SelectString(palette_box, -1, palette_strings.at(
-		(SpritePalette)m_current_config.at(YonkPalette)).c_str()
+		(PaletteGroup) m_current_config.at(YonkPalette)).c_str()
 	);
 }

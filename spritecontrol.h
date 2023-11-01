@@ -19,7 +19,7 @@ enum SpritePattern {
 	_PATTERN_COUNT
 };
 
-enum SpritePalette {
+enum class PaletteGroup {
 	All,
 	Canon,
 	NonCanon,
@@ -34,9 +34,9 @@ public:
 
 private:
 	const Texture *next_texture() const;
-	AllPaletteName next_palette() const;
+	PaletteName next_palette() const;
 
-	std::vector<AllPaletteName> m_palettes;
+	std::vector<PaletteName> m_palettes;
 };
 
 class SpriteChoreographer {
