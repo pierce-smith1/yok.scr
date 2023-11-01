@@ -70,9 +70,8 @@ void SpriteChoreographer::change_pattern() {
 	// But not, of course, when we're just getting started.
 	if (m_ctx->frame_count() % (int) cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0) {
 		m_pattern = (PatternName) (Noise::random() * _PATTERN_COUNT);
+		update_player();
 	}
-
-	update_player();
 }
 
 void SpriteChoreographer::update_player() {
@@ -103,7 +102,7 @@ SinglePassPlayer::SinglePassPlayer(Sprites *sprites, Context *ctx)
 
 void SinglePassPlayer::update() {
 	for (Sprite *sprite : *m_sprites) {
-		move_functions[m_pattern](sprite, m_ctx, hash(sprite->id()));
+		move_functions[m_pattern](sprite, m_ctx, hash(sprite->id() + m_hash_offset));
 		sprite->update(*m_ctx);
 	}
 }
@@ -201,7 +200,7 @@ GlobalPlayer::GlobalPlayer(Sprites *sprites, Context *ctx)
 	: PatternPlayer(sprites, ctx) { }
 
 void GlobalPlayer::update() {
-	move_functions.at(m_pattern)(m_sprites, m_ctx, [&](Id id) -> float { return hash(id); });
+	move_functions.at(m_pattern)(m_sprites, m_ctx, [&](Id id) -> float { return hash(id + m_hash_offset); });
 
 	for (Sprite *sprite : *m_sprites) {
 		sprite->update(*m_ctx);
@@ -218,9 +217,10 @@ std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 
 std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<float(Id)> get_offset) {
-		float stretch_ratio = (float) (ctx->rect().bottom) / ctx->rect().right;
-		const static float BUBBLE_Y_RADIUS = 0.1f;
-		const static float BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * stretch_ratio;
+		const static float SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
+		const static float STRETCH_RATIO = (float) (ctx->rect().bottom) / ctx->rect().right;
+		const static float BUBBLE_Y_RADIUS = (10.0f / (cfg.at(SpriteCount) / 1.5f + 40.0f)) * std::powf(SCREEN_SIZE / (1080 * 1920) / 3.0f + 0.7f, 1.1f);
+		const static float BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;
 
@@ -228,7 +228,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			for (const Sprite* sprite : *sprites) {
 				float radians = Noise::random() * M_PI * 2;
 				float mag = Noise::random() + 0.4f;
-				velocity[sprite->id()] = { std::cos(radians) * mag, std::sin(radians) * mag };
+				velocity[sprite->id()] = { std::cosf(radians) * mag, std::sinf(radians) * mag };
 			}
 		}
 
@@ -243,7 +243,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				Sprite *b = (*sprites)[j];
 
 				float dist_x = a->final<X>() - b->final<X>();
-				float dist_y = (a->final<Y>() - b->final<Y>()) * stretch_ratio;
+				float dist_y = (a->final<Y>() - b->final<Y>()) * STRETCH_RATIO;
 				float dist = std::sqrt(dist_x * dist_x + dist_y * dist_y);
 
 				if (dist < BUBBLE_X_RADIUS) {
@@ -288,16 +288,16 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
 			glBegin(GL_LINE_LOOP);
-			for (int ii = 0; ii < 20; ii++) {
-				float theta = 2.0f * 3.1415926f * float(ii) / float(20);//get the current angle 
-				float x = BUBBLE_X_RADIUS / 2 * cosf(theta);//calculate the x component 
-				float y = BUBBLE_Y_RADIUS / 2 * sinf(theta);//calculate the y component 
-				glVertex2f(x + sprite->final<X>(), y + sprite->final<Y>());//output vertex 
+			for (int i = 0; i < 20; i++) {
+				float theta = 2.0f * M_PI * i / 20.0f;
+				float x = BUBBLE_X_RADIUS / 2 * std::cosf(theta);
+				float y = BUBBLE_Y_RADIUS / 2 * std::sinf(theta);
+				glVertex2f(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
 
 			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg.at(TimeDivisor) * 0.5f;
-			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / stretch_ratio * 0.5f;
+			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
 		}
 	}},
 };
