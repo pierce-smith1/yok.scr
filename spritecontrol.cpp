@@ -225,7 +225,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, Point> velocity;
 
 		if (velocity.empty()) {
-			for (const Sprite* sprite : *sprites) {
+			for (const Sprite *sprite : *sprites) {
 				float radians = Noise::random() * M_PI * 2;
 				float mag = Noise::random() + 0.4f;
 				velocity[sprite->id()] = { std::cosf(radians) * mag, std::sinf(radians) * mag };
