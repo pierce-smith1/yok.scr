@@ -10,7 +10,7 @@
 
 #include "context.h"
 
-enum PaletteName;
+enum class PaletteName;
 enum BitmapName;
 
 constexpr static unsigned int BITMAP_WH = 128;
