@@ -12,7 +12,7 @@ SpriteGenerator::SpriteGenerator() {
 
 	std::vector<PaletteName> bag_of_palettes = PALETTES_BY_GROUP.at((PaletteGroup) (cfg.at(YonkPalette)));
 
-	int max_colors = round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
+	int max_colors = (int)round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
 	max_colors = std::clamp(max_colors, (int)config_ranges.at(MaxColors).first, (int)bag_of_palettes.size());
 
 	for (int i = 0; i < max_colors; i++) {

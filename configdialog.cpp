@@ -112,7 +112,7 @@ void ConfigDialog::refresh() {
 	}
 
 	// these should probably be put somewhere else at some point
-	if (m_current_config.at(YonkPattern) < 0 || m_current_config.at(YonkPattern) >= _PATTERN_COUNT)
+	if (m_current_config.at(YonkPattern) < 0 || m_current_config.at(YonkPattern) >= (int)_PATTERN_COUNT)
 	{
 		m_current_config.at(YonkPattern) = 0;
 	}
