@@ -35,6 +35,7 @@ void Sprite::draw(Context &ctx) {
 
 	glEnd();
 	glPopMatrix();
+
 }
 
 void Sprite::update(Context &ctx) {
@@ -50,6 +51,10 @@ void Sprite::update(Context &ctx) {
 
 	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
 	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
+}
+
+Point &Sprite::home() {
+	return m_home;
 }
 
 void Sprite::transform() {

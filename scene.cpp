@@ -8,7 +8,7 @@ Scene::Scene(HWND window)
 	// Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
 	  m_sprites(SpriteGenerator().make(cfg.at(SpriteCount))),
-	  m_choreographer((SpritePattern) cfg.at(YonkPattern), m_sprites, &m_ctx) { }
+	  m_choreographer((PatternName) cfg.at(YonkPattern), &m_sprites, &m_ctx) { }
 
 void Scene::draw() {
 	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);
