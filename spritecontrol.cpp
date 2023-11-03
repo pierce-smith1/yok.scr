@@ -2,6 +2,7 @@
 #include "resources.h"
 #include "config.h"
 #include "noise.h"
+#include "configdialog.h"
 
 using std::get;
 
@@ -9,12 +10,14 @@ SpriteGenerator::SpriteGenerator() {
 	using namespace std::chrono;
 	std::srand(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
-	std::vector<int> bag_of_palettes(_PALETTE_COUNT);
-	std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
+	std::vector<PaletteName> bag_of_palettes = PALETTES_BY_GROUP.at((PaletteGroup) (cfg.at(YonkPalette)));
 
-	for (int i = 0; i < round(cfg.at(MaxColors)); i++) {
+	int max_colors = (int)round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
+	max_colors = std::clamp(max_colors, (int)config_ranges.at(MaxColors).first, (int)bag_of_palettes.size());
+
+	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
-		m_palettes.push_back((PaletteName) bag_of_palettes[random_palette_index]);
+		m_palettes.push_back((PaletteName)bag_of_palettes[random_palette_index]);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
 	}
 }
@@ -24,7 +27,7 @@ std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 
 	for (float y = -1.2f; y < 1.2f; y += 1.0f / sqrt(cfg.at(SpriteCount))) {
 		for (float x = -1.2f; x < 1.2f; x += 1.0f / sqrt(cfg.at(SpriteCount))) {
-			if (Noise::random() < 0.002f) {
+			if (Noise::random() < pow(cfg.at(ImpostorChance), 3)) {
 				sprites.push_back(new Impostor(next_palette(), Point(x, y)));
 			} else {
 				sprites.push_back(new Yonker(next_texture(), Point(x, y)));

@@ -18,6 +18,8 @@ enum ConfigOption {
 	YonkPattern,
 	PatternChangeInterval,
 	IsPatternFixed,
+	ImpostorChance,
+	YonkPalette,
 	_CONFIG_OPTIONS_END
 };
 
@@ -47,5 +49,7 @@ const static Config cfg_defaults = {
 	{ YonkPattern, 0.0f },
 	{ PatternChangeInterval, 60.0f * 15.0f },
 	{ IsPatternFixed, 0.0f },
+	{ ImpostorChance, (float)pow(0.002f, 1.0f/3.0f) },	// i'm sorry
+	{ YonkPalette, 0.0f }
 };
 const static Config cfg = Registry().get_config();

@@ -13,8 +13,8 @@ public:
 	void save();
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	BOOL slider_changed(WPARAM wparam, HWND slider);
-	BOOL combobox_changed(HWND combobox);
 	BOOL pattern_fix_checked(WPARAM wparam, HWND checkbox);
+	BOOL combobox_changed(HWND combobox, int option);
 	
 private:
 	int encodef(float value);
@@ -41,6 +41,7 @@ const static std::map<ConfigOption, std::pair<float, float>> config_ranges = {
 	{ SpriteSize, { 10.0f, 200.0f }},
 	{ YonkShakeFactor, { 0.0f, 5.0f }},
 	{ PatternChangeInterval, { 30.0f, 60.0f * 30.0f }},
+	{ ImpostorChance, {0.0f, 1.0f }},
 };
 
 const static std::map<ConfigOption, int> slider_ids = {
@@ -54,6 +55,8 @@ const static std::map<ConfigOption, int> slider_ids = {
 	{ YonkShakeFactor, IDC_YONK_SHAKE_FACTOR },
 	{ YonkPattern, IDC_YONK_PATTERN },
 	{ PatternChangeInterval, IDC_PATTERN_CHANGE_INTERVAL },
+	{ ImpostorChance, IDC_IMPOSTOR_CHANCE },
+	{ YonkPalette, IDC_YONK_PALETTE },
 };
 
 const static std::map<SpritePattern, std::wstring> pattern_strings = {
@@ -64,4 +67,10 @@ const static std::map<SpritePattern, std::wstring> pattern_strings = {
 	{ Lissajous, L"Lissajous" },
 	{ Rose, L"Rose" },
 	{ Lattice, L"Lattice" },
+};
+
+const static std::map<PaletteGroup, std::wstring> palette_strings = {
+	{ PaletteGroup::All, L"All" },
+	{ PaletteGroup::Canon, L"Canon" },
+	{ PaletteGroup::NonCanon, L"Non-Canon" },
 };

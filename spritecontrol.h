@@ -19,6 +19,13 @@ enum SpritePattern {
 	_PATTERN_COUNT
 };
 
+enum class PaletteGroup {
+	All,
+	Canon,
+	NonCanon,
+	_PALETTE_OPTION_COUNT
+};
+
 class SpriteGenerator {
 public:
 	SpriteGenerator();
