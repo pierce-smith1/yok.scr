@@ -180,9 +180,7 @@
   <ItemGroup>
     <Image Include="bitmaps\cvjoy.bmp" />
     <Image Include="bitmaps\fn.bmp" />
-    <Image Include="bitmaps\fnplead.bmp" />
     <Image Include="bitmaps\cvyoy.bmp" />
-    <Image Include="bitmaps\fn.bmp" />
     <Image Include="bitmaps\fnplead.bmp" />
     <Image Include="bitmaps\fnyoy.bmp" />
     <Image Include="bitmaps\lk.bmp" />

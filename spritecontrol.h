@@ -93,6 +93,7 @@ public:
 
 protected:
 	void change_pattern();
+	bool should_change_pattern();
 	void update_player();
 
 	Sprites *m_sprites;

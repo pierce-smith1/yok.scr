@@ -65,16 +65,24 @@ SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *spri
 
 void SpriteChoreographer::update() {
 	m_current_player->update();
-	change_pattern();
+	if (should_change_pattern()) {
+		change_pattern();
+	}
+}
+
+bool SpriteChoreographer::should_change_pattern() {
+	if (cfg.at(IsPatternFixed)) {
+		return false;
+	}
+
+	// We must change the pattern every so often...
+	// But not, of course, when we're just getting started.
+	return m_ctx->frame_count() % (int) cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0;
 }
 
 void SpriteChoreographer::change_pattern() {
-	// We must change the pattern every so often...
-	// But not, of course, when we're just getting started.
-	if (m_ctx->frame_count() % (int) cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0) {
-		m_pattern = (PatternName) (Noise::random() * _PATTERN_COUNT);
-		update_player();
-	}
+	m_pattern = (PatternName) (Noise::random() * _PATTERN_COUNT);
+	update_player();
 }
 
 void SpriteChoreographer::update_player() {
