@@ -17,6 +17,7 @@ enum ConfigOption {
 	YonkShakeFactor,
 	YonkPattern,
 	PatternChangeInterval,
+	IsPatternFixed,
 	ImpostorChance,
 	YonkPalette,
 	_CONFIG_OPTIONS_END
@@ -47,6 +48,7 @@ const static Config cfg_defaults = {
 	{ YonkShakeFactor, 2.0f },
 	{ YonkPattern, 0.0f },
 	{ PatternChangeInterval, 60.0f * 15.0f },
+	{ IsPatternFixed, 0.0f },
 	{ ImpostorChance, (float)pow(0.002f, 1.0f/3.0f) },	// i'm sorry
 	{ YonkPalette, 0.0f }
 };
