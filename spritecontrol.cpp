@@ -296,6 +296,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		}
 
 		for (Sprite *sprite : *sprites) {
+			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg.at(TimeDivisor) * 0.5f;
+			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
+
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
 			glBegin(GL_LINE_LOOP);
@@ -306,9 +309,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				glVertex2f(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
-
-			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg.at(TimeDivisor) * 0.5f;
-			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
 		}
 	}},
 };
