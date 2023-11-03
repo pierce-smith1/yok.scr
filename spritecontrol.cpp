@@ -10,13 +10,12 @@ SpriteGenerator::SpriteGenerator() {
 	using namespace std::chrono;
 	std::srand(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
-	//std::vector<int> bag_of_palettes(static_cast<int>(PaletteName::_PALETTE_COUNT));
-	//std::iota(bag_of_palettes.begin(), bag_of_palettes.end(), 0);
 	std::vector<PaletteName> bag_of_palettes = PALETTES_BY_GROUP.at((PaletteGroup) (cfg.at(YonkPalette)));
 
-	float maxColors = cfg.at(MaxColors) * (bag_of_palettes.size() / config_ranges.at(MaxColors).second);
+	int max_colors = round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
+	max_colors = std::clamp(max_colors, (int)config_ranges.at(MaxColors).first, (int)bag_of_palettes.size());
 
-	for (int i = 0; i < round(maxColors); i++) {
+	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
 		m_palettes.push_back((PaletteName)bag_of_palettes[random_palette_index]);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);

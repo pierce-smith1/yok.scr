@@ -111,21 +111,21 @@ void ConfigDialog::refresh() {
 		SendMessage(slider, TBM_SETPOS, TRUE, encodef(m_current_config.at(entry.first)));
 	}
 
+	// these should probably be put somewhere else at some point
 	if (m_current_config.at(YonkPattern) < 0 || m_current_config.at(YonkPattern) >= _PATTERN_COUNT)
 	{
-		MessageBox(NULL, (LPCWSTR)L"Yonk Pattern was set to an out of range option!\nIt will be reset to default.", (LPCWSTR)L"Yok.scr", MB_ICONWARNING | MB_OK);
 		m_current_config.at(YonkPattern) = 0;
 	}
+	if (m_current_config.at(YonkPalette) < 0 || m_current_config.at(YonkPalette) >= (int)PaletteGroup::_PALETTE_OPTION_COUNT)
+	{
+		m_current_config.at(YonkPalette) = 0;
+	}
+
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
 		(SpritePattern)m_current_config.at(YonkPattern)).c_str()
 	);
 
-	if (m_current_config.at(YonkPalette) < 0 || m_current_config.at(YonkPalette) >= static_cast<int>(PaletteGroup::_PALETTE_OPTION_COUNT))
-	{
-		MessageBox(NULL, (LPCWSTR)L"Yonk Palette was set to an out of range option!\nIt will be reset to default.", (LPCWSTR)L"Yok.scr", MB_ICONWARNING | MB_OK);
-		m_current_config.at(YonkPalette) = 0;
-	}
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	ComboBox_SelectString(palette_box, -1, palette_strings.at(
 		(PaletteGroup)m_current_config.at(YonkPalette)).c_str()

@@ -106,6 +106,12 @@ enum class PaletteName {
 	_PALETTE_COUNT,
 };
 
+inline std::vector<PaletteName> make_all_palettes() {
+	std::vector<PaletteName> all_palettes((size_t)PaletteName::_PALETTE_COUNT);
+	std::generate(all_palettes.begin(), all_palettes.end(), [n = 0]() mutable { return (PaletteName)n++; });
+	return all_palettes;
+}
+
 const static std::map<PaletteGroup, std::vector<PaletteName>> PALETTES_BY_GROUP({
 	{ PaletteGroup::Canon, {
 		PaletteName::aemil,
@@ -158,56 +164,7 @@ const static std::map<PaletteGroup, std::vector<PaletteName>> PALETTES_BY_GROUP(
 		PaletteName::yette,
 		PaletteName::zehal,
 	}},
-	{ PaletteGroup::All, {	// :lkfear:
-		PaletteName::aemil,
-		PaletteName::dzune,
-		PaletteName::ellai,
-		PaletteName::evjar,
-		PaletteName::gimeljoy,
-		PaletteName::gimelsad,
-		PaletteName::gimelYOO,
-		PaletteName::jaela,
-		PaletteName::jergh,
-		PaletteName::kirii,
-		PaletteName::kraza,
-		PaletteName::llema,
-		PaletteName::lotus,
-		PaletteName::loxxe,
-		PaletteName::meazs,
-		PaletteName::metis,
-		PaletteName::romal,
-		PaletteName::sillh,
-		PaletteName::vette,
-		PaletteName::zoog,
-
-		PaletteName::autumn,
-		PaletteName::ascent,
-		PaletteName::azul,
-		PaletteName::bliss,
-		PaletteName::chasnah,
-		PaletteName::crystal,
-		PaletteName::dejil,
-		PaletteName::follow,
-		PaletteName::friend_,
-		PaletteName::fruit,
-		PaletteName::home,
-		PaletteName::moonflower,
-		PaletteName::nachi,
-		PaletteName::oom,
-		PaletteName::peace,
-		PaletteName::power,
-		PaletteName::purpleflower,
-		PaletteName::radiance,
-		PaletteName::redmoondesert,
-		PaletteName::ripple,
-		PaletteName::stonehenge,
-		PaletteName::tulips,
-		PaletteName::vortecspace,
-		PaletteName::wind,
-		PaletteName::windowsxp,
-		PaletteName::yette,
-		PaletteName::zehal,
-	}}}
+	{ PaletteGroup::All, make_all_palettes() }}
 );
 
 Bitmap *load_bitmap(BitmapName name);
