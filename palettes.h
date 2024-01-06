@@ -33,5 +33,5 @@ private:
 	static Color random_color();
 	static Color darken_color(const Color &color);
 	static Color lighten_color(const Color &color);
-}
+};
 

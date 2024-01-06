@@ -1,5 +1,6 @@
 #include <map>
 #include <algorithm>
+#include <vector>
 
 #include "palettes.h"
 #include "common.h"
@@ -31,7 +32,7 @@ Palette *RandomPalettes::new_random_palette() {
 
 	colors[PI_SCALES] = random_color();
 	colors[PI_HORNS] = random_color();
-	colors[PI_EYE] = random_color();
+	colors[PI_EYE] = darken_color(random_color());
 	colors[PI_WHITES] = { 240, 240, 240, 255 };
 
 	colors[PI_SCALES_HIGHLIGHT] = lighten_color(colors[PI_SCALES]);
