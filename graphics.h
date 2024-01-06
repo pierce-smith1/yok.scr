@@ -9,51 +9,12 @@
 #include <string>
 
 #include "context.h"
+#include "palettes.h"
+#include "common.h"
 
-enum class PaletteName;
 enum BitmapName;
 
 constexpr static unsigned int BITMAP_WH = 128;
-
-using Color = std::tuple<BYTE, BYTE, BYTE, BYTE>;
-enum Channel {
-	RED = 0,
-	GREEN = 1,
-	BLUE = 2,
-	ALPHA = 3
-};
-
-using Id = unsigned int;
-static Id running_id = 0;
-
-class Empty {};
-template <typename Base> class Identifiable : public Base {
-public:
-	Identifiable() : m_id(running_id++) {}
-
-	Id id() const {
-		return m_id;
-	}
-
-private:
-	const Id m_id;
-};
-
-enum PaletteIndex {
-	PI_TRANSPARENT = 0,      
-	PI_SCALES = 1,          
-	PI_SCALES_HIGHLIGHT = 2,  
-	PI_SCALES_SHADOW = 3,     
-	PI_HORNS = 4,
-	PI_EYE = 5,
-	PI_WHITES = 6,
-	PI_HORNS_SHADOW = 7,
-	_PALETTE_SIZE
-};
-class Palette : public Identifiable<std::array<Color, _PALETTE_SIZE>> {
-public:
-	Palette(const std::initializer_list<Color> &i_list);
-};
 
 class Bitmap : public Identifiable<std::array<GLubyte, BITMAP_WH * BITMAP_WH>> {
 public:
