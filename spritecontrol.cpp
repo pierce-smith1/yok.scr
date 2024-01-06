@@ -12,14 +12,26 @@ SpriteGenerator::SpriteGenerator() {
 	using namespace std::chrono;
 	std::srand(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
-	std::vector<PaletteName> bag_of_palettes = PALETTES_BY_GROUP.at((PaletteGroup) (cfg.at(YonkPalette)));
+	PaletteGroup palette_group = (PaletteGroup) (cfg.at(YonkPalette));
+
+	std::vector<const Palette *> bag_of_palettes;
+	if (palette_group == PaletteGroup::RandomlyGenerated) {
+		for (int i = (int) config_ranges.at(MaxColors).first; i < (int) config_ranges.at(MaxColors).second; i++) {
+			bag_of_palettes.push_back(RandomPalettes::random(i));
+		}
+	} else {
+		auto palette_names = PALETTES_BY_GROUP.at(palette_group);
+		for (auto name : palette_names) {
+			bag_of_palettes.push_back(&PALETTES.at(name));
+		}
+	}
 
 	int max_colors = (int)round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
 	max_colors = std::clamp(max_colors, (int)config_ranges.at(MaxColors).first, (int)bag_of_palettes.size());
 
 	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
-		m_palettes.push_back((PaletteName)bag_of_palettes[random_palette_index]);
+		m_palettes.push_back(bag_of_palettes[random_palette_index]);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
 	}
 }
@@ -44,13 +56,13 @@ const Texture *SpriteGenerator::next_texture() const {
 	return Texture::of(next_palette(), lk);
 }
 
-PaletteName SpriteGenerator::next_palette() const {
+const Palette *SpriteGenerator::next_palette() const {
 	// A weighted coin?! Now that's certainly cheating!
 	// You'd be kicked outta Vegas for logarithmic repeating.
 	while (true) {
-		for (PaletteName palette_name : m_palettes) {
+		for (auto palette : m_palettes) {
 			if (Noise::random() < 1.8f / cfg.at(MaxColors)) {
-				return palette_name;
+				return palette;
 			}
 		}
 	}

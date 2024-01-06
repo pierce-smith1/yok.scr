@@ -12,7 +12,7 @@ Palette::Palette(const std::initializer_list<Color> &i_list) {
 	std::copy(i_list.begin(), i_list.end(), begin());
 }
 
-const Palette &RandomPalettes::random(int rng_token) {
+const Palette *RandomPalettes::random(int rng_token) {
 	static std::map<int, Palette *> generated_palettes;
 
 	auto result = generated_palettes.find(rng_token);
@@ -21,7 +21,7 @@ const Palette &RandomPalettes::random(int rng_token) {
 		generated_palettes[rng_token] = new_random_palette();
 	}
 
-	return *generated_palettes.at(rng_token);
+	return generated_palettes.at(rng_token);
 }
 
 Palette *RandomPalettes::new_random_palette() {

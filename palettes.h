@@ -24,12 +24,14 @@ public:
 	Palette(const std::initializer_list<Color> &i_list);
 };
 
-namespace RandomPalettes {
-	const Palette &random(int rng_token);
+class RandomPalettes {
+public:
+	static const Palette *random(int rng_token);
 
-	Palette *new_random_palette();
-	Color random_color();
-	Color darken_color(const Color &color);
-	Color lighten_color(const Color &color);
+private:
+	static Palette *new_random_palette();
+	static Color random_color();
+	static Color darken_color(const Color &color);
+	static Color lighten_color(const Color &color);
 }
 

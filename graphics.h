@@ -26,6 +26,7 @@ class Texture {
 public:
 	static const Texture *get(const Palette &palette, const Bitmap &bitmap);
 	static const Texture *of(PaletteName palette_name, BitmapName bitmap_name);
+	static const Texture *of(const Palette *palette, BitmapName bitmap_name);
 
 	const Palette &palette() const;
 
