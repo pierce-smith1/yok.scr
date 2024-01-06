@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "configdialog.h"
+#include "yokscr.h"
 
 ConfigDialog::ConfigDialog(HWND dialog)
 	: m_dialog(dialog), m_current_config(m_registry.get_config())
@@ -116,6 +117,10 @@ float ConfigDialog::decodef(int value) {
 }
 
 void ConfigDialog::refresh() {
+	HWND version_label = GetDlgItem(m_dialog, IDC_VERSION_LABEL);
+	std::wstring version_label_text = L"yokscr version " + YOKSCR_VERSION;
+	SendMessage(version_label, WM_SETTEXT, NULL, (LPARAM) version_label_text.c_str());
+
 	for (const auto &entry : config_ranges) {
 		HWND slider = GetDlgItem(m_dialog, slider_ids.at(entry.first));
 		SendMessage(slider, TBM_SETRANGEMIN, TRUE, encodef(entry.second.first));
