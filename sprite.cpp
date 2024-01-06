@@ -1,7 +1,10 @@
+#include <algorithm>
+
 #include "sprite.h"
 #include "noise.h"
 #include "resources.h"
 #include "config.h"
+#include "common.h"
 
 using std::get;
 
@@ -97,12 +100,8 @@ void Yonker::update(Context &ctx) {
 }
 
 const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
-	auto clamp = [](int n, int min, int max) -> int {
-		return n < min ? min : (n > max) ? max : n;
-	};
-
-	auto emotion_map_index_of = [clamp](float emotion) -> int {
-		return clamp(round(emotion * cfg.at(YonkEmotionScale)), -1, 1) + 1;
+	auto emotion_map_index_of = [](float emotion) -> int {
+		return std::clamp((int) round(emotion * cfg.at(YonkEmotionScale)), -1, 1) + 1;
 	};
 
 	int empathetic = emotion_map_index_of(m_emotion_vector[EMPATHY]);

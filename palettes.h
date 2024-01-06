@@ -20,11 +20,16 @@ enum PaletteIndex {
 };
 class Palette : public Identifiable<std::array<Color, _PALETTE_SIZE>> {
 public:
+	Palette(const std::array<Color, _PALETTE_SIZE> &colors);
 	Palette(const std::initializer_list<Color> &i_list);
-
-	static const Palette &random(int rng_token);
-
-private:
-	static Palette *new_random_palette();
 };
+
+namespace RandomPalettes {
+	const Palette &random(int rng_token);
+
+	Palette *new_random_palette();
+	Color random_color();
+	Color darken_color(const Color &color);
+	Color lighten_color(const Color &color);
+}
 

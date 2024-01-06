@@ -27,6 +27,7 @@ enum class PaletteGroup {
 	All,
 	Canon,
 	NonCanon,
+	RandomlyGenerated,
 	_PALETTE_OPTION_COUNT
 };
 
