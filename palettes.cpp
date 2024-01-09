@@ -167,7 +167,7 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 	};
 
 	const static std::map<GenerationTraits, float> trait_chances = {
-		{ GenerationTraits::ColorfulHorns, random_inverse_falloff_percent(1.0f) },
+		{ GenerationTraits::ColorfulHorns, random_inverse_falloff_percent(0.7f) },
 		{ GenerationTraits::SwapHornsAndScales, random_inverse_falloff_percent(0.4f) },
 		{ GenerationTraits::BlackEyes, random_inverse_falloff_percent(0.2f) },
 		{ GenerationTraits::PastelScales, random_inverse_falloff_percent(0.3f) },
