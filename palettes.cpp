@@ -29,7 +29,7 @@ const Palette *RandomPalettes::random(int rng_token) {
 }
 
 Palette *RandomPalettes::new_random_palette() {
-	static int bias_intensity = (int) (1.0f / (cfg.at(MaxColors) / config_ranges.at(MaxColors).second) * 3.0f);
+	static int bias_intensity = (int) (30.0f / ((cfg.at(MaxColors) + 14.0f) / config_ranges.at(MaxColors).second));
 
 	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
 	static float green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
@@ -163,7 +163,7 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 			return 1.0f; // Very ocassionally, a trait will have 100% chance
 		}
 
-		return 1.0f / ((rand() % 500 / 100.0f) + 0.25f) * scale;
+		return 1.0f / ((rand() % 300 / 100.0f + 2) + 0.25f) * scale;
 	};
 
 	const static std::map<GenerationTraits, float> trait_chances = {
