@@ -158,12 +158,20 @@ Color RandomPalettes::recolorize(const Color &color, float red_weight, float gre
 }
 
 std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
+	auto random_inverse_falloff_percent = [](float scale) -> float {
+		if (rand() % 50 == 0) {
+			return 1.0f; // Very ocassionally, a trait will have 100% chance
+		}
+
+		return 1.0f / ((rand() % 500 / 100.0f) + 0.25f) * scale;
+	};
+
 	const static std::map<GenerationTraits, float> trait_chances = {
-		{ GenerationTraits::ColorfulHorns, 0.5f },
-		{ GenerationTraits::SwapHornsAndScales, 0.1f },
-		{ GenerationTraits::BlackEyes, 0.05f },
-		{ GenerationTraits::PastelScales, 0.2f },
-		{ GenerationTraits::CrystalBody, 0.1f },
+		{ GenerationTraits::ColorfulHorns, random_inverse_falloff_percent(1.0f) },
+		{ GenerationTraits::SwapHornsAndScales, random_inverse_falloff_percent(0.4f) },
+		{ GenerationTraits::BlackEyes, random_inverse_falloff_percent(0.2f) },
+		{ GenerationTraits::PastelScales, random_inverse_falloff_percent(0.3f) },
+		{ GenerationTraits::CrystalBody, random_inverse_falloff_percent(0.2f) },
 	};
 
 	std::set<GenerationTraits> traits;
