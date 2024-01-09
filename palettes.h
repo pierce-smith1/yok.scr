@@ -34,6 +34,8 @@ private:
 		ColorfulHorns,
 		SwapHornsAndScales,
 		BlackEyes,
+		PastelScales,
+		CrystalBody,
 	};
 
 	static Palette *new_random_palette();

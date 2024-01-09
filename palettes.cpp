@@ -46,17 +46,22 @@ Palette *RandomPalettes::new_random_palette() {
 		color = recolorize(color, red_bias, green_bias, blue_bias);
 	}
 
+	colors[PI_WHITES] = { 240, 240, 240, 255 };
+
 	auto traits = random_traits();
 
 	if (traits.find(GenerationTraits::ColorfulHorns) != traits.end()) {
 		colors[PI_HORNS] = random_color();
 	}
 
+	if (traits.find(GenerationTraits::PastelScales) != traits.end()) {
+		colors[PI_SCALES] = lighten_color(lighten_color(colors[PI_SCALES]));
+		colors[PI_WHITES] = { 255, 255, 255, 255 };
+	}
+
 	if (traits.find(GenerationTraits::SwapHornsAndScales) != traits.end()) {
 		std::swap(colors[PI_HORNS], colors[PI_SCALES]);
 	}
-
-	colors[PI_WHITES] = { 240, 240, 240, 255 };
 
 	if (traits.find(GenerationTraits::BlackEyes) != traits.end()) {
 		colors[PI_WHITES] = { 0, 0, 0, 255 };
@@ -65,8 +70,13 @@ Palette *RandomPalettes::new_random_palette() {
 
 	colors[PI_SCALES_HIGHLIGHT] = lighten_color(colors[PI_SCALES]);
 	colors[PI_SCALES_SHADOW] = darken_color(colors[PI_SCALES]);
-
 	colors[PI_HORNS_SHADOW] = darken_color(colors[PI_HORNS]);
+
+	if (traits.find(GenerationTraits::CrystalBody) != traits.end()) {
+		colors[PI_SCALES_HIGHLIGHT] = darken_color(colors[PI_SCALES]);
+		colors[PI_SCALES_SHADOW] = lighten_color(colors[PI_SCALES]);
+		colors[PI_HORNS_SHADOW] = lighten_color(colors[PI_HORNS]);
+	}
 
 	colors[PI_TRANSPARENT] = { 0, 0, 0, 0 };
 
@@ -152,6 +162,8 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 		{ GenerationTraits::ColorfulHorns, 0.5f },
 		{ GenerationTraits::SwapHornsAndScales, 0.1f },
 		{ GenerationTraits::BlackEyes, 0.05f },
+		{ GenerationTraits::PastelScales, 0.2f },
+		{ GenerationTraits::CrystalBody, 0.1f },
 	};
 
 	std::set<GenerationTraits> traits;
