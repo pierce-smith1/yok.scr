@@ -37,11 +37,12 @@ private:
 	};
 
 	static Palette *new_random_palette();
-	static Color random_color(int budget, float red_weight, float green_weight, float blue_weight);
+	static Color random_color();
 	static Color random_gray();
 	static Color darken_color(const Color &color);
 	static Color lighten_color(const Color &color);
 	static Color noisify(const Color &color, float degree = 1.0f);
+	static Color recolorize(const Color &color, float red_weight, float green_weight, float blue_weight);
 	static std::set<GenerationTraits> random_traits();
 };
 

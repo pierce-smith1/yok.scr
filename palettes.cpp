@@ -1,9 +1,12 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <random>
 
 #include "palettes.h"
 #include "common.h"
+#include "config.h"
+#include "configdialog.h"
 
 Palette::Palette(const std::array<Color, _PALETTE_SIZE> &colors) {
 	std::copy(colors.begin(), colors.end(), begin());
@@ -26,34 +29,38 @@ const Palette *RandomPalettes::random(int rng_token) {
 }
 
 Palette *RandomPalettes::new_random_palette() {
+	static int bias_intensity = (int) (1.0f / (cfg.at(MaxColors) / config_ranges.at(MaxColors).second) * 3.0f);
+
+	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
+	static float green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
+	static float blue_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
+
 	std::array<Color, _PALETTE_SIZE> colors;
 
-	static float red_weight = rand() % 100 / 200.0f + 0.6f;
-	static float green_weight = rand() % 100 / 200.0f + 0.35f;
-	static float blue_weight = rand() % 100 / 200.0f + 0.5f;
-
-	colors[PI_SCALES] = random_color(600, red_weight, green_weight, blue_weight);
+	colors[PI_SCALES] = random_color();
 	colors[PI_HORNS] = random_gray();
-	colors[PI_EYE] = random_color(200, red_weight, green_weight, blue_weight);
-	colors[PI_WHITES] = { 240, 240, 240, 255 };
+	colors[PI_EYE] = darken_color(random_color());
 
 	for (auto &color : colors) {
 		color = noisify(color, 15.0f);
+		color = recolorize(color, red_bias, green_bias, blue_bias);
 	}
 
 	auto traits = random_traits();
 
 	if (traits.find(GenerationTraits::ColorfulHorns) != traits.end()) {
-		colors[PI_HORNS] = random_color(500, red_weight, green_weight, blue_weight);
+		colors[PI_HORNS] = random_color();
 	}
 
 	if (traits.find(GenerationTraits::SwapHornsAndScales) != traits.end()) {
 		std::swap(colors[PI_HORNS], colors[PI_SCALES]);
 	}
 
+	colors[PI_WHITES] = { 240, 240, 240, 255 };
+
 	if (traits.find(GenerationTraits::BlackEyes) != traits.end()) {
-		colors[PI_WHITES] = random_color(50, red_weight, green_weight, blue_weight);
-		colors[PI_EYE] = random_color(700, red_weight, green_weight, blue_weight);
+		colors[PI_WHITES] = { 0, 0, 0, 255 };
+		colors[PI_EYE] = random_color();
 	}
 
 	colors[PI_SCALES_HIGHLIGHT] = lighten_color(colors[PI_SCALES]);
@@ -66,36 +73,20 @@ Palette *RandomPalettes::new_random_palette() {
 	return new Palette(colors);
 }
 
-Color RandomPalettes::random_color(int budget, float red_weight, float green_weight, float blue_weight) {
-	int max_budget = 4.0f / 5.0f * budget;
+Color RandomPalettes::random_color() {
+	std::vector<int> values = { 
+		rand() % 50,
+		210 - rand() % 50,
+		rand() % 210 
+	};
 
-	int red = 0;
-	int green = 0;
-	int blue = 0;
-
-	while (budget > 0) {
-		int budget_chunk = budget < 30 ? budget : 30;
-
-		int channel = rand() % 3;
-
-		if (channel == RED && red >= max_budget) continue;
-		if (channel == GREEN && green >= max_budget) continue;
-		if (channel == BLUE && blue >= max_budget) continue;
-
-		switch (channel) {
-			case RED: red += budget_chunk * red_weight; break;
-			case GREEN: green += budget_chunk * green_weight; break; 
-			case BLUE: blue += budget_chunk * blue_weight; break; 
-		}
-
-		budget -= budget_chunk;
-	}
+	std::shuffle(values.begin(), values.end(), std::mt19937(std::random_device()()));
 
 	return {
-		std::clamp(red, 0, 255),
-		std::clamp(green, 0, 255),
-		std::clamp(blue, 0, 255),
-		255,
+		values[0],
+		values[1],
+		values[2],
+		255
 	};
 }
 
@@ -131,9 +122,22 @@ Color RandomPalettes::lighten_color(const Color &color) {
 }
 
 Color RandomPalettes::noisify(const Color &color, float degree) {
-	int new_red = std::get<RED>(color) + (((rand() % 100) / 100) * degree);
-	int new_green = std::get<GREEN>(color) + (((rand() % 100) / 100) * degree);
-	int new_blue = std::get<BLUE>(color) + (((rand() % 100) / 100) * degree);
+	int new_red = std::get<RED>(color) + (((rand() % 100) / 100.0f) * degree);
+	int new_green = std::get<GREEN>(color) + (((rand() % 100) / 100.0f) * degree);
+	int new_blue = std::get<BLUE>(color) + (((rand() % 100) / 100.0f) * degree);
+
+	return {
+		std::clamp(new_red, 0, 255),
+		std::clamp(new_green, 0, 255),
+		std::clamp(new_blue, 0, 255),
+		255,
+	};
+}
+
+Color RandomPalettes::recolorize(const Color &color, float red_weight, float green_weight, float blue_weight) {
+	int new_red = std::get<RED>(color) + (rand() % 100 / 50.0f) * red_weight;
+	int new_green = std::get<GREEN>(color) + (rand() % 100 / 50.0f) * green_weight;
+	int new_blue = std::get<BLUE>(color) + (rand() % 100 / 50.0f) * blue_weight;
 
 	return {
 		std::clamp(new_red, 0, 255),
