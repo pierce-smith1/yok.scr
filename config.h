@@ -46,9 +46,9 @@ public:
 	Registry();
 
 	Config get_config();
-	float get(LPCWSTR opt, float default_);
-	void write(LPCWSTR opt, float value);
-	void remove(LPCWSTR opt);
+	float get(const std::wstring &opt, float default_);
+	void write(const std::wstring &opt, float value);
+	void remove(const std::wstring &opt);
 
 private:
 	HKEY m_reg_key;

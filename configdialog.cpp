@@ -30,7 +30,7 @@ void ConfigDialog::save() {
 	Registry registry;
 
 	for (const auto &entry : m_current_config) {
-		registry.write(config_names.at(entry.first).c_str(), entry.second);
+		registry.write(config_names.at(entry.first), entry.second);
 	}
 }
 
