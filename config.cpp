@@ -28,17 +28,29 @@ Registry::Registry()
 Config Registry::get_config() {
 	std::vector<std::pair<ConfigOption, float>> keys;
 
+	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
+	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
+
 	for (int i = _CONFIG_OPTIONS_START + 1; i < _CONFIG_OPTIONS_END; i++) {
 		ConfigOption opt = (ConfigOption) i;
-		keys.push_back(std::make_pair(opt, get(opt, cfg_defaults.at(opt))));
+		if (is_registry_migrated) {
+			keys.push_back(std::make_pair(opt, get(config_names.at(opt), cfg_defaults.at(opt))));
+		} else {
+			std::pair<ConfigOption, float> key = std::make_pair(opt, get(std::to_wstring(opt), cfg_defaults.at(opt)));
+			write(config_names.at(opt), key.second);
+			remove(std::to_wstring(opt));
+			keys.push_back(key);
+		}
+	}
+
+	if (!is_registry_migrated) {
+		write(is_registry_migrated_name, 1.0f);
 	}
 
 	return Config(keys.begin(), keys.end());
 }
 
-float Registry::get(ConfigOption opt, float default_) {
-	std::wstring option_name = std::to_wstring(opt);
-
+float Registry::get(const std::wstring &opt, float default_) {
 	wchar_t result[1 << 6] {};
 	DWORD result_type;
 	DWORD result_size = 1 << 6;
@@ -46,7 +58,7 @@ float Registry::get(ConfigOption opt, float default_) {
 	LSTATUS status = RegGetValue(
 		m_reg_key,
 		NULL,
-		std::to_wstring(opt).c_str(),
+		opt.c_str(),
 		RRF_RT_REG_SZ,
 		&result_type,
 		result,
@@ -60,13 +72,20 @@ float Registry::get(ConfigOption opt, float default_) {
 	return std::stof(result);
 }
 
-void Registry::write(ConfigOption opt, float value) {
+void Registry::write(const std::wstring &opt, float value) {
 	RegSetValueEx(
 		m_reg_key,
-		std::to_wstring(opt).c_str(),
+		opt.c_str(),
 		0,
 		REG_SZ,
 		(BYTE *) std::to_wstring(value).c_str(),
 		(std::to_wstring(value).size() + 1) * 2
+	);
+}
+
+void Registry::remove(const std::wstring &opt) {
+	RegDeleteValue(
+		m_reg_key,
+		opt.c_str()
 	);
 }
