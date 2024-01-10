@@ -150,11 +150,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="common.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="configdialog.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="graphics.h" />
     <ClInclude Include="noise.h" />
+    <ClInclude Include="palettes.h" />
     <ClInclude Include="resources.h" />
     <ClInclude Include="resourcew.h" />
     <ClInclude Include="scene.h" />
@@ -168,6 +170,7 @@
     <ClCompile Include="context.cpp" />
     <ClCompile Include="graphics.cpp" />
     <ClCompile Include="noise.cpp" />
+    <ClCompile Include="palettes.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="resources.cpp" />
     <ClCompile Include="sprite.cpp" />

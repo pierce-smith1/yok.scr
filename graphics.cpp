@@ -1,17 +1,10 @@
 #include "graphics.h"
 #include "resources.h"
 
-// Here, textures are born not by loading from disk...
-Palette::Palette(const std::initializer_list<Color> &i_list) {
-	std::copy(i_list.begin(), i_list.end(), begin());
-}
-
-// But by our own hands, with ingredients.
 Bitmap::Bitmap(const std::initializer_list<GLubyte> &i_list) {
 	std::copy(i_list.begin(), i_list.end(), begin());
 }
 
-// Lazily baked, not wasting our time...
 const Texture *Texture::get(const Palette &palette, const Bitmap &bitmap) {
 	auto ids = std::make_pair(palette.id(), bitmap.id());
 	auto result = texture_cache.find(ids);
@@ -23,9 +16,12 @@ const Texture *Texture::get(const Palette &palette, const Bitmap &bitmap) {
 	return texture_cache.at(ids);
 }
 
-// And make calling convenient, 'fore I wish any crimes.
 const Texture *Texture::of(PaletteName palette_name, BitmapName bitmap_name) {
 	return get(PALETTES.at(palette_name), *load_bitmap(bitmap_name));
+}
+
+const Texture *Texture::of(const Palette *palette, BitmapName bitmap_name) {
+	return get(*palette, *load_bitmap(bitmap_name));
 }
 
 Bitmap::Bitmap(const GLubyte *data) {

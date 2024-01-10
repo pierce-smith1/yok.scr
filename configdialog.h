@@ -74,4 +74,5 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 	{ PaletteGroup::All, L"All" },
 	{ PaletteGroup::Canon, L"Canon" },
 	{ PaletteGroup::NonCanon, L"Non-Canon" },
+	{ PaletteGroup::RandomlyGenerated, L"I'm Feeling Lucky" },
 };
