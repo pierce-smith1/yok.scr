@@ -80,7 +80,7 @@ void Yonker::update(Context &ctx) {
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	if (cfg.at(YonkHomeDrift) < 0.000001f) {
+	if (cfg.at(YonkHomeDrift) >= 0.000001f) {
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
 			-cfg.at(YonkHomeDrift),
@@ -150,8 +150,7 @@ std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) 
 // The temper of character just misses the mark...
 // Emergency meeting! That's awfully suspicious!
 Impostor::Impostor(const Palette *palette, const Point &home)
-	: Sprite(Texture::of(palette, random_bitmap()), home) {
-}
+	: Sprite(Texture::of(palette, random_bitmap()), home) { }
 
 BitmapName Impostor::random_bitmap() {
 	static std::vector<BitmapName> impostors = { cvjoy, nx, vx, lkmoyai, fn, fnplead };
