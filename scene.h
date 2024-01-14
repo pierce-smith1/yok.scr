@@ -5,6 +5,7 @@
 #include "context.h"
 #include "sprite.h"
 #include "spritecontrol.h"
+#include "common.h"
 
 class Scene {
 public:
@@ -13,6 +14,8 @@ public:
 	void draw();
 
 private:
+	std::vector<BYTE> get_background_rgba();
+
 	Context m_ctx;
 	Sprites m_sprites;
 	SpriteChoreographer m_choreographer;
