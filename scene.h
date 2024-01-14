@@ -14,7 +14,10 @@ public:
 	void draw();
 
 private:
+	void draw_background();
 	std::vector<BYTE> get_background_rgba();
+
+	static GLuint background_tex_id;
 
 	Context m_ctx;
 	Sprites m_sprites;

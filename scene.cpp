@@ -18,10 +18,29 @@ void Scene::draw() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	GLuint bg_tex_id;
+	draw_background();
 
-	glGenTextures(1, &bg_tex_id);
-	glBindTexture(GL_TEXTURE_2D, bg_tex_id);
+	m_choreographer.update();
+	for (Sprite *sprite : m_sprites) {
+		sprite->draw(m_ctx);
+	}
+
+	glFlush();
+	SwapBuffers(m_ctx.device());
+
+	m_ctx.frame_count()++;
+}
+
+GLuint Scene::background_tex_id = 0;
+
+void Scene::draw_background() {
+	// The MSDN OpenGL docs don't really say if 0 is a valid texture id,
+	// so... I'm just gonna hope it isn't.
+	if (background_tex_id == 0) { 
+		glGenTextures(1, &background_tex_id);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, background_tex_id);
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -38,16 +57,6 @@ void Scene::draw() {
 	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, 1.0f);
 
 	glEnd();
-
-	m_choreographer.update();
-	for (Sprite *sprite : m_sprites) {
-		sprite->draw(m_ctx);
-	}
-
-	glFlush();
-	SwapBuffers(m_ctx.device());
-
-	m_ctx.frame_count()++;
 }
 
 std::vector<BYTE> Scene::get_background_rgba() {
