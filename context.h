@@ -14,7 +14,6 @@ public:
 	Context(HWND window);
 	~Context();
 
-	HWND window();
 	HDC device();
 	HGLRC gl();
 	RECT rect();
