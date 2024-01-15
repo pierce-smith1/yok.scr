@@ -18,7 +18,9 @@ void Scene::draw() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	draw_background();
+	if (cfg.at(PlayOverDesktop)) {
+		draw_background();
+	}
 
 	m_choreographer.update();
 	for (Sprite *sprite : m_sprites) {
