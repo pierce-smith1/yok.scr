@@ -38,6 +38,10 @@ Context::~Context() {
 	KillTimer(m_window, ANIM_TIMER_ID);
 }
 
+HWND Context::window() {
+	return m_window;
+}
+
 HDC Context::device() {
 	return m_device;
 }

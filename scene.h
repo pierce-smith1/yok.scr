@@ -15,7 +15,7 @@ public:
 
 private:
 	void draw_background();
-	std::vector<BYTE> get_background_rgba();
+	BYTE *get_background_rgba();
 
 	static GLuint background_tex_id;
 
