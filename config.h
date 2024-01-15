@@ -38,6 +38,7 @@ const static std::map<int, std::wstring> config_names = {
 	{ IsPatternFixed, L"IsPatternFixed" },
 	{ ImpostorChance, L"ImpostorChance" },
 	{ YonkPalette, L"YonkPalette" },
+	{ PlayOverDesktop, L"PlayOverDesktop" },
 };
 
 using Config = std::map<ConfigOption, float>;
