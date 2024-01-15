@@ -12,9 +12,9 @@ public:
 	Scene(HWND window);
 
 	void draw();
+	void draw_background();
 
 private:
-	void draw_background();
 	BYTE *get_background_rgba();
 
 	static GLuint background_tex_id;

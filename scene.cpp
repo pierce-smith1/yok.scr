@@ -49,7 +49,7 @@ void Scene::draw_background() {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, background_rgba);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_ctx.rect().right, m_ctx.rect().bottom, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, background_rgba);
 
 	glBegin(GL_QUADS);
 
@@ -73,7 +73,7 @@ BYTE *Scene::get_background_rgba() {
 
 	int screen_x = GetSystemMetrics(SM_XVIRTUALSCREEN);
 	int screen_y = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    blt_result = BitBlt(
+    BitBlt(
         target_dc, 
         0, 
         0, 
@@ -98,7 +98,7 @@ BYTE *Scene::get_background_rgba() {
 
 	LONG bitmap_data_size = screenshot_bmp.bmWidth * screenshot_bmp.bmHeight * 4;
 	BYTE *bitmap_data = new BYTE[bitmap_data_size];
-    int get_bits_result = GetDIBits(
+    GetDIBits(
 		target_dc, 
 		target_bmp, 
 		0,

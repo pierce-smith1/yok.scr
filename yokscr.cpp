@@ -20,7 +20,7 @@ LRESULT WINAPI ScreenSaverProc(HWND window, UINT message, WPARAM wparam, LPARAM 
 	switch (message) {
 		case WM_CREATE: {
 			scene = new Scene(window);
-			scene->draw();
+			scene->draw_background();
 			return 0;
 		}
 		case WM_DESTROY: {
