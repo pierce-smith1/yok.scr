@@ -3,12 +3,13 @@
 #include "config.h"
 #include "spritecontrol.h"
 
-Scene::Scene(HWND window) 
-	// It's of utmost importance the context comes first!
-	// Else reality cursed, at the seams it will burst!!!
-    : m_ctx(window),
-	  m_sprites(SpriteGenerator().make(cfg.at(SpriteCount))),
-	  m_choreographer((PatternName) cfg.at(YonkPattern), &m_sprites, &m_ctx) { }
+Scene::Scene(HWND window)
+// It's of utmost importance the context comes first!
+// Else reality cursed, at the seams it will burst!!!
+	: m_ctx(window),
+	m_sprites(SpriteGenerator().make(cfg.at(SpriteCount))),
+	m_choreographer((PatternName) cfg.at(YonkPattern), &m_sprites, &m_ctx) {
+}
 
 void Scene::draw() {
 	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);
@@ -40,7 +41,7 @@ void Scene::draw_background() {
 
 	// The MSDN OpenGL docs don't really say if 0 is a valid texture id,
 	// so... I'm just gonna hope it isn't.
-	if (background_tex_id == 0) { 
+	if (background_tex_id == 0) {
 		glGenTextures(1, &background_tex_id);
 	}
 
@@ -67,46 +68,46 @@ BYTE *Scene::get_background_rgba() {
 	LONG screen_width = m_ctx.rect().right;
 	LONG screen_height = m_ctx.rect().bottom;
 
-    HDC screen_dc = GetDC(NULL);
-    HDC target_dc = CreateCompatibleDC(screen_dc);
-    HBITMAP target_bmp = CreateCompatibleBitmap(screen_dc, screen_width, screen_height);
-    
-    SelectObject(target_dc, target_bmp);
+	HDC screen_dc = GetDC(NULL);
+	HDC target_dc = CreateCompatibleDC(screen_dc);
+	HBITMAP target_bmp = CreateCompatibleBitmap(screen_dc, screen_width, screen_height);
+
+	SelectObject(target_dc, target_bmp);
 
 	int screen_x = GetSystemMetrics(SM_XVIRTUALSCREEN);
 	int screen_y = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    BitBlt(
-        target_dc, 
-        0, 
-        0, 
-        screen_width, 
-        screen_height, 
-        screen_dc, 
+	BitBlt(
+		target_dc,
+		0,
+		0,
+		screen_width,
+		screen_height,
+		screen_dc,
 		screen_x,
 		screen_y,
-        SRCCOPY | CAPTUREBLT
-    );
+		SRCCOPY | CAPTUREBLT
+	);
 
 	BITMAP screenshot_bmp;
-    GetObject(target_bmp, sizeof(BITMAP), &screenshot_bmp);
+	GetObject(target_bmp, sizeof(BITMAP), &screenshot_bmp);
 
 	BITMAPINFOHEADER bitmap_header = { 0 };
-    bitmap_header.biSize = sizeof(BITMAPINFOHEADER);
-    bitmap_header.biWidth = screenshot_bmp.bmWidth;
-    bitmap_header.biHeight = screenshot_bmp.bmHeight;
-    bitmap_header.biPlanes = 1;
-    bitmap_header.biBitCount = 32;
-    bitmap_header.biCompression = BI_RGB;
+	bitmap_header.biSize = sizeof(BITMAPINFOHEADER);
+	bitmap_header.biWidth = screenshot_bmp.bmWidth;
+	bitmap_header.biHeight = screenshot_bmp.bmHeight;
+	bitmap_header.biPlanes = 1;
+	bitmap_header.biBitCount = 32;
+	bitmap_header.biCompression = BI_RGB;
 
 	LONG bitmap_data_size = screenshot_bmp.bmWidth * screenshot_bmp.bmHeight * 4;
 	BYTE *bitmap_data = new BYTE[bitmap_data_size];
-    GetDIBits(
-		target_dc, 
-		target_bmp, 
+	GetDIBits(
+		target_dc,
+		target_bmp,
 		0,
-        screenshot_bmp.bmHeight,
-        bitmap_data,
-        (BITMAPINFO *) &bitmap_header, 
+		screenshot_bmp.bmHeight,
+		bitmap_data,
+		(BITMAPINFO *) &bitmap_header,
 		DIB_RGB_COLORS
 	);
 
