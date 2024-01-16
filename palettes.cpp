@@ -29,7 +29,7 @@ const Palette *RandomPalettes::random(int rng_token) {
 }
 
 Palette *RandomPalettes::new_random_palette() {
-	static int bias_intensity = (int) (20.0f / ((cfg.at(MaxColors) + 4.0f) / config_ranges.at(MaxColors).second));
+	static int bias_intensity = (int) (20.0f / ((cfg.at(ConfigOptions::MaxColors) + 4.0f) / ConfigOptions::MaxColors.range.second));
 
 	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
 	static float green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);

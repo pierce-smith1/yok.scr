@@ -31,14 +31,13 @@ Config Registry::get_config() {
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
 	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
 
-	for (int i = _CONFIG_OPTIONS_START + 1; i < _CONFIG_OPTIONS_END; i++) {
-		ConfigOption opt = (ConfigOption) i;
+	for (const ConfigOption &opt : ConfigOptions::All) {
 		if (is_registry_migrated) {
-			keys.push_back(std::make_pair(opt, get(config_names.at(opt), cfg_defaults.at(opt))));
+			keys.push_back(std::make_pair(opt, get(opt.name, opt.default_)));
 		} else {
-			std::pair<ConfigOption, float> key = std::make_pair(opt, get(std::to_wstring(opt), cfg_defaults.at(opt)));
-			write(config_names.at(opt), key.second);
-			remove(std::to_wstring(opt));
+			std::pair<ConfigOption, float> key = std::make_pair(opt, get(std::to_wstring(opt.legacy_id), opt.default_));
+			write(opt.name, key.second);
+			remove(std::to_wstring(opt.legacy_id));
 			keys.push_back(key);
 		}
 	}

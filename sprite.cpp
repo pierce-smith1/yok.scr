@@ -9,7 +9,7 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home) 
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(SpriteSize) / 1000.0f) { }
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(ConfigOptions::SpriteSize) / 1000.0f) { }
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
@@ -52,8 +52,8 @@ void Sprite::update(Context &ctx) {
 		}
 	};
 
-	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
-	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
+	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(ConfigOptions::YonkHomeDrift), 1.0f + cfg.at(ConfigOptions::YonkHomeDrift));
+	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(ConfigOptions::YonkHomeDrift), 1.0f + cfg.at(ConfigOptions::YonkHomeDrift));
 }
 
 Point &Sprite::home() {
@@ -82,16 +82,16 @@ void Yonker::update(Context &ctx) {
 	// But never too far outside their home.
 	get<X>(m_relpos) = Noise::wiggle(
 		get<X>(m_relpos),
-		-cfg.at(YonkHomeDrift),
-		cfg.at(YonkHomeDrift),
-		cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor))
+		-cfg.at(ConfigOptions::YonkHomeDrift),
+		cfg.at(ConfigOptions::YonkHomeDrift),
+		cfg.at(ConfigOptions::YonkStepSize) * (emotion_magnitude * cfg.at(ConfigOptions::YonkShakeFactor))
 	);
 
 	get<Y>(m_relpos) = Noise::wiggle(
 		get<Y>(m_relpos),
-		-cfg.at(YonkHomeDrift),
-		cfg.at(YonkHomeDrift),
-		cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor))
+		-cfg.at(ConfigOptions::YonkHomeDrift),
+		cfg.at(ConfigOptions::YonkHomeDrift),
+		cfg.at(ConfigOptions::YonkStepSize) * (emotion_magnitude * cfg.at(ConfigOptions::YonkShakeFactor))
 	);
 	
 	Sprite::update(ctx);
@@ -101,7 +101,7 @@ void Yonker::update(Context &ctx) {
 
 const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	auto emotion_map_index_of = [](float emotion) -> int {
-		return std::clamp((int) round(emotion * cfg.at(YonkEmotionScale)), -1, 1) + 1;
+		return std::clamp((int) round(emotion * cfg.at(ConfigOptions::YonkEmotionScale)), -1, 1) + 1;
 	};
 
 	int empathetic = emotion_map_index_of(m_emotion_vector[EMPATHY]);
@@ -155,8 +155,8 @@ BitmapName Impostor::random_bitmap() {
 	static std::vector<BitmapName> yoy = { lkyoy, lkyoyapprove, fnyoy, cvyoy };
 
 	if (Noise::random() < 0.5f) {
-		return impostors[(int)(Noise::random() * impostors.size())];
+		return impostors[(int) (Noise::random() * impostors.size())];
 	} else {
-		return yoy[(int)(Noise::random() * yoy.size())];
+		return yoy[(int) (Noise::random() * yoy.size())];
 	}
 }
