@@ -9,7 +9,7 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home) 
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(ConfigOptions::SpriteSize) / 1000.0f) { }
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(Opts::SpriteSize) / 1000.0f) { }
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
@@ -52,8 +52,8 @@ void Sprite::update(Context &ctx) {
 		}
 	};
 
-	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(ConfigOptions::YonkHomeDrift), 1.0f + cfg.at(ConfigOptions::YonkHomeDrift));
-	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(ConfigOptions::YonkHomeDrift), 1.0f + cfg.at(ConfigOptions::YonkHomeDrift));
+	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(Opts::HomeDrift), 1.0f + cfg.at(Opts::HomeDrift));
+	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(Opts::HomeDrift), 1.0f + cfg.at(Opts::HomeDrift));
 }
 
 Point &Sprite::home() {
@@ -82,16 +82,16 @@ void Yonker::update(Context &ctx) {
 	// But never too far outside their home.
 	get<X>(m_relpos) = Noise::wiggle(
 		get<X>(m_relpos),
-		-cfg.at(ConfigOptions::YonkHomeDrift),
-		cfg.at(ConfigOptions::YonkHomeDrift),
-		cfg.at(ConfigOptions::YonkStepSize) * (emotion_magnitude * cfg.at(ConfigOptions::YonkShakeFactor))
+		-cfg.at(Opts::HomeDrift),
+		cfg.at(Opts::HomeDrift),
+		cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor))
 	);
 
 	get<Y>(m_relpos) = Noise::wiggle(
 		get<Y>(m_relpos),
-		-cfg.at(ConfigOptions::YonkHomeDrift),
-		cfg.at(ConfigOptions::YonkHomeDrift),
-		cfg.at(ConfigOptions::YonkStepSize) * (emotion_magnitude * cfg.at(ConfigOptions::YonkShakeFactor))
+		-cfg.at(Opts::HomeDrift),
+		cfg.at(Opts::HomeDrift),
+		cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor))
 	);
 	
 	Sprite::update(ctx);
@@ -101,7 +101,7 @@ void Yonker::update(Context &ctx) {
 
 const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	auto emotion_map_index_of = [](float emotion) -> int {
-		return std::clamp((int) round(emotion * cfg.at(ConfigOptions::YonkEmotionScale)), -1, 1) + 1;
+		return std::clamp((int) round(emotion * cfg.at(Opts::EmotionScale)), -1, 1) + 1;
 	};
 
 	int empathetic = emotion_map_index_of(m_emotion_vector[EMPATHY]);

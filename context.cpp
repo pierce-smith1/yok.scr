@@ -55,5 +55,5 @@ unsigned int &Context::frame_count() {
 }
 
 float Context::t() {
-	return m_frame_count / cfg.at(ConfigOptions::TimeDivisor);
+	return m_frame_count / cfg.at(Opts::TimeDivisor);
 }

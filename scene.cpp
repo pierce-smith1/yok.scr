@@ -7,8 +7,8 @@ Scene::Scene(HWND window)
 	// It's of utmost importance the context comes first!
 	// Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
-	  m_sprites(SpriteGenerator().make(cfg.at(ConfigOptions::SpriteCount))),
-	  m_choreographer((PatternName) cfg.at(ConfigOptions::YonkPattern), &m_sprites, &m_ctx) { }
+	  m_sprites(SpriteGenerator().make(cfg.at(Opts::SpriteCount))),
+	  m_choreographer((PatternName) cfg.at(Opts::Pattern), &m_sprites, &m_ctx) { }
 
 void Scene::draw() {
 	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);

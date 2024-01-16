@@ -31,7 +31,7 @@ Config Registry::get_config() {
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
 	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
 
-	for (const ConfigOption &opt : ConfigOptions::All) {
+	for (const ConfigOption &opt : Opts::All) {
 		if (is_registry_migrated) {
 			keys.push_back(std::make_pair(opt, get(opt.name, opt.default_)));
 		} else {

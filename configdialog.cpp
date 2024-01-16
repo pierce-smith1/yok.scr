@@ -45,7 +45,7 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			return TRUE;
 		}
 		case IDC_DEFAULTS_BUTTON: {
-			for (const ConfigOption &opt : ConfigOptions::All) {
+			for (const ConfigOption &opt : Opts::All) {
 				m_current_config[opt] = opt.default_;
 			}
 			refresh();
@@ -77,7 +77,7 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 BOOL ConfigDialog::slider_changed(WPARAM wparam, HWND slider) {
 	int value = SendMessage(slider, TBM_GETPOS, 0, 0);
 
-	ConfigOption opt = *std::find_if(ConfigOptions::All.begin(), ConfigOptions::All.end(), [&](const ConfigOption &opt) {
+	ConfigOption opt = *std::find_if(Opts::All.begin(), Opts::All.end(), [&](const ConfigOption &opt) {
 		return opt.dialog_control_id == GetDlgCtrlID(slider);
 	});
 	m_current_config[opt] = decodef(value);
@@ -92,10 +92,10 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 
 	switch (option_type) {
 		case IDC_YONK_PATTERN:
-			m_current_config[ConfigOptions::YonkPattern] = (float) reverse_lookup(pattern_strings, option_name);
+			m_current_config[Opts::Pattern] = (float) reverse_lookup(pattern_strings, option_name);
 			break;
 		case IDC_YONK_PALETTE:
-			m_current_config[ConfigOptions::YonkPalette] = (float) reverse_lookup(palette_strings, option_name);
+			m_current_config[Opts::Palette] = (float) reverse_lookup(palette_strings, option_name);
 			break;
 	}
 
@@ -104,7 +104,7 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 
 BOOL ConfigDialog::pattern_fix_checked(WPARAM wparam, HWND checkbox) {
 	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
-	m_current_config[ConfigOptions::IsPatternFixed] = checked ? 1.0f : 0.0f;
+	m_current_config[Opts::IsPatternFixed] = checked ? 1.0f : 0.0f;
 	refresh();
 	return FALSE;
 }
@@ -124,7 +124,7 @@ void ConfigDialog::refresh() {
 	std::wstring version_label_text = L"yokscr version " + YOKSCR_VERSION;
 	SendMessage(version_label, WM_SETTEXT, NULL, (LPARAM) version_label_text.c_str());
 
-	for (const ConfigOption &opt : ConfigOptions::All) {
+	for (const ConfigOption &opt : Opts::All) {
 		HWND slider = GetDlgItem(m_dialog, opt.dialog_control_id);
 
 		SendMessage(slider, TBM_SETRANGEMIN, TRUE, encodef(opt.range.first));
@@ -133,28 +133,28 @@ void ConfigDialog::refresh() {
 	}
 
 	// these should probably be put somewhere else at some point
-	if (m_current_config.at(ConfigOptions::YonkPattern) < 0 
-	 || m_current_config.at(ConfigOptions::YonkPattern) >= (int) _PATTERN_COUNT) 
+	if (m_current_config.at(Opts::Pattern) < 0 
+	 || m_current_config.at(Opts::Pattern) >= (int) _PATTERN_COUNT) 
 	{
-		m_current_config.at(ConfigOptions::YonkPattern) = 0;
+		m_current_config.at(Opts::Pattern) = 0;
 	}
-	if (m_current_config.at(ConfigOptions::YonkPalette) < 0 
-	 || m_current_config.at(ConfigOptions::YonkPalette) >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) 
+	if (m_current_config.at(Opts::Palette) < 0 
+	 || m_current_config.at(Opts::Palette) >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) 
 	{
-		m_current_config.at(ConfigOptions::YonkPalette) = 0;
+		m_current_config.at(Opts::Palette) = 0;
 	}
 
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
-		(PatternName) m_current_config.at(ConfigOptions::YonkPattern)).c_str()
+		(PatternName) m_current_config.at(Opts::Pattern)).c_str()
 	);
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	ComboBox_SelectString(palette_box, -1, palette_strings.at(
-		(PaletteGroup) m_current_config.at(ConfigOptions::YonkPalette)).c_str()
+		(PaletteGroup) m_current_config.at(Opts::Palette)).c_str()
 	);
 
-	bool is_pattern_fixed = m_current_config.at(ConfigOptions::IsPatternFixed) == 1.0f;
+	bool is_pattern_fixed = m_current_config.at(Opts::IsPatternFixed) == 1.0f;
 	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
 	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
 	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);

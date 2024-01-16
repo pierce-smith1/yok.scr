@@ -19,14 +19,14 @@ struct ConfigOption {
 	const int dialog_control_id;
 };
 
-struct ConfigOptions {
-	inline const static ConfigOption YonkStepSize = { 
+struct Opts {
+	inline const static ConfigOption StepSize = { 
 		.name = L"YonkStepSize", 
 		.legacy_id = 1001,
 		.default_ = 0.005f, 
 	};
 
-	inline const static ConfigOption YonkHomeDrift = { 
+	inline const static ConfigOption HomeDrift = { 
 		.name = L"YonkHomeDrift", 
 		.legacy_id = 1002,
 		.default_= 0.3f, 
@@ -34,7 +34,7 @@ struct ConfigOptions {
 		.dialog_control_id = IDC_YONK_HOME_DRIFT,
 	};
 
-	inline const static ConfigOption YonkEmotionScale = { 
+	inline const static ConfigOption EmotionScale = { 
 		.name = L"YonkEmotionScale", 
 		.legacy_id = 1003,
 		.default_= 5.0f, 
@@ -74,7 +74,7 @@ struct ConfigOptions {
 		.dialog_control_id = IDC_SPRITE_SIZE,
 	};
 
-	inline const static ConfigOption YonkShakeFactor = {
+	inline const static ConfigOption ShakeFactor = {
 		.name = L"YonkShakeFactor",
 		.legacy_id = 1008,
 		.default_ = 2.0f,
@@ -82,7 +82,7 @@ struct ConfigOptions {
 		.dialog_control_id = IDC_YONK_SHAKE_FACTOR,
 	};
 
-	inline const static ConfigOption YonkPattern = {
+	inline const static ConfigOption Pattern = {
 		.name = L"YonkPattern",
 		.legacy_id = 1009,
 		.default_ = 0.0f,
@@ -112,7 +112,7 @@ struct ConfigOptions {
 		.dialog_control_id = IDC_IMPOSTOR_CHANCE,
 	};
 
-	inline const static ConfigOption YonkPalette = {
+	inline const static ConfigOption Palette = {
 		.name = L"YonkPalette",
 		.legacy_id = 1013,
 		.default_ = 0.0f,
@@ -120,19 +120,19 @@ struct ConfigOptions {
 	};
 
 	inline const static std::vector<ConfigOption> All = {
-		YonkStepSize,
-		YonkHomeDrift,
-		YonkEmotionScale,
+		StepSize,
+		HomeDrift,
+		EmotionScale,
 		TimeDivisor,
 		MaxColors,
 		SpriteCount,
 		SpriteSize,
-		YonkShakeFactor,
-		YonkPattern,
+		ShakeFactor,
+		Pattern,
 		PatternChangeInterval,
 		IsPatternFixed,
 		ImpostorChance,
-		YonkPalette,
+		Palette,
 	};
 };
 
