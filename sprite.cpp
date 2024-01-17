@@ -42,18 +42,21 @@ void Sprite::draw(Context &ctx) {
 }
 
 void Sprite::update(Context &ctx) {
-	auto wrap = [](float n, float min, float max) -> float {
-		if (n < min) {
-			return max - (min - n);
-		} else if (n > max) {
-			return min + (n - max);
+	auto wrap = [](float home, float total, float min, float max) -> float {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
 		} else {
-			return n;
+			return home;
 		}
 	};
 
-	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
-	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
+	float edge_boundary = 0.15f + m_size / 1.1f;
+	float horizontal_correction = max((float) ctx.rect().right / (float) ctx.rect().bottom, 1.0f);
+	float vertical_correction = max((float) ctx.rect().bottom / (float) ctx.rect().right, 1.0f);
+	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
+	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
 }
 
 Point &Sprite::home() {
