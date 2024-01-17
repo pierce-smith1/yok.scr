@@ -20,6 +20,7 @@ enum ConfigOption {
 	IsPatternFixed,
 	ImpostorChance,
 	YonkPalette,
+	PlayOverDesktop,
 	_CONFIG_OPTIONS_END
 };
 
@@ -37,6 +38,7 @@ const static std::map<int, std::wstring> config_names = {
 	{ IsPatternFixed, L"IsPatternFixed" },
 	{ ImpostorChance, L"ImpostorChance" },
 	{ YonkPalette, L"YonkPalette" },
+	{ PlayOverDesktop, L"PlayOverDesktop" },
 };
 
 using Config = std::map<ConfigOption, float>;
@@ -67,7 +69,8 @@ const static Config cfg_defaults = {
 	{ PatternChangeInterval, 60.0f * 15.0f },
 	{ IsPatternFixed, 0.0f },
 	{ ImpostorChance, (float)pow(0.002f, 1.0f/3.0f) },	// i'm sorry
-	{ YonkPalette, 0.0f }
+	{ YonkPalette, 0.0f },
+	{ PlayOverDesktop, 0.0f },
 };
 
 const static Config cfg = Registry().get_config();

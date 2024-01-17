@@ -63,8 +63,15 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 		}
 		case IDC_PATTERN_FIX: {
 			if (HIWORD(wparam) == BN_CLICKED) {
-				return pattern_fix_checked(wparam, (HWND)lparam);
+				return checkbox_checked(wparam, (HWND) lparam, IsPatternFixed);
 			}
+			break;
+		}
+		case IDC_PLAY_OVER_DESKTOP: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return checkbox_checked(wparam, (HWND) lparam, PlayOverDesktop);
+			}
+			break;
 		}
 	}
 
@@ -99,9 +106,9 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 	return FALSE;
 }
 
-BOOL ConfigDialog::pattern_fix_checked(WPARAM wparam, HWND checkbox) {
+BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, ConfigOption option) {
 	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
-	m_current_config[IsPatternFixed] = checked ? 1.0f : 0.0f;
+	m_current_config[option] = checked ? 1.0f : 0.0f;
 	refresh();
 	return FALSE;
 }
@@ -153,4 +160,8 @@ void ConfigDialog::refresh() {
 	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
 	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);
 	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
+
+	bool is_playing_over_desktop = m_current_config.at(PlayOverDesktop) == 1.0f;
+	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
+	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
 }

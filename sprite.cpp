@@ -31,10 +31,10 @@ void Sprite::draw(Context &ctx) {
 	// And our wandering Llokin are properly seen.
 	float squarifiy_offset = (float) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
 
-	glTexCoord2f(1.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, -1.0f);
-	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, -1.0f);
-	glTexCoord2f(0.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, 1.0f);
-	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, 1.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f - squarifiy_offset, -1.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, 1.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f + squarifiy_offset, 1.0f);
+	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, -1.0f);
 
 	glEnd();
 	glPopMatrix();
