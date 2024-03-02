@@ -118,6 +118,13 @@ struct Opts {
 		.dialog_control_id = IDC_YONK_PALETTE,
 	};
 
+	inline const static ConfigOption PlayOverDesktop = {
+		.name = L"PlayOverDesktop",
+		.legacy_id = 1014,
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
+	};
+
 	inline const static std::vector<ConfigOption> All = {
 		StepSize,
 		HomeDrift,
@@ -132,6 +139,7 @@ struct Opts {
 		IsPatternFixed,
 		ImpostorChance,
 		Palette,
+		PlayOverDesktop,
 	};
 };
 

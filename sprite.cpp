@@ -83,19 +83,19 @@ void Yonker::update(Context &ctx) {
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	if (cfg.at(YonkHomeDrift) >= 0.000001f) {
+	if (cfg.at(Opts::HomeDrift) >= 0.000001f) {
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
-			-cfg.at(YonkHomeDrift),
-			cfg.at(YonkHomeDrift),
-			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
+			-cfg.at(Opts::HomeDrift),
+			cfg.at(Opts::HomeDrift),
+			cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor)) / max((cfg.at(Opts::HomeDrift) / Opts::HomeDrift.default_), 1)
 		);
 
 		get<Y>(m_relpos) = Noise::wiggle(
 			get<Y>(m_relpos),
-			-cfg.at(YonkHomeDrift),
-			cfg.at(YonkHomeDrift),
-			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
+			-cfg.at(Opts::HomeDrift),
+			cfg.at(Opts::HomeDrift),
+			cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor)) / max((cfg.at(Opts::HomeDrift) / Opts::HomeDrift.default_), 1)
 		);
 	}
 

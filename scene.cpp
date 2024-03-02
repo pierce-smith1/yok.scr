@@ -18,7 +18,7 @@ void Scene::draw() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (cfg.at(PlayOverDesktop)) {
+	if (cfg.at(Opts::PlayOverDesktop)) {
 		draw_background();
 	}
 
