@@ -23,13 +23,3 @@ enum Channel {
 	BLUE = 2,
 	ALPHA = 3
 };
-
-class Uncopyable {
-	struct UncopyableDummy {
-		UncopyableDummy() = default;
-		UncopyableDummy(const UncopyableDummy &other) = delete;
-		UncopyableDummy &operator=(const UncopyableDummy &other) = delete;
-	};
-
-	static inline UncopyableDummy _dummy;
-};
