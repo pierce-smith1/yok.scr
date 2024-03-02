@@ -31,10 +31,10 @@ void Sprite::draw(Context &ctx) {
 	// And our wandering Llokin are properly seen.
 	float squarifiy_offset = (float) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
 
-	glTexCoord2f(1.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, -1.0f);
-	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, -1.0f);
-	glTexCoord2f(0.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, 1.0f);
-	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, 1.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f - squarifiy_offset, -1.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, 1.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f + squarifiy_offset, 1.0f);
+	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, -1.0f);
 
 	glEnd();
 	glPopMatrix();
@@ -42,18 +42,21 @@ void Sprite::draw(Context &ctx) {
 }
 
 void Sprite::update(Context &ctx) {
-	auto wrap = [](float n, float min, float max) -> float {
-		if (n < min) {
-			return max - (min - n);
-		} else if (n > max) {
-			return min + (n - max);
+	auto wrap = [](float home, float total, float min, float max) -> float {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
 		} else {
-			return n;
+			return home;
 		}
 	};
 
-	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(Opts::HomeDrift), 1.0f + cfg.at(Opts::HomeDrift));
-	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(Opts::HomeDrift), 1.0f + cfg.at(Opts::HomeDrift));
+	float edge_boundary = 0.15f + m_size / 1.1f;
+	float horizontal_correction = max((float) ctx.rect().right / (float) ctx.rect().bottom, 1.0f);
+	float vertical_correction = max((float) ctx.rect().bottom / (float) ctx.rect().right, 1.0f);
+	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
+	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
 }
 
 Point &Sprite::home() {
@@ -75,25 +78,27 @@ void Yonker::update(Context &ctx) {
 		return a + abs(b);
 	};
 
-	float emotion_magnitude = 
+	float emotion_magnitude =
 		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0f, abs_plus);
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	get<X>(m_relpos) = Noise::wiggle(
-		get<X>(m_relpos),
-		-cfg.at(Opts::HomeDrift),
-		cfg.at(Opts::HomeDrift),
-		cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor))
-	);
+	if (cfg.at(YonkHomeDrift) >= 0.000001f) {
+		get<X>(m_relpos) = Noise::wiggle(
+			get<X>(m_relpos),
+			-cfg.at(YonkHomeDrift),
+			cfg.at(YonkHomeDrift),
+			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
+		);
 
-	get<Y>(m_relpos) = Noise::wiggle(
-		get<Y>(m_relpos),
-		-cfg.at(Opts::HomeDrift),
-		cfg.at(Opts::HomeDrift),
-		cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor))
-	);
-	
+		get<Y>(m_relpos) = Noise::wiggle(
+			get<Y>(m_relpos),
+			-cfg.at(YonkHomeDrift),
+			cfg.at(YonkHomeDrift),
+			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
+		);
+	}
+
 	Sprite::update(ctx);
 
 	change_texture(Texture::get(m_texture->palette(), bitmap_for_current_emotion(ctx)));
@@ -113,17 +118,17 @@ const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 		// Go down _within_ layers, and the heart optimistic,
 		// Go off towards the right, and the head energetic.
 		// The center is calm; the corners, eclectic!
-		{   
+		{
 			{ lksix,          lkhusk,     lkhusk },
 			{ lkunamused, lkunamused,      lksix },
-			{ lkxd,             lkxd,      lksix }, 
+			{ lkxd,             lkxd,      lksix },
 		},
-		{  
+		{
 			{ lkunamused, lkunamused,         lk },
-			{  lkconcern,         lk,         lk }, 
-			{  lkconcern, lkthumbsup, lkthumbsup }, 
+			{  lkconcern,         lk,         lk },
+			{  lkconcern, lkthumbsup, lkthumbsup },
 		},
-		{   
+		{
 			{ lkexhausted, lkexhausted, lkexhausted },
 			{     lkthink,     lkthink,       lkjoy },
 			{       lkjoy,      lkcool,       lksix },

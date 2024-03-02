@@ -6,7 +6,6 @@
 #include <string>
 #include <optional>
 #include <vector>
-
 #include "resourcew.h"
 
 struct ConfigOption {

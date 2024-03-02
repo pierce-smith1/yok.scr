@@ -40,6 +40,8 @@
 #define IDC_CHECK1                      1019
 #define IDC_PATTERN_FIX                 1019
 #define IDC_VERSION_LABEL               1020
+#define IDC_CLEAR_SCREEN                1022
+#define IDC_PLAY_OVER_DESKTOP           1022
 #define DLG_SCREENSAVERCONFIGURE        2003
 
 // Next default values for new objects
@@ -48,7 +50,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

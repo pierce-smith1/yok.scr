@@ -13,7 +13,7 @@ public:
 	void save();
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	BOOL slider_changed(WPARAM wparam, HWND slider);
-	BOOL pattern_fix_checked(WPARAM wparam, HWND checkbox);
+	BOOL checkbox_checked(WPARAM wparam, HWND checkbox, ConfigOption option);
 	BOOL combobox_changed(HWND combobox, int option);
 	
 private:
