@@ -151,16 +151,16 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		// The context, the timepiece by which we will calculate -
 		// And the offset, by which our fate is encoded
 		// One onto zero that chaos corroded.
-		get<X>(sprite->home()) += offset / cfg.at(TimeDivisor);
-		get<Y>(sprite->home()) += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
+		sprite->home().x += offset / cfg.at(TimeDivisor);
+		sprite->home().y += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
 	}},
 	{ Waves, [](Sprite *sprite, Context *ctx, float offset) {
-		get<X>(sprite->home()) += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
-		get<Y>(sprite->home()) += cos(ctx->t() * offset) / cfg.at(TimeDivisor);
+		sprite->home().x += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
+		sprite->home().y += cos(ctx->t() * offset) / cfg.at(TimeDivisor);
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, float offset) {
-		get<X>(sprite->home()) += offset < 0.5 ? ((1.0f - offset) / cfg.at(TimeDivisor)) : 0.0f;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0f : (offset / cfg.at(TimeDivisor));
+		sprite->home().x += offset < 0.5 ? ((1.0f - offset) / cfg.at(TimeDivisor)) : 0.0f;
+		sprite->home().y += offset < 0.5 ? 0.0f : (offset / cfg.at(TimeDivisor));
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, float offset) {
 		static int NorthWest = 0b01;
@@ -175,17 +175,17 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		float lateral_modifier = (directions[sprite->id()] & West) ? -1.0f : 1.0f;
 		float vertical_modifier = (directions[sprite->id()] & South) ? -1.0f : 1.0f;
 
-		get<X>(sprite->home()) += (offset / cfg.at(TimeDivisor)) * lateral_modifier;
-		get<Y>(sprite->home()) += (1.0f - offset) / cfg.at(TimeDivisor) * vertical_modifier;
+		sprite->home().x += (offset / cfg.at(TimeDivisor)) * lateral_modifier;
+		sprite->home().y += (1.0f - offset) / cfg.at(TimeDivisor) * vertical_modifier;
 
-		if (get<X>(sprite->home()) > 1.0f || get<X>(sprite->home()) < -1.0f) {
+		if (sprite->home().x > 1.0f || sprite->home().x < -1.0f) {
 			directions[sprite->id()] ^= West;
-			get<X>(sprite->home()) = signbit(get<X>(sprite->home())) ? -1.0f : 1.0f;
+			sprite->home().x = signbit(sprite->home().x) ? -1.0f : 1.0f;
 		}
 
-		if (get<Y>(sprite->home()) > 1.0f || get<Y>(sprite->home()) < -1.0f) {
+		if (sprite->home().y > 1.0f || sprite->home().y < -1.0f) {
 			directions[sprite->id()] ^= South;
-			get<Y>(sprite->home()) = signbit(get<Y>(sprite->home())) ? -1.0f : 1.0f;
+			sprite->home().y = signbit(sprite->home().y) ? -1.0f : 1.0f;
 		}
 	}},
 	{ Lissajous, [](Sprite *sprite, Context *ctx, float offset) {
@@ -198,8 +198,8 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 
 		// But! To send them straight to their fate is unsightly,
 		// So instead of assign, we just push ever lightly.
-		get<X>(sprite->home()) = target_x + (get<X>(sprite->home()) - target_x) * 0.9f;
-		get<Y>(sprite->home()) = target_y + (get<Y>(sprite->home()) - target_y) * 0.9f;
+		sprite->home().x = target_x + (sprite->home().x - target_x) * 0.9f;
+		sprite->home().y = target_y + (sprite->home().y - target_y) * 0.9f;
 	}},
 	{ Rose, [](Sprite *sprite, Context *ctx, float offset) {
 		float t = ctx->t() - (offset * 0.03f * cfg.at(SpriteCount));
@@ -208,8 +208,8 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		float target_x = sin(r) * cos(t) * 0.8f;
 		float target_y = sin(r) * sin(t) * 0.8f;
 
-		get<X>(sprite->home()) = target_x + (get<X>(sprite->home()) - target_x) * 0.9f;
-		get<Y>(sprite->home()) = target_y + (get<Y>(sprite->home()) - target_y) * 0.9f;
+		sprite->home().x = target_x + (sprite->home().x - target_x) * 0.9f;
+		sprite->home().y = target_y + (sprite->home().y - target_y) * 0.9f;
 	}},
 	{ Lattice, [](Sprite *_sprite, Context *_ctx, float _offset) {
 		// The flocking of birds, the schooling of fish,
@@ -265,8 +265,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				Sprite *a = (*sprites)[i];
 				Sprite *b = (*sprites)[j];
 
-				float dist_x = a->final<X>() - b->final<X>();
-				float dist_y = (a->final<Y>() - b->final<Y>()) * STRETCH_RATIO;
+				float dist_x = a->final_x() - b->final_x();
+				float dist_y = (a->final_y() - b->final_y()) * STRETCH_RATIO;
 				float dist = std::sqrt(dist_x * dist_x + dist_y * dist_y);
 
 				if (dist < BUBBLE_X_RADIUS) {
@@ -279,19 +279,19 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			Sprite *a = collision.first;
 			Sprite *b = collision.second;
 
-			Point L = { -get<X>(velocity[a->id()]), -get<Y>(velocity[a->id()]) };
-			float mag_L = std::sqrt(get<X>(L) * get<X>(L) + get<Y>(L) * get<Y>(L));
-			Point L_u = { get<X>(L) / mag_L, get<Y>(L) / mag_L };
+			Point L = { -velocity[a->id()].x, -velocity[a->id()].y };
+			float mag_L = std::sqrt(L.x * L.x + L.y * L.y);
+			Point L_u = { L.x / mag_L, L.y / mag_L };
 
-			Point N = { a->final<X>() - b->final<X>(), a->final<Y>() - b->final<Y>() };
-			float mag_N = std::sqrt(get<X>(N) * get<X>(N) + get<Y>(N) * get<Y>(N));
-			get<X>(N) /= mag_N;
-			get<Y>(N) /= mag_N;
+			Point N = { a->final_x() - b->final_x(), a->final_y() - b->final_y() };
+			float mag_N = std::sqrt(N.x * N.x + N.y * N.y);
+			N.x /= mag_N;
+			N.y /= mag_N;
 
-			float cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
+			float cos_theta = L_u.x * N.x + L_u.y * N.y;
 			
 			if (cos_theta > 0) {
-				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0f : 1.0f;
+				cos_theta *= std::signbit(L.x * N.y - L.y * N.x) ? -1.0f : 1.0f;
 
 				float cos_theta_sq = cos_theta * cos_theta;
 				float cos_2theta = 2 * cos_theta_sq - 1;
@@ -299,17 +299,17 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				float sin_theta = std::sqrt(1 - cos_theta_sq);
 				float sin_2theta = (sin_theta + cos_theta) * (sin_theta + cos_theta) - 1;
 
-				float Rx = get<X>(L) * cos_2theta - get<Y>(L) * sin_2theta;
-				float Ry = get<X>(L) * sin_2theta + get<Y>(L) * cos_2theta;
+				float Rx = L.x * cos_2theta - L.y * sin_2theta;
+				float Ry = L.x * sin_2theta + L.y * cos_2theta;
 
-				get<X>(velocity[a->id()]) = Rx;
-				get<Y>(velocity[a->id()]) = Ry;
+				velocity[a->id()].x = Rx;
+				velocity[a->id()].y = Ry;
 			}
 		}
 
 		for (Sprite *sprite : *sprites) {
-			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg.at(TimeDivisor) * 0.5f;
-			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
+			sprite->home().x += velocity[sprite->id()].x / cfg.at(TimeDivisor) * 0.5f;
+			sprite->home().y += velocity[sprite->id()].y / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
@@ -318,7 +318,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				float theta = 2.0f * M_PI * i / 20.0f;
 				float x = BUBBLE_X_RADIUS / 2 * std::cosf(theta);
 				float y = BUBBLE_Y_RADIUS / 2 * std::sinf(theta);
-				glVertex2f(x + sprite->final<X>(), y + sprite->final<Y>());
+				glVertex2f(x + sprite->final_x(), y + sprite->final_y());
 			}
 			glEnd();
 		}

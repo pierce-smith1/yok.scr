@@ -9,7 +9,16 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home)
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(SpriteSize) / 1000.0f) { }
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(SpriteSize) / 1000.0f) {
+}
+
+float Sprite::final_x() const {
+	return m_home.x + m_relpos.x;
+}
+
+float Sprite::final_y() const {
+	return m_home.y + m_relpos.y;
+}
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
@@ -55,8 +64,8 @@ void Sprite::update(Context &ctx) {
 	float edge_boundary = 0.15f + m_size / 1.1f;
 	float horizontal_correction = max((float) ctx.rect().right / (float) ctx.rect().bottom, 1.0f);
 	float vertical_correction = max((float) ctx.rect().bottom / (float) ctx.rect().right, 1.0f);
-	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
-	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
+	m_home.x = wrap(m_home.x, final_x(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
+	m_home.y = wrap(m_home.y, final_y(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
 }
 
 Point &Sprite::home() {
@@ -64,7 +73,7 @@ Point &Sprite::home() {
 }
 
 void Sprite::transform() {
-	glTranslatef(final<X>(), final<Y>(), 0.0f);
+	glTranslatef(final_x(), final_y(), 0.0f);
 	glScalef(m_size, m_size, 1.0f);
 }
 
@@ -84,15 +93,15 @@ void Yonker::update(Context &ctx) {
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
 	if (cfg.at(YonkHomeDrift) >= 0.000001f) {
-		get<X>(m_relpos) = Noise::wiggle(
-			get<X>(m_relpos),
+		m_relpos.x = Noise::wiggle(
+			m_relpos.x,
 			-cfg.at(YonkHomeDrift),
 			cfg.at(YonkHomeDrift),
 			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
 		);
 
-		get<Y>(m_relpos) = Noise::wiggle(
-			get<Y>(m_relpos),
+		m_relpos.y = Noise::wiggle(
+			m_relpos.y,
 			-cfg.at(YonkHomeDrift),
 			cfg.at(YonkHomeDrift),
 			cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor)) / max((cfg.at(YonkHomeDrift) / cfg_defaults.at(YonkHomeDrift)), 1)
@@ -142,9 +151,9 @@ std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) 
 	// Continous noise will be perfect for this;
 	// Nearby to those pissed will also be pissed.
 	return {
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() - ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() - ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() + ctx.t(), final_y() + ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() - ctx.t(), final_y() + ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() + ctx.t(), final_y() - ctx.t(), ctx.t()),
 	};
 }
 

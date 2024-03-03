@@ -18,13 +18,12 @@ class Sprite : public Identifiable<Empty> {
 public:
 	Sprite(const Texture *texture, const Point &home);
 
+	float final_x() const;
+	float final_y() const;
+
 	void change_texture(const Texture *texture);
 	virtual void draw(Context &ctx);
 	virtual void update(Context &ctx);
-
-	template <int C> float final() const {
-		return std::get<C>(m_home) + std::get<C>(m_relpos);
-	}
 
 	Point &home();
 

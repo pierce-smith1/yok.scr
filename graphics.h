@@ -46,8 +46,13 @@ private:
 	const Bitmap &m_bitmap;
 };
 
-using Point = std::pair<GLfloat, GLfloat>;
-enum Coord {
-	X = 0,
-	Y = 1
+struct Point {
+	Point()
+		: x(0), y(0) { }
+
+	Point(GLfloat x, GLfloat y)
+		: x(x), y(y) { }
+
+	GLfloat x;
+	GLfloat y;
 };
