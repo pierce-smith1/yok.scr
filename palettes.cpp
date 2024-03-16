@@ -8,16 +8,30 @@
 #include "config.h"
 #include "configdialog.h"
 
-Palette::Palette(const std::array<Color, _PALETTE_SIZE> &colors) {
+PaletteData::PaletteData(const std::array<Color, _PALETTE_SIZE> &colors) {
 	std::copy(colors.begin(), colors.end(), begin());
 }
 
-Palette::Palette(const std::initializer_list<Color> &i_list) {
+PaletteData::PaletteData(const std::initializer_list<Color> &i_list) {
 	std::copy(i_list.begin(), i_list.end(), begin());
 }
 
-const Palette *RandomPalettes::random(int rng_token) {
-	static std::map<int, Palette *> generated_palettes;
+// The hex strings provided must be of the form #RRGGBB, where XX are hex numbers.
+// The alpha is always assumed to be 255.
+// The resulting palette will always start with { 0, 0, 0, 0 }.
+PaletteData::PaletteData(const std::array<std::string, _PALETTE_SIZE - 1> &hex_strings) {
+	*begin() = { 0, 0, 0, 0 };
+	std::transform(hex_strings.begin(), hex_strings.end(), begin() + 1, [](const std::string &hex_string) -> Color {
+		auto red = std::stoi(hex_string.substr(1, 2), nullptr, 16);
+		auto green = std::stoi(hex_string.substr(3, 2), nullptr, 16);
+		auto blue = std::stoi(hex_string.substr(5, 2), nullptr, 16);
+
+		return { red, green, blue, 255 };
+	});
+}
+
+const PaletteData *RandomPalettes::random(int rng_token) {
+	static std::map<int, PaletteData *> generated_palettes;
 
 	auto result = generated_palettes.find(rng_token);
 
@@ -28,7 +42,7 @@ const Palette *RandomPalettes::random(int rng_token) {
 	return generated_palettes.at(rng_token);
 }
 
-Palette *RandomPalettes::new_random_palette() {
+PaletteData *RandomPalettes::new_random_palette() {
 	static int bias_intensity = (int) (20.0f / ((cfg[ConfigOptions::MaxColors] + 4.0f) / ConfigOptions::MaxColors.range.second));
 
 	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
@@ -80,7 +94,7 @@ Palette *RandomPalettes::new_random_palette() {
 
 	colors[PI_TRANSPARENT] = { 0, 0, 0, 0 };
 
-	return new Palette(colors);
+	return new PaletteData(colors);
 }
 
 Color RandomPalettes::random_color() {

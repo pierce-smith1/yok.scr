@@ -23,14 +23,6 @@ enum PatternName {
 	_PATTERN_COUNT
 };
 
-enum class PaletteGroup {
-	All,
-	Canon,
-	NonCanon,
-	RandomlyGenerated,
-	_PALETTE_OPTION_COUNT
-};
-
 class SpriteGenerator {
 public:
 	SpriteGenerator();
@@ -39,9 +31,9 @@ public:
 
 private:
 	const Texture *next_texture() const;
-	const Palette *next_palette() const;
+	const PaletteData *next_palette() const;
 
-	std::vector<const Palette *> m_palettes;
+	std::vector<const PaletteData *> m_palettes;
 };
 
 class PatternPlayer {

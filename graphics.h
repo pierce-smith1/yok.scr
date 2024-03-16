@@ -24,16 +24,16 @@ public:
 
 class Texture {
 public:
-	static const Texture *get(const Palette &palette, const Bitmap &bitmap);
-	static const Texture *of(PaletteName palette_name, BitmapName bitmap_name);
-	static const Texture *of(const Palette *palette, BitmapName bitmap_name);
+	static const Texture *get(const PaletteData &palette, const Bitmap &bitmap);
+	static const Texture *of(Palettes::Definition palette, BitmapName bitmap_name);
+	static const Texture *of(const PaletteData *palette, BitmapName bitmap_name);
 
-	const Palette &palette() const;
+	const PaletteData &palette() const;
 
 	void apply() const;
 
 private:
-	Texture(const Palette &palette, const Bitmap &bitmap);
+	Texture(const PaletteData &palette, const Bitmap &bitmap);
 	Texture(const Texture &texture) = delete;
 	Texture &operator=(const Texture &texture) = delete;
 
@@ -42,7 +42,7 @@ private:
 	static std::map<std::pair<Id, Id>, Texture *> texture_cache;
 
 	unsigned int m_gl_tex_id;
-	const Palette &m_palette;
+	const PaletteData &m_palette;
 	const Bitmap &m_bitmap;
 };
 

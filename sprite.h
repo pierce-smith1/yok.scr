@@ -60,7 +60,7 @@ protected:
 
 class Impostor : public Sprite {
 public:
-	Impostor(const Palette *palette, const Point &home);
+	Impostor(const PaletteData *palette, const Point &home);
 
 protected:
 	static BitmapName random_bitmap();

@@ -14,15 +14,15 @@ SpriteGenerator::SpriteGenerator() {
 
 	PaletteGroup palette_group = (PaletteGroup) (cfg[ConfigOptions::Palette]);
 
-	std::vector<const Palette *> bag_of_palettes;
+	std::vector<const PaletteData *> bag_of_palettes;
 	if (palette_group == PaletteGroup::RandomlyGenerated) {
 		for (int i = ConfigOptions::MaxColors.range.first; i < ConfigOptions::MaxColors.range.second; i++) {
 			bag_of_palettes.push_back(RandomPalettes::random(i));
 		}
 	} else {
-		auto palette_names = PALETTES_BY_GROUP.at(palette_group);
-		for (auto name : palette_names) {
-			bag_of_palettes.push_back(&PALETTES.at(name));
+		auto group = PaletteGroups::get(palette_group);
+		for (const auto *palette : group.members) {
+			bag_of_palettes.push_back(&palette->palette);
 		}
 	}
 
@@ -56,7 +56,7 @@ const Texture *SpriteGenerator::next_texture() const {
 	return Texture::of(next_palette(), lk);
 }
 
-const Palette *SpriteGenerator::next_palette() const {
+const PaletteData *SpriteGenerator::next_palette() const {
 	// A weighted coin?! Now that's certainly cheating!
 	// You'd be kicked outta Vegas for logarithmic repeating.
 	while (true) {

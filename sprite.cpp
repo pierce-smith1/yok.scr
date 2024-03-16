@@ -152,7 +152,7 @@ std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) 
 // That's no Llokin! That's something sinistrous!
 // The temper of character just misses the mark...
 // Emergency meeting! That's awfully suspicious!
-Impostor::Impostor(const Palette *palette, const Point &home)
+Impostor::Impostor(const PaletteData *palette, const Point &home)
 	: Sprite(Texture::of(palette, random_bitmap()), home) { }
 
 BitmapName Impostor::random_bitmap() {
