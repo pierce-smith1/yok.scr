@@ -7,8 +7,8 @@ Scene::Scene(HWND window)
 // It's of utmost importance the context comes first!
 // Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
-	  m_sprites(SpriteGenerator().make(cfg.at(Opts::SpriteCount))),
-	  m_choreographer((PatternName) cfg.at(Opts::Pattern), &m_sprites, &m_ctx) { }
+	  m_sprites(SpriteGenerator().make(cfg[ConfigOptions::SpriteCount])),
+	  m_choreographer((PatternName) cfg[ConfigOptions::Pattern], &m_sprites, &m_ctx) { }
 
 void Scene::draw() {
 	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);
@@ -18,7 +18,7 @@ void Scene::draw() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (cfg.at(Opts::PlayOverDesktop)) {
+	if (cfg[ConfigOptions::PlayOverDesktop]) {
 		draw_background();
 	}
 

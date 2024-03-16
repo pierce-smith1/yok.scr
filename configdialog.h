@@ -13,7 +13,7 @@ public:
 	void save();
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	BOOL slider_changed(WPARAM wparam, HWND slider);
-	BOOL checkbox_checked(WPARAM wparam, HWND checkbox, ConfigOption option);
+	BOOL checkbox_checked(WPARAM wparam, HWND checkbox, const ConfigOptions::Definition &option);
 	BOOL combobox_changed(HWND combobox, int option);
 	
 private:

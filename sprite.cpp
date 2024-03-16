@@ -9,7 +9,7 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home) 
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(Opts::SpriteSize) / 1000.0f) { }
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[ConfigOptions::SpriteSize] / 1000.0f) { }
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
@@ -83,19 +83,19 @@ void Yonker::update(Context &ctx) {
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	if (cfg.at(Opts::HomeDrift) >= 0.000001f) {
+	if (cfg[ConfigOptions::HomeDrift] >= 0.000001f) {
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
-			-cfg.at(Opts::HomeDrift),
-			cfg.at(Opts::HomeDrift),
-			cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor)) / max((cfg.at(Opts::HomeDrift) / Opts::HomeDrift.default_), 1)
+			-cfg[ConfigOptions::HomeDrift],
+			cfg[ConfigOptions::HomeDrift],
+			cfg[ConfigOptions::StepSize] * (emotion_magnitude * cfg[ConfigOptions::ShakeFactor]) / max((cfg[ConfigOptions::HomeDrift] / ConfigOptions::HomeDrift.default_), 1)
 		);
 
 		get<Y>(m_relpos) = Noise::wiggle(
 			get<Y>(m_relpos),
-			-cfg.at(Opts::HomeDrift),
-			cfg.at(Opts::HomeDrift),
-			cfg.at(Opts::StepSize) * (emotion_magnitude * cfg.at(Opts::ShakeFactor)) / max((cfg.at(Opts::HomeDrift) / Opts::HomeDrift.default_), 1)
+			-cfg[ConfigOptions::HomeDrift],
+			cfg[ConfigOptions::HomeDrift],
+			cfg[ConfigOptions::StepSize] * (emotion_magnitude * cfg[ConfigOptions::ShakeFactor]) / max((cfg[ConfigOptions::HomeDrift] / ConfigOptions::HomeDrift.default_), 1)
 		);
 	}
 
@@ -106,7 +106,7 @@ void Yonker::update(Context &ctx) {
 
 const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	auto emotion_map_index_of = [](float emotion) -> int {
-		return std::clamp((int) round(emotion * cfg.at(Opts::EmotionScale)), -1, 1) + 1;
+		return std::clamp((int) round(emotion * cfg[ConfigOptions::EmotionScale]), -1, 1) + 1;
 	};
 
 	int empathetic = emotion_map_index_of(m_emotion_vector[EMPATHY]);
