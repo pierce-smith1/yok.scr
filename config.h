@@ -165,7 +165,6 @@ public:
 	Config();
 
 	float &operator[](const ConfigOptions::Definition &opt);
-	float operator[](const ConfigOptions::Definition &opt) const;
 
 private:
 	std::vector<float> m_store;

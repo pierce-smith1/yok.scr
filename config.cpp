@@ -17,10 +17,6 @@ float &Config::operator[](const ConfigOptions::Definition &opt) {
 	return m_store[opt.index];
 }
 
-float Config::operator[](const ConfigOptions::Definition &opt) const {
-	return m_store[opt.index];
-}
-
 Registry::Registry() 
 	: m_reg_key(NULL)
 {
