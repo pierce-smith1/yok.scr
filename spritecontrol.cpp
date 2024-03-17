@@ -21,8 +21,8 @@ SpriteGenerator::SpriteGenerator() {
 		}
 	} else {
 		auto group = PaletteGroups::get(palette_group);
-		for (const auto *palette : group.members) {
-			bag_of_palettes.push_back(palette->data);
+		for (const auto &palette : group.members) {
+			bag_of_palettes.push_back(palette.data);
 		}
 	}
 
