@@ -11,13 +11,6 @@ const static float M_PI = std::acos(-1);
 
 using Sprites = std::vector<Sprite *>;
 
-struct Patterns {
-	struct Definition {
-		std::wstring name;
-		
-	};
-};
-
 enum PatternName {
 	Roamers,
 	Waves,
