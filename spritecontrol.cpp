@@ -1,5 +1,5 @@
 #include "spritecontrol.h"
-#include "resources.h"
+#include "bitmaps.h"
 #include "config.h"
 #include "noise.h"
 #include "configdialog.h"
@@ -22,7 +22,7 @@ SpriteGenerator::SpriteGenerator() {
 	} else {
 		auto group = PaletteGroups::get(palette_group);
 		for (const auto *palette : group.members) {
-			bag_of_palettes.push_back(&palette->palette);
+			bag_of_palettes.push_back(palette->data);
 		}
 	}
 
@@ -53,7 +53,7 @@ std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 }
 
 const Texture *SpriteGenerator::next_texture() const {
-	return Texture::of(next_palette(), lk);
+	return Texture::of(next_palette(), Bitmaps::Lk);
 }
 
 const PaletteData *SpriteGenerator::next_palette() const {

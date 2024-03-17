@@ -1,5 +1,5 @@
 #include "scene.h"
-#include "resources.h"
+#include "bitmaps.h"
 #include "config.h"
 #include "spritecontrol.h"
 

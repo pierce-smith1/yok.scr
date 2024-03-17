@@ -157,7 +157,7 @@
     <ClInclude Include="graphics.h" />
     <ClInclude Include="noise.h" />
     <ClInclude Include="palettes.h" />
-    <ClInclude Include="resources.h" />
+    <ClInclude Include="bitmaps.h" />
     <ClInclude Include="resourcew.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="sprite.h" />
@@ -172,7 +172,7 @@
     <ClCompile Include="noise.cpp" />
     <ClCompile Include="palettes.cpp" />
     <ClCompile Include="scene.cpp" />
-    <ClCompile Include="resources.cpp" />
+    <ClCompile Include="bitmaps.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="spritecontrol.cpp" />
     <ClCompile Include="yokscr.cpp" />

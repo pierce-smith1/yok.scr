@@ -60,17 +60,15 @@ struct Palettes {
 	struct Definition {
 		auto operator<=>(const Definition &other) const = default;
 
-		const size_t index;
 		const std::wstring name;
 		const PaletteGroup group;
-		const PaletteData palette;
+		const PaletteData *data;
 	};
 
 	inline const static Definition Aemil = {
-		.index = __COUNTER__,
 		.name = L"aemil",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#56eb8e",
 			"#84f5c3",
 			"#1d9550",
@@ -82,10 +80,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Autumn = {
-		.index = __COUNTER__,
 		.name = L"autumn",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#db8313",
 			"#be9275",
 			"#904a08",
@@ -97,10 +94,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Ascent = {
-		.index = __COUNTER__,
 		.name = L"ascent",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#1963c4",
 			"#1963c4",
 			"#0b407d",
@@ -112,10 +108,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Azul = {
-		.index = __COUNTER__,
 		.name = L"azul",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#1aadd9",
 			"#a1d0e5",
 			"#296d9e",
@@ -127,10 +122,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Bliss = {
-		.index = __COUNTER__,
 		.name = L"bliss",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#73981e",
 			"#73981e",
 			"#3d5317",
@@ -142,10 +136,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Chasnah = {
-		.index = __COUNTER__,
 		.name = L"chasnah",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#6f31dd",
 			"#932de3",
 			"#3a12a2",
@@ -157,10 +150,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Crystal = {
-		.index = __COUNTER__,
 		.name = L"crystal",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#38399e",
 			"#51b7cf",
 			"#1c63d8",
@@ -172,10 +164,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Dejil = {
-		.index = __COUNTER__,
 		.name = L"dejil",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f0f0f0",
 			"#ffffff",
 			"#bebebe",
@@ -187,10 +178,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Dzune = {
-		.index = __COUNTER__,
 		.name = L"dzune",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#e56161",
 			"#c75653",
 			"#ab3232",
@@ -202,10 +192,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Ellai = {
-		.index = __COUNTER__,
 		.name = L"ellai",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#97cc72",
 			"#caecb1",
 			"#338527",
@@ -217,10 +206,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Evjar = {
-		.index = __COUNTER__,
 		.name = L"evjar",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#6c2717",
 			"#8b4231",
 			"#2f1c31",
@@ -232,10 +220,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Follow = {
-		.index = __COUNTER__,
 		.name = L"follow",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#de5a29",
 			"#d0742d",
 			"#0a1a4a",
@@ -247,10 +234,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Friend = {
-		.index = __COUNTER__,
 		.name = L"friend",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#a08d77",
 			"#bcab96",
 			"#433a2d",
@@ -262,10 +248,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Fruit = {
-		.index = __COUNTER__,
 		.name = L"fruit",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f05f7c",
 			"#ed7890",
 			"#d3405e",
@@ -277,10 +262,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Gimeljoy = {
-		.index = __COUNTER__,
 		.name = L"gimeljoy",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#ffdec4",
 			"#fac499",
 			"#ffb376",
@@ -292,10 +276,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Gimelsad = {
-		.index = __COUNTER__,
 		.name = L"gimelsad",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#c4e7ff",
 			"#81c0ec",
 			"#5fa7da",
@@ -307,10 +290,9 @@ struct Palettes {
 	};
 
 	inline const static Definition GimelYOO = {
-		.index = __COUNTER__,
 		.name = L"gimelYOO",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f9c4ff",
 			"#f492ff",
 			"#f06cff",
@@ -322,10 +304,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Home = {
-		.index = __COUNTER__,
 		.name = L"home",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#a26177",
 			"#7d5a7c",
 			"#593b42",
@@ -337,10 +318,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Jaela = {
-		.index = __COUNTER__,
 		.name = L"jaela",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f8b765",
 			"#f6d58e",
 			"#a95a2e",
@@ -352,10 +332,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Jergh = {
-		.index = __COUNTER__,
 		.name = L"jergh",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#e7e7e7",
 			"#f3f3eb",
 			"#b4bcd1",
@@ -367,10 +346,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Kirii = {
-		.index = __COUNTER__,
 		.name = L"kirii",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#4ad4bf",
 			"#44e0d1",
 			"#2c9197",
@@ -382,10 +360,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Kraza = {
-		.index = __COUNTER__,
 		.name = L"kraza",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#593c2b",
 			"#775336",
 			"#3b2620",
@@ -397,10 +374,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Llema = {
-		.index = __COUNTER__,
 		.name = L"llema",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#4eae8b",
 			"#84c19c",
 			"#3d9177",
@@ -412,10 +388,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Lotus = {
-		.index = __COUNTER__,
 		.name = L"lotus",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f02555",
 			"#f25278",
 			"#7c1b3d",
@@ -427,10 +402,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Loxxe = {
-		.index = __COUNTER__,
 		.name = L"loxxe",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#243966",
 			"#31487a",
 			"#16274d",
@@ -442,10 +416,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Meazs = {
-		.index = __COUNTER__,
 		.name = L"meazs",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#ea8241",
 			"#f3ab58",
 			"#9e3b1f",
@@ -457,10 +430,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Metis = {
-		.index = __COUNTER__,
 		.name = L"metis",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#50c169",
 			"#72d387",
 			"#1b703f",
@@ -472,10 +444,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Moonflower = {
-		.index = __COUNTER__,
 		.name = L"moonflower",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#ea4a71",
 			"#f664cc",
 			"#b41d3d",
@@ -487,10 +458,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Nachi = {
-		.index = __COUNTER__,
 		.name = L"nachi",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#ff5454",
 			"#d63838",
 			"#00ffff",
@@ -502,10 +472,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Oom = {
-		.index = __COUNTER__,
 		.name = L"oom",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#060084",
 			"#0000ff",
 			"#04004d",
@@ -517,10 +486,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Peace = {
-		.index = __COUNTER__,
 		.name = L"peace",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#ddfdfe",
 			"#ffffff",
 			"#9bdbde",
@@ -532,10 +500,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Power = {
-		.index = __COUNTER__,
 		.name = L"power",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#fea0f8",
 			"#ffc3c8",
 			"#fe0ab4",
@@ -547,10 +514,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Purpleflower = {
-		.index = __COUNTER__,
 		.name = L"purpleflower",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#794b7c",
 			"#a27cb8",
 			"#461f3e",
@@ -562,10 +528,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Radiance = {
-		.index = __COUNTER__,
 		.name = L"radiance",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#372c24",
 			"#6c665c",
 			"#000000",
@@ -577,10 +542,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Redmoondesert = {
-		.index = __COUNTER__,
 		.name = L"redmoondesert",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#89280b",
 			"#cd5329",
 			"#3e1109",
@@ -592,10 +556,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Ripple = {
-		.index = __COUNTER__,
 		.name = L"ripple",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#0aa4f5",
 			"#00bdf7",
 			"#0057da",
@@ -607,10 +570,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Romal = {
-		.index = __COUNTER__,
 		.name = L"romal",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#5a3178",
 			"#825197",
 			"#3f1f56",
@@ -622,10 +584,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Sillh = {
-		.index = __COUNTER__,
 		.name = L"sillh",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#f8ddd1",
 			"#ffeee7",
 			"#bf927f",
@@ -637,10 +598,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Stonehenge = {
-		.index = __COUNTER__,
 		.name = L"stonehenge",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#627ec4",
 			"#a6b5e2",
 			"#43589a",
@@ -652,10 +612,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Tulips = {
-		.index = __COUNTER__,
 		.name = L"tulips",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#d39e0e",
 			"#b7c0e6",
 			"#7b5505",
@@ -667,10 +626,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Vette = {
-		.index = __COUNTER__,
 		.name = L"vette",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#aab0cf",
 			"#707fca",
 			"#747ca8",
@@ -682,10 +640,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Vortecspace = {
-		.index = __COUNTER__,
 		.name = L"vortecspace",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#029cfe",
 			"#0240de",
 			"#0c1f88",
@@ -697,10 +654,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Wind = {
-		.index = __COUNTER__,
 		.name = L"wind",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#cb7d54",
 			"#f38b41",
 			"#6b4c30",
@@ -712,10 +668,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Windowsxp = {
-		.index = __COUNTER__,
 		.name = L"windowsxp",
 		.group = PaletteGroup::NonCanon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#679d4a",
 			"#5ba631",
 			"#446333",
@@ -727,10 +682,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Yette = {
-		.index = __COUNTER__,
 		.name = L"yette",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#45b0ee",
 			"#60c1f9",
 			"#238cc9",
@@ -742,10 +696,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Zehal = {
-		.index = __COUNTER__,
 		.name = L"zehal",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#eab375",
 			"#e8c685",
 			"#ad7455",
@@ -757,10 +710,9 @@ struct Palettes {
 	};
 
 	inline const static Definition Zoog = {
-		.index = __COUNTER__,
 		.name = L"zoog",
 		.group = PaletteGroup::Canon,
-		.palette = {{
+		.data = new PaletteData {{
 			"#9f2936",
 			"#c74545",
 			"#851a26",

@@ -2,7 +2,7 @@
 
 #include "sprite.h"
 #include "noise.h"
-#include "resources.h"
+#include "bitmaps.h"
 #include "config.h"
 #include "common.h"
 
@@ -104,7 +104,7 @@ void Yonker::update(Context &ctx) {
 	change_texture(Texture::get(m_texture->palette(), bitmap_for_current_emotion(ctx)));
 }
 
-const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
+const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	auto emotion_map_index_of = [](float emotion) -> int {
 		return std::clamp((int) round(emotion * cfg[ConfigOptions::EmotionScale]), -1, 1) + 1;
 	};
@@ -113,29 +113,29 @@ const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	int optimistic = emotion_map_index_of(m_emotion_vector[OPTIMISM]);
 	int ambitious = emotion_map_index_of(m_emotion_vector[AMBITION]);
 
-	static BitmapName emotion_map[3][3][3] = {
+	static Bitmaps::Definition emotion_map[3][3][3] = {
 		// Go down through the layers, and the soul empathatic,
 		// Go down _within_ layers, and the heart optimistic,
 		// Go off towards the right, and the head energetic.
 		// The center is calm; the corners, eclectic!
 		{
-			{ lksix,          lkhusk,     lkhusk },
-			{ lkunamused, lkunamused,      lksix },
-			{ lkxd,             lkxd,      lksix },
+			{ Bitmaps::Lksix,      Bitmaps::Lkhusk,     Bitmaps::Lkhusk },
+			{ Bitmaps::Lkunamused, Bitmaps::Lkunamused, Bitmaps::Lksix },
+			{ Bitmaps::Lkxd,       Bitmaps::Lkxd,       Bitmaps::Lksix },
 		},
 		{
-			{ lkunamused, lkunamused,         lk },
-			{  lkconcern,         lk,         lk },
-			{  lkconcern, lkthumbsup, lkthumbsup },
+			{ Bitmaps::Lkunamused, Bitmaps::Lkunamused, Bitmaps::Lk },
+			{ Bitmaps::Lkconcern,  Bitmaps::Lk,         Bitmaps::Lk },
+			{ Bitmaps::Lkconcern,  Bitmaps::Lkthumbsup, Bitmaps::Lkthumbsup },
 		},
 		{
-			{ lkexhausted, lkexhausted, lkexhausted },
-			{     lkthink,     lkthink,       lkjoy },
-			{       lkjoy,      lkcool,       lksix },
+			{ Bitmaps::Lkexhausted, Bitmaps::Lkexhausted, Bitmaps::Lkexhausted },
+			{ Bitmaps::Lkthink,     Bitmaps::Lkthink,     Bitmaps::Lkjoy },
+			{ Bitmaps::Lkjoy,       Bitmaps::Lkcool,      Bitmaps::Lksix },
 		},
 	};
 
-	return *load_bitmap(emotion_map[empathetic][optimistic][ambitious]);
+	return *emotion_map[empathetic][optimistic][ambitious].data;
 }
 
 std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) const {
@@ -155,9 +155,9 @@ std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) 
 Impostor::Impostor(const PaletteData *palette, const Point &home)
 	: Sprite(Texture::of(palette, random_bitmap()), home) { }
 
-BitmapName Impostor::random_bitmap() {
-	static std::vector<BitmapName> impostors = { cvjoy, nx, vx, lkmoyai, fn, fnplead };
-	static std::vector<BitmapName> yoy = { lkyoy, lkyoyapprove, fnyoy, cvyoy };
+Bitmaps::Definition &Impostor::random_bitmap() {
+	static auto impostors = Bitmaps::bitmaps_of_group(BitmapGroup::Impostor);
+	static auto yoy = Bitmaps::bitmaps_of_group(BitmapGroup::YoyImpostor);
 
 	if (Noise::random() < 0.5f) {
 		return impostors[(int) (Noise::random() * impostors.size())];
