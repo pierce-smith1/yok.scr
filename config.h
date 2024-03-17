@@ -10,7 +10,7 @@
 #include <set>
 
 
-struct ConfigOptions {
+struct Cfg {
 	struct Definition {
 		auto operator<=>(const Definition &other) const = default;
 
@@ -164,8 +164,8 @@ class Config {
 public:
 	Config();
 
-	float &operator[](const ConfigOptions::Definition &opt);
-	float operator[](const ConfigOptions::Definition &opt) const;
+	float &operator[](const Cfg::Definition &opt);
+	float operator[](const Cfg::Definition &opt) const;
 
 private:
 	std::vector<float> m_store;

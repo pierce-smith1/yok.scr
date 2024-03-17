@@ -43,7 +43,7 @@ const PaletteData *RandomPalettes::random(int rng_token) {
 }
 
 PaletteData *RandomPalettes::new_random_palette() {
-	static int bias_intensity = (int) (20.0f / ((cfg[ConfigOptions::MaxColors] + 4.0f) / ConfigOptions::MaxColors.range.second));
+	static int bias_intensity = (int) (20.0f / ((cfg[Cfg::MaxColors] + 4.0f) / Cfg::MaxColors.range.second));
 
 	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
 	static float green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);

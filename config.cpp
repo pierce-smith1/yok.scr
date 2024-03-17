@@ -6,18 +6,18 @@
 #include "config.h"
 
 Config::Config() 
-	: m_store(ConfigOptions::All.size())
+	: m_store(Cfg::All.size())
 {
-	for (const auto &def : ConfigOptions::All) {
+	for (const auto &def : Cfg::All) {
 		(*this)[def] = def.default_;
 	}
 }
 
-float &Config::operator[](const ConfigOptions::Definition &opt) {
+float &Config::operator[](const Cfg::Definition &opt) {
 	return m_store[opt.index];
 }
 
-float Config::operator[](const ConfigOptions::Definition &opt) const {
+float Config::operator[](const Cfg::Definition &opt) const {
 	return m_store[opt.index];
 }
 
@@ -47,7 +47,7 @@ Config Registry::get_config() {
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
 	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
 
-	for (const auto &opt : ConfigOptions::All) {
+	for (const auto &opt : Cfg::All) {
 		if (is_registry_migrated) {
 			config[opt] = get(opt.name, opt.default_);
 		} else {

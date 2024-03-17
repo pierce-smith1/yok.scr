@@ -30,7 +30,7 @@ ConfigDialog::ConfigDialog(HWND dialog)
 void ConfigDialog::save() {
 	Registry registry;
 
-	for (const auto &opt : ConfigOptions::All) {
+	for (const auto &opt : Cfg::All) {
 		registry.write(opt.name, m_current_config[opt]);
 	}
 }
@@ -45,7 +45,7 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			return TRUE;
 		}
 		case IDC_DEFAULTS_BUTTON: {
-			for (const auto &opt : ConfigOptions::All) {
+			for (const auto &opt : Cfg::All) {
 				m_current_config[opt] = opt.default_;
 			}
 			refresh();
@@ -65,13 +65,13 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 		}
 		case IDC_PATTERN_FIX: {
 			if (HIWORD(wparam) == BN_CLICKED) {
-				return checkbox_checked(wparam, (HWND) lparam, ConfigOptions::IsPatternFixed);
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::IsPatternFixed);
 			}
 			break;
 		}
 		case IDC_PLAY_OVER_DESKTOP: {
 			if (HIWORD(wparam) == BN_CLICKED) {
-				return checkbox_checked(wparam, (HWND) lparam, ConfigOptions::PlayOverDesktop);
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::PlayOverDesktop);
 			}
 			break;
 		}
@@ -84,7 +84,7 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 BOOL ConfigDialog::slider_changed(WPARAM wparam, HWND slider) {
 	int value = SendMessage(slider, TBM_GETPOS, 0, 0);
 
-	auto opt = *std::find_if(ConfigOptions::All.begin(), ConfigOptions::All.end(), [&](const auto &opt) {
+	auto opt = *std::find_if(Cfg::All.begin(), Cfg::All.end(), [&](const auto &opt) {
 		return opt.dialog_control_id == GetDlgCtrlID(slider);
 	});
 
@@ -100,17 +100,17 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 
 	switch (option_type) {
 		case IDC_YONK_PATTERN:
-			m_current_config[ConfigOptions::Pattern] = (float) reverse_lookup(pattern_strings, option_name);
+			m_current_config[Cfg::Pattern] = (float) reverse_lookup(pattern_strings, option_name);
 			break;
 		case IDC_YONK_PALETTE:
-			m_current_config[ConfigOptions::Palette] = (float) reverse_lookup(palette_strings, option_name);
+			m_current_config[Cfg::Palette] = (float) reverse_lookup(palette_strings, option_name);
 			break;
 	}
 
 	return FALSE;
 }
 
-BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const ConfigOptions::Definition &option) {
+BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Definition &option) {
 	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
 	m_current_config[option] = checked ? 1.0f : 0.0f;
 	refresh();
@@ -132,7 +132,7 @@ void ConfigDialog::refresh() {
 	std::wstring version_label_text = L"yokscr version " + YOKSCR_VERSION;
 	SendMessage(version_label, WM_SETTEXT, NULL, (LPARAM) version_label_text.c_str());
 
-	for (const auto &opt : ConfigOptions::All) {
+	for (const auto &opt : Cfg::All) {
 		HWND slider = GetDlgItem(m_dialog, opt.dialog_control_id);
 
 		SendMessage(slider, TBM_SETRANGEMIN, TRUE, encodef(opt.range.first));
@@ -141,34 +141,34 @@ void ConfigDialog::refresh() {
 	}
 
 	// these should probably be put somewhere else at some point
-	if (m_current_config[ConfigOptions::Pattern] < 0 
-	 || m_current_config[ConfigOptions::Pattern] >= (int) _PATTERN_COUNT) 
+	if (m_current_config[Cfg::Pattern] < 0 
+	 || m_current_config[Cfg::Pattern] >= (int) _PATTERN_COUNT) 
 	{
-		m_current_config[ConfigOptions::Pattern] = 0;
+		m_current_config[Cfg::Pattern] = 0;
 	}
-	if (m_current_config[ConfigOptions::Palette] < 0 
-	 || m_current_config[ConfigOptions::Palette] >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) 
+	if (m_current_config[Cfg::Palette] < 0 
+	 || m_current_config[Cfg::Palette] >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) 
 	{
-		m_current_config[ConfigOptions::Palette] = 0;
+		m_current_config[Cfg::Palette] = 0;
 	}
 
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
-		(PatternName) m_current_config[ConfigOptions::Pattern]).c_str()
+		(PatternName) m_current_config[Cfg::Pattern]).c_str()
 	);
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	ComboBox_SelectString(palette_box, -1, palette_strings.at(
-		(PaletteGroup) m_current_config[ConfigOptions::Palette]).c_str()
+		(PaletteGroup) m_current_config[Cfg::Palette]).c_str()
 	);
 
-	bool is_pattern_fixed = m_current_config[ConfigOptions::IsPatternFixed] == 1.0f;
+	bool is_pattern_fixed = m_current_config[Cfg::IsPatternFixed] == 1.0f;
 	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
 	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
 	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);
 	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
 
-	bool is_playing_over_desktop = m_current_config[ConfigOptions::PlayOverDesktop] == 1.0f;
+	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0f;
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
 }
