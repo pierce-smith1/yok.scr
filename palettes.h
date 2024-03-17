@@ -60,9 +60,9 @@ struct Palettes {
 	struct Definition {
 		auto operator<=>(const Definition &other) const = default;
 
-		const std::wstring name;
-		const PaletteGroup group;
-		const PaletteData *data;
+		std::wstring name;
+		PaletteGroup group;
+		PaletteData *data;
 	};
 
 	inline const static Definition Aemil = {
@@ -776,23 +776,13 @@ struct Palettes {
 
 struct PaletteGroups {
 private:
-	inline static std::vector<const Palettes::Definition *> palettes_of_group(PaletteGroup group) {
-		std::vector<const Palettes::Definition *> members;
-
-		for (const auto &palette : Palettes::All) {
-			if (group == PaletteGroup::All || palette.group == group) {
-				members.push_back(&palette);
-			}
-		}
-
-		return members;
-	}
+	static std::vector<Palettes::Definition> palettes_of_group(PaletteGroup group);
 	
 public:
 	struct Definition {
-		const std::wstring name;
-		const PaletteGroup group;
-		const std::vector<const Palettes::Definition *> members;
+		std::wstring name;
+		PaletteGroup group;
+		std::vector<Palettes::Definition> members;
 	};
 
 	inline const static Definition Canon = {
