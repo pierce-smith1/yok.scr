@@ -1,5 +1,5 @@
 #include "spritecontrol.h"
-#include "resources.h"
+#include "bitmaps.h"
 #include "config.h"
 #include "noise.h"
 #include "configdialog.h"
@@ -12,22 +12,22 @@ SpriteGenerator::SpriteGenerator() {
 	using namespace std::chrono;
 	std::srand(duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count());
 
-	PaletteGroup palette_group = (PaletteGroup) (cfg.at(YonkPalette));
+	PaletteGroup palette_group = (PaletteGroup) (cfg[Cfg::Palette]);
 
-	std::vector<const Palette *> bag_of_palettes;
+	std::vector<const PaletteData *> bag_of_palettes;
 	if (palette_group == PaletteGroup::RandomlyGenerated) {
-		for (int i = (int) config_ranges.at(MaxColors).first; i < (int) config_ranges.at(MaxColors).second; i++) {
+		for (int i = Cfg::MaxColors.range.first; i < Cfg::MaxColors.range.second; i++) {
 			bag_of_palettes.push_back(RandomPalettes::random(i));
 		}
 	} else {
-		auto palette_names = PALETTES_BY_GROUP.at(palette_group);
-		for (auto name : palette_names) {
-			bag_of_palettes.push_back(&PALETTES.at(name));
+		auto group = PaletteGroups::get(palette_group);
+		for (const auto &palette : group.members) {
+			bag_of_palettes.push_back(palette.data);
 		}
 	}
 
-	int max_colors = (int)round(cfg.at(MaxColors) * bag_of_palettes.size() / config_ranges.at(MaxColors).second);
-	max_colors = std::clamp(max_colors, (int)config_ranges.at(MaxColors).first, (int)bag_of_palettes.size());
+	int max_colors = (int) round(cfg[Cfg::MaxColors] * bag_of_palettes.size() / Cfg::MaxColors.range.second);
+	max_colors = std::clamp(max_colors, (int) Cfg::MaxColors.range.first, (int) bag_of_palettes.size());
 
 	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
@@ -39,9 +39,9 @@ SpriteGenerator::SpriteGenerator() {
 std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 	Sprites sprites;
 
-	for (float y = -1.2f; y < 1.2f; y += 1.0f / sqrt(cfg.at(SpriteCount))) {
-		for (float x = -1.2f; x < 1.2f; x += 1.0f / sqrt(cfg.at(SpriteCount))) {
-			if (Noise::random() < pow(cfg.at(ImpostorChance), 3)) {
+	for (float y = -1.2f; y < 1.2f; y += 1.0f / sqrt(cfg[Cfg::SpriteCount])) {
+		for (float x = -1.2f; x < 1.2f; x += 1.0f / sqrt(cfg[Cfg::SpriteCount])) {
+			if (Noise::random() < pow(cfg[Cfg::ImpostorChance], 3)) {
 				sprites.push_back(new Impostor(next_palette(), Point(x, y)));
 			} else {
 				sprites.push_back(new Yonker(next_texture(), { x, y }));
@@ -53,15 +53,15 @@ std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 }
 
 const Texture *SpriteGenerator::next_texture() const {
-	return Texture::of(next_palette(), lk);
+	return Texture::of(next_palette(), Bitmaps::Lk);
 }
 
-const Palette *SpriteGenerator::next_palette() const {
+const PaletteData *SpriteGenerator::next_palette() const {
 	// A weighted coin?! Now that's certainly cheating!
 	// You'd be kicked outta Vegas for logarithmic repeating.
 	while (true) {
 		for (auto palette : m_palettes) {
-			if (Noise::random() < 1.8f / cfg.at(MaxColors)) {
+			if (Noise::random() < 1.8f / cfg[Cfg::MaxColors]) {
 				return palette;
 			}
 		}
@@ -83,13 +83,13 @@ void SpriteChoreographer::update() {
 }
 
 bool SpriteChoreographer::should_change_pattern() {
-	if (cfg.at(IsPatternFixed)) {
+	if (cfg[Cfg::IsPatternFixed]) {
 		return false;
 	}
 
 	// We must change the pattern every so often...
 	// But not, of course, when we're just getting started.
-	return m_ctx->frame_count() % (int) cfg.at(PatternChangeInterval) == 0 && m_ctx->frame_count() != 0;
+	return m_ctx->frame_count() % (int) cfg[Cfg::PatternChangeInterval] == 0 && m_ctx->frame_count() != 0;
 }
 
 void SpriteChoreographer::change_pattern() {
@@ -151,16 +151,16 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		// The context, the timepiece by which we will calculate -
 		// And the offset, by which our fate is encoded
 		// One onto zero that chaos corroded.
-		get<X>(sprite->home()) += offset / cfg.at(TimeDivisor);
-		get<Y>(sprite->home()) += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
+		get<X>(sprite->home()) += offset / cfg[Cfg::TimeDivisor];
+		get<Y>(sprite->home()) += sin(ctx->t() * offset) / cfg[Cfg::TimeDivisor];
 	}},
 	{ Waves, [](Sprite *sprite, Context *ctx, float offset) {
-		get<X>(sprite->home()) += sin(ctx->t() * offset) / cfg.at(TimeDivisor);
-		get<Y>(sprite->home()) += cos(ctx->t() * offset) / cfg.at(TimeDivisor);
+		get<X>(sprite->home()) += sin(ctx->t() * offset) / cfg[Cfg::TimeDivisor];
+		get<Y>(sprite->home()) += cos(ctx->t() * offset) / cfg[Cfg::TimeDivisor];
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, float offset) {
-		get<X>(sprite->home()) += offset < 0.5 ? ((1.0f - offset) / cfg.at(TimeDivisor)) : 0.0f;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0f : (offset / cfg.at(TimeDivisor));
+		get<X>(sprite->home()) += offset < 0.5 ? ((1.0f - offset) / cfg[Cfg::TimeDivisor]) : 0.0f;
+		get<Y>(sprite->home()) += offset < 0.5 ? 0.0f : (offset / cfg[Cfg::TimeDivisor]);
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, float offset) {
 		static int NorthWest = 0b01;
@@ -175,8 +175,8 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		float lateral_modifier = (directions[sprite->id()] & West) ? -1.0f : 1.0f;
 		float vertical_modifier = (directions[sprite->id()] & South) ? -1.0f : 1.0f;
 
-		get<X>(sprite->home()) += (offset / cfg.at(TimeDivisor)) * lateral_modifier;
-		get<Y>(sprite->home()) += (1.0f - offset) / cfg.at(TimeDivisor) * vertical_modifier;
+		get<X>(sprite->home()) += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
+		get<Y>(sprite->home()) += (1.0f - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
 		if (get<X>(sprite->home()) > 1.0f || get<X>(sprite->home()) < -1.0f) {
 			directions[sprite->id()] ^= West;
@@ -193,8 +193,8 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		// For this one, well, push comes to shove.
 		// We know exactly where we must be,
 		// So we won't let our sprites roam around freely...
-		float target_x = sin(ctx->t() - (offset * 0.07f * cfg.at(SpriteCount))) * 0.8f;
-		float target_y = cos(ctx->t() - (offset * 0.05f * cfg.at(SpriteCount))) * 0.8f;
+		float target_x = sin(ctx->t() - (offset * 0.07f * cfg[Cfg::SpriteCount])) * 0.8f;
+		float target_y = cos(ctx->t() - (offset * 0.05f * cfg[Cfg::SpriteCount])) * 0.8f;
 
 		// But! To send them straight to their fate is unsightly,
 		// So instead of assign, we just push ever lightly.
@@ -202,8 +202,8 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		get<Y>(sprite->home()) = target_y + (get<Y>(sprite->home()) - target_y) * 0.9f;
 	}},
 	{ Rose, [](Sprite *sprite, Context *ctx, float offset) {
-		float t = ctx->t() - (offset * 0.03f * cfg.at(SpriteCount));
-		float r = 0.04f * cfg.at(SpriteCount) * t;
+		float t = ctx->t() - (offset * 0.03f * cfg[Cfg::SpriteCount]);
+		float r = 0.04f * cfg[Cfg::SpriteCount] * t;
 
 		float target_x = sin(r) * cos(t) * 0.8f;
 		float target_y = sin(r) * sin(t) * 0.8f;
@@ -242,7 +242,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<float(Id)> get_offset) {
 		const static float SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
 		const static float STRETCH_RATIO = (float) (ctx->rect().bottom) / ctx->rect().right;
-		const static float BUBBLE_Y_RADIUS = (10.0f / (cfg.at(SpriteCount) / 1.5f + 40.0f)) * std::powf(SCREEN_SIZE / (1080 * 1920) / 3.0f + 0.7f, 1.1f);
+		const static float BUBBLE_Y_RADIUS = (10.0f / (cfg[Cfg::SpriteCount] / 1.5f + 40.0f)) * std::powf(SCREEN_SIZE / (1080 * 1920) / 3.0f + 0.7f, 1.1f);
 		const static float BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;
@@ -308,8 +308,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		}
 
 		for (Sprite *sprite : *sprites) {
-			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg.at(TimeDivisor) * 0.5f;
-			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg.at(TimeDivisor) / STRETCH_RATIO * 0.5f;
+			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5f;
+			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5f;
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4f(0.2f, 0.2f, 0.2f, 1.0f);

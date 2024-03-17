@@ -1,5 +1,5 @@
 #include "scene.h"
-#include "resources.h"
+#include "bitmaps.h"
 #include "config.h"
 #include "spritecontrol.h"
 
@@ -7,9 +7,8 @@ Scene::Scene(HWND window)
 // It's of utmost importance the context comes first!
 // Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
-	m_sprites(SpriteGenerator().make(cfg.at(SpriteCount))),
-	m_choreographer((PatternName) cfg.at(YonkPattern), &m_sprites, &m_ctx) {
-}
+	  m_sprites(SpriteGenerator().make(cfg[Cfg::SpriteCount])),
+	  m_choreographer((PatternName) cfg[Cfg::Pattern], &m_sprites, &m_ctx) { }
 
 void Scene::draw() {
 	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);
@@ -19,7 +18,7 @@ void Scene::draw() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (cfg.at(PlayOverDesktop)) {
+	if (cfg[Cfg::PlayOverDesktop]) {
 		draw_background();
 	}
 

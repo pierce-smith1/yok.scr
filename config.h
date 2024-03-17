@@ -4,44 +4,172 @@
 
 #include <map>
 #include <string>
+#include <optional>
+#include <vector>
+#include "resourcew.h"
+#include <set>
 
-enum ConfigOption {
-	_CONFIG_OPTIONS_START = 1000,
-	YonkStepSize,
-	YonkHomeDrift,
-	YonkEmotionScale,
-	TimeDivisor,
-	MaxColors,
-	SpriteCount,
-	SpriteSize,
-	YonkShakeFactor,
-	YonkPattern,
-	PatternChangeInterval,
-	IsPatternFixed,
-	ImpostorChance,
-	YonkPalette,
-	PlayOverDesktop,
-	_CONFIG_OPTIONS_END
+
+struct Cfg {
+	struct Definition {
+		auto operator<=>(const Definition &other) const = default;
+
+		const size_t index;
+		const std::wstring name;
+		const int legacy_id;
+		const float default_;
+		const std::pair<float, float> range;
+		const int dialog_control_id;
+	};
+
+	inline const static Definition StepSize = {
+		.index = __COUNTER__,
+		.name = L"YonkStepSize", 
+		.legacy_id = 1001,
+		.default_ = 0.005f, 
+	};
+
+	inline const static Definition HomeDrift = { 
+		.index = __COUNTER__,
+		.name = L"YonkHomeDrift", 
+		.legacy_id = 1002,
+		.default_= 0.3f, 
+		.range = { 0.0f, 5.0f },
+		.dialog_control_id = IDC_YONK_HOME_DRIFT,
+	};
+
+	inline const static Definition EmotionScale = { 
+		.index = __COUNTER__,
+		.name = L"YonkEmotionScale", 
+		.legacy_id = 1003,
+		.default_= 5.0f, 
+		.range = { 0.0f, 10.0f },
+		.dialog_control_id = IDC_YONK_EMOTION_SCALE,
+	};
+
+	inline const static Definition TimeDivisor = { 
+		.index = __COUNTER__,
+		.name = L"TimeDivisor", 
+		.legacy_id = 1004,
+		.default_= 180.0f, 
+		.range = { 10.0f, 300.0f },
+		.dialog_control_id = IDC_TIME_DIVISOR,
+	};
+
+	inline const static Definition MaxColors = { 
+		.index = __COUNTER__,
+		.name = L"MaxColors", 
+		.legacy_id = 1005,
+		.default_= 5.0f, 
+		.range = { 2.0f, 47.0f },
+		.dialog_control_id = IDC_MAX_COLORS,
+	};
+
+	inline const static Definition SpriteCount = {
+		.index = __COUNTER__,
+		.name = L"SpriteCount",
+		.legacy_id = 1006,
+		.default_ = 80.0f,
+		.range = { 1.0f, 200.0f },
+		.dialog_control_id = IDC_SPRITE_COUNT,
+	};
+
+	inline const static Definition SpriteSize = {
+		.index = __COUNTER__,
+		.name = L"SpriteSize",
+		.legacy_id = 1007,
+		.default_ = 50.0f,
+		.range = { 10.0f, 200.0f },
+		.dialog_control_id = IDC_SPRITE_SIZE,
+	};
+
+	inline const static Definition ShakeFactor = {
+		.index = __COUNTER__,
+		.name = L"YonkShakeFactor",
+		.legacy_id = 1008,
+		.default_ = 2.0f,
+		.range = { 0.0f, 5.0f },
+		.dialog_control_id = IDC_YONK_SHAKE_FACTOR,
+	};
+
+	inline const static Definition Pattern = {
+		.index = __COUNTER__,
+		.name = L"YonkPattern",
+		.legacy_id = 1009,
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_YONK_PATTERN,
+	};
+
+	inline const static Definition PatternChangeInterval = {
+		.index = __COUNTER__,
+		.name = L"PatternChangeInterval",
+		.legacy_id = 1010,
+		.default_ = 60.0f * 15.0f,
+		.range = { 30.0f, 60.0f * 30.0f },
+		.dialog_control_id = IDC_PATTERN_CHANGE_INTERVAL,
+	};
+
+	inline const static Definition IsPatternFixed = {
+		.index = __COUNTER__,
+		.name = L"IsPatternFixed",
+		.legacy_id = 1011,
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_PATTERN_FIX,
+	};
+
+	inline const static Definition ImpostorChance = {
+		.index = __COUNTER__,
+		.name = L"ImpostorChance",
+		.legacy_id = 1012,
+		.default_ = powf(0.002f, 1.0f / 3.0f),
+		.range = { 0.0f, 1.0f },
+		.dialog_control_id = IDC_IMPOSTOR_CHANCE,
+	};
+
+	inline const static Definition Palette = {
+		.index = __COUNTER__,
+		.name = L"YonkPalette",
+		.legacy_id = 1013,
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_YONK_PALETTE,
+	};
+
+	inline const static Definition PlayOverDesktop = {
+		.index = __COUNTER__,
+		.name = L"PlayOverDesktop",
+		.legacy_id = 1014,
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
+	};
+
+	inline const static std::set<Definition> All = {
+		StepSize,
+		HomeDrift,
+		EmotionScale,
+		TimeDivisor,
+		MaxColors,
+		SpriteCount,
+		SpriteSize,
+		ShakeFactor,
+		Pattern,
+		PatternChangeInterval,
+		IsPatternFixed,
+		ImpostorChance,
+		Palette,
+		PlayOverDesktop,
+	};
 };
 
-const static std::map<int, std::wstring> config_names = {
-	{ YonkStepSize, L"YonkStepSize" },
-	{ YonkHomeDrift, L"YonkHomeDrift" },
-	{ YonkEmotionScale, L"YonkEmotionScale" },
-	{ TimeDivisor, L"TimeDivisor" },
-	{ MaxColors, L"MaxColors" },
-	{ SpriteCount, L"SpriteCount" },
-	{ SpriteSize, L"SpriteSize" },
-	{ YonkShakeFactor, L"YonkShakeFactor" },
-	{ YonkPattern, L"YonkPattern" },
-	{ PatternChangeInterval, L"PatternChangeInterval" },
-	{ IsPatternFixed, L"IsPatternFixed" },
-	{ ImpostorChance, L"ImpostorChance" },
-	{ YonkPalette, L"YonkPalette" },
-	{ PlayOverDesktop, L"PlayOverDesktop" },
-};
+class Config {
+public:
+	Config();
 
-using Config = std::map<ConfigOption, float>;
+	float &operator[](const Cfg::Definition &opt);
+	float operator[](const Cfg::Definition &opt) const;
+
+private:
+	std::vector<float> m_store;
+};
 
 class Registry {
 public:
@@ -54,23 +182,6 @@ public:
 
 private:
 	HKEY m_reg_key;
-};
-
-const static Config cfg_defaults = {
-	{ YonkStepSize, 0.005f },
-	{ YonkHomeDrift, 0.3f },
-	{ YonkEmotionScale, 5.0f },
-	{ TimeDivisor, 180.0f },
-	{ MaxColors, 5.0f },
-	{ SpriteCount, 80.0f },
-	{ SpriteSize, 50.0f },
-	{ YonkShakeFactor, 2.0f },
-	{ YonkPattern, 0.0f },
-	{ PatternChangeInterval, 60.0f * 15.0f },
-	{ IsPatternFixed, 0.0f },
-	{ ImpostorChance, (float)pow(0.002f, 1.0f/3.0f) },	// i'm sorry
-	{ YonkPalette, 0.0f },
-	{ PlayOverDesktop, 0.0f },
 };
 
 const static Config cfg = Registry().get_config();

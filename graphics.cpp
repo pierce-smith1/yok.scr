@@ -1,11 +1,10 @@
 #include "graphics.h"
-#include "resources.h"
 
-Bitmap::Bitmap(const std::initializer_list<GLubyte> &i_list) {
+BitmapData::BitmapData(const std::initializer_list<GLubyte> &i_list) {
 	std::copy(i_list.begin(), i_list.end(), begin());
 }
 
-const Texture *Texture::get(const Palette &palette, const Bitmap &bitmap) {
+const Texture *Texture::get(const PaletteData &palette, const BitmapData &bitmap) {
 	auto ids = std::make_pair(palette.id(), bitmap.id());
 	auto result = texture_cache.find(ids);
 
@@ -16,15 +15,15 @@ const Texture *Texture::get(const Palette &palette, const Bitmap &bitmap) {
 	return texture_cache.at(ids);
 }
 
-const Texture *Texture::of(PaletteName palette_name, BitmapName bitmap_name) {
-	return get(PALETTES.at(palette_name), *load_bitmap(bitmap_name));
+const Texture *Texture::of(const Palettes::Definition &palette, const Bitmaps::Definition &bitmap) {
+	return get(*palette.data, *bitmap.data);
 }
 
-const Texture *Texture::of(const Palette *palette, BitmapName bitmap_name) {
-	return get(*palette, *load_bitmap(bitmap_name));
+const Texture *Texture::of(const PaletteData *palette, const Bitmaps::Definition &bitmap) {
+	return get(*palette, *bitmap.data);
 }
 
-Bitmap::Bitmap(const GLubyte *data) {
+BitmapData::BitmapData(const GLubyte *data) {
 	std::copy(data, data + size(), begin());
 }
 
@@ -32,13 +31,13 @@ void Texture::apply() const {
 	glBindTexture(GL_TEXTURE_2D, m_gl_tex_id);
 }
 
-const Palette &Texture::palette() const {
+const PaletteData &Texture::palette() const {
 	return m_palette;
 }
 
 std::map<std::pair<Id, Id>, Texture *> Texture::texture_cache{};
 
-Texture::Texture(const Palette &palette, const Bitmap &bitmap)
+Texture::Texture(const PaletteData &palette, const BitmapData &bitmap)
 	: m_palette(palette), m_bitmap(bitmap)
 {
 	glGenTextures(1, &m_gl_tex_id);

@@ -52,7 +52,7 @@ public:
 	virtual void update(Context &ctx) override;
 
 protected:
-	const Bitmap &bitmap_for_current_emotion(Context &ctx) const;
+	const BitmapData &bitmap_for_current_emotion(Context &ctx) const;
 	EmotionVector emotion_vector(Context &ctx) const;
 
 	EmotionVector m_emotion_vector;
@@ -60,8 +60,8 @@ protected:
 
 class Impostor : public Sprite {
 public:
-	Impostor(const Palette *palette, const Point &home);
+	Impostor(const PaletteData *palette, const Point &home);
 
 protected:
-	static BitmapName random_bitmap();
+	static Bitmaps::Definition &random_bitmap();
 };

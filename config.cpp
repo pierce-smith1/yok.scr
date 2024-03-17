@@ -5,6 +5,22 @@
 
 #include "config.h"
 
+Config::Config() 
+	: m_store(Cfg::All.size())
+{
+	for (const auto &def : Cfg::All) {
+		(*this)[def] = def.default_;
+	}
+}
+
+float &Config::operator[](const Cfg::Definition &opt) {
+	return m_store[opt.index];
+}
+
+float Config::operator[](const Cfg::Definition &opt) const {
+	return m_store[opt.index];
+}
+
 Registry::Registry() 
 	: m_reg_key(NULL)
 {
@@ -26,20 +42,18 @@ Registry::Registry()
 }
 
 Config Registry::get_config() {
-	std::vector<std::pair<ConfigOption, float>> keys;
+	Config config;
 
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
 	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
 
-	for (int i = _CONFIG_OPTIONS_START + 1; i < _CONFIG_OPTIONS_END; i++) {
-		ConfigOption opt = (ConfigOption) i;
+	for (const auto &opt : Cfg::All) {
 		if (is_registry_migrated) {
-			keys.push_back(std::make_pair(opt, get(config_names.at(opt), cfg_defaults.at(opt))));
+			config[opt] = get(opt.name, opt.default_);
 		} else {
-			std::pair<ConfigOption, float> key = std::make_pair(opt, get(std::to_wstring(opt), cfg_defaults.at(opt)));
-			write(config_names.at(opt), key.second);
-			remove(std::to_wstring(opt));
-			keys.push_back(key);
+			config[opt] = get(std::to_wstring(opt.legacy_id), opt.default_);
+			write(opt.name, config[opt]);
+			remove(std::to_wstring(opt.legacy_id));
 		}
 	}
 
@@ -47,7 +61,7 @@ Config Registry::get_config() {
 		write(is_registry_migrated_name, 1.0f);
 	}
 
-	return Config(keys.begin(), keys.end());
+	return config;
 }
 
 float Registry::get(const std::wstring &opt, float default_) {

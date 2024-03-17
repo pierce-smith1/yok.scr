@@ -23,4 +23,3 @@ enum Channel {
 	BLUE = 2,
 	ALPHA = 3
 };
-

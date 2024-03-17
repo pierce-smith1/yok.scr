@@ -10,30 +10,21 @@
 
 #include "context.h"
 #include "palettes.h"
+#include "bitmaps.h"
 #include "common.h"
-
-enum BitmapName;
-
-constexpr static unsigned int BITMAP_WH = 128;
-
-class Bitmap : public Identifiable<std::array<GLubyte, BITMAP_WH * BITMAP_WH>> {
-public:
-	Bitmap(const std::initializer_list<GLubyte> &i_list);
-	Bitmap(const GLubyte *data);
-};
 
 class Texture {
 public:
-	static const Texture *get(const Palette &palette, const Bitmap &bitmap);
-	static const Texture *of(PaletteName palette_name, BitmapName bitmap_name);
-	static const Texture *of(const Palette *palette, BitmapName bitmap_name);
+	static const Texture *get(const PaletteData &palette, const BitmapData &bitmap);
+	static const Texture *of(const Palettes::Definition &palette, const Bitmaps::Definition &bitmap);
+	static const Texture *of(const PaletteData *palette, const Bitmaps::Definition &bitmap);
 
-	const Palette &palette() const;
+	const PaletteData &palette() const;
 
 	void apply() const;
 
 private:
-	Texture(const Palette &palette, const Bitmap &bitmap);
+	Texture(const PaletteData &palette, const BitmapData &bitmap);
 	Texture(const Texture &texture) = delete;
 	Texture &operator=(const Texture &texture) = delete;
 
@@ -42,8 +33,8 @@ private:
 	static std::map<std::pair<Id, Id>, Texture *> texture_cache;
 
 	unsigned int m_gl_tex_id;
-	const Palette &m_palette;
-	const Bitmap &m_bitmap;
+	const PaletteData &m_palette;
+	const BitmapData &m_bitmap;
 };
 
 using Point = std::pair<GLfloat, GLfloat>;
