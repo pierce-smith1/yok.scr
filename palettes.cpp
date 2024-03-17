@@ -202,7 +202,7 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 std::vector<Palettes::Definition> PaletteGroups::palettes_of_group(PaletteGroup group) {
 	std::vector<Palettes::Definition> palettes;
 	std::copy_if(Palettes::All.begin(), Palettes::All.end(), std::back_inserter(palettes), [&](const Palettes::Definition &bitmap) {
-		return bitmap.group == group;
+		return group == PaletteGroup::All || bitmap.group == group;
 	});
 
 	return palettes;
