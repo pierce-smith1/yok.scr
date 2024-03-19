@@ -11,8 +11,8 @@ using std::get;
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
 	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f)
 {
-	if (has_trail && round(cfg[Cfg::TrailLength]) >= 1) {
-		for (int i = 0; i < (int)(round(cfg[Cfg::TrailLength]) * max(round(cfg[Cfg::TrailSpace]), 1)); i++) {
+	if (has_trail && round(cfg[Cfg::TrailLength]) > 1) {
+		for (int i = 0; i < (int)(round(std::clamp(cfg[Cfg::TrailLength], 1.0f, cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]) - 1) * max(round(cfg[Cfg::TrailSpace]), 1)); i++) {
 			trail.push_back(Trail(texture, home));
 		}
 	}
@@ -76,7 +76,7 @@ void Sprite::transform() {
 }
 
 void Sprite::update_trail() {
-	if (round(cfg[Cfg::TrailLength]) <= 0) {
+	if (round(cfg[Cfg::TrailLength]) <= 1) {
 		return;
 	}
 
