@@ -23,6 +23,13 @@ void Scene::draw() {
 	}
 
 	m_choreographer.update();
+
+	for (int i = (int)(round(cfg[Cfg::TrailLength]) * max(round(cfg[Cfg::TrailSpace]), 1)) - 1; i >= 0; i -= (int)max(round(cfg[Cfg::TrailSpace]), 1)) {
+		for (Sprite *sprite : m_sprites) {
+			sprite->trail.at(i).draw(m_ctx);
+		}
+	}
+
 	for (Sprite *sprite : m_sprites) {
 		sprite->draw(m_ctx);
 	}

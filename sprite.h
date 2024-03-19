@@ -14,9 +14,13 @@
 #include "context.h"
 #include "graphics.h"
 
+class Trail;
+
 class Sprite : public Identifiable<Empty> {
 public:
-	Sprite(const Texture *texture, const Point &home);
+	Sprite(const Texture *texture, const Point &home, const bool has_trail = true);
+
+	std::vector<Trail> trail;
 
 	void change_texture(const Texture *texture);
 	virtual void draw(Context &ctx);
@@ -30,6 +34,7 @@ public:
 
 protected:
 	void transform();
+	void update_trail();
 
 	const Texture *m_texture;
 	Point m_relpos;
@@ -62,6 +67,15 @@ class Impostor : public Sprite {
 public:
 	Impostor(const PaletteData *palette, const Point &home);
 
+	virtual void update(Context &ctx) override;
+
 protected:
 	static Bitmaps::Definition &random_bitmap();
+};
+
+class Trail : public Sprite {
+public:
+	Trail(const Texture *palette, const Point &home);
+
+	virtual void update(Context &ctx) override;
 };

@@ -8,8 +8,15 @@
 
 using std::get;
 
-Sprite::Sprite(const Texture *texture, const Point &home) 
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f) { }
+Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f)
+{
+	if (has_trail && round(cfg[Cfg::TrailLength]) >= 1) {
+		for (int i = 0; i < (int)(round(cfg[Cfg::TrailLength]) * max(round(cfg[Cfg::TrailSpace]), 1)); i++) {
+			trail.push_back(Trail(texture, home));
+		}
+	}
+}
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
@@ -68,8 +75,19 @@ void Sprite::transform() {
 	glScalef(m_size, m_size, 1.0f);
 }
 
+void Sprite::update_trail() {
+	if (round(cfg[Cfg::TrailLength]) <= 0) {
+		return;
+	}
+
+	trail.pop_back();
+	trail.insert(trail.begin(), Trail(m_texture, Point(final<X>(), final<Y>())));
+}
+
 Yonker::Yonker(const Texture *texture, const Point &home) 
-	: Sprite(texture, home) { }
+	: Sprite(texture, home) {
+	m_emotion_vector = { 0.0f, 0.0f, 0.0f };
+}
 
 void Yonker::update(Context &ctx) {
 	m_emotion_vector = emotion_vector(ctx);
@@ -102,6 +120,8 @@ void Yonker::update(Context &ctx) {
 	Sprite::update(ctx);
 
 	change_texture(Texture::get(m_texture->palette(), bitmap_for_current_emotion(ctx)));
+
+	update_trail();
 }
 
 const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
@@ -155,6 +175,12 @@ std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) 
 Impostor::Impostor(const PaletteData *palette, const Point &home)
 	: Sprite(Texture::of(palette, random_bitmap()), home) { }
 
+void Impostor::update(Context &ctx) {
+	Sprite::update(ctx);
+
+	update_trail();
+}
+
 Bitmaps::Definition &Impostor::random_bitmap() {
 	static auto impostors = Bitmaps::bitmaps_of_group(BitmapGroup::Impostor);
 	static auto yoy = Bitmaps::bitmaps_of_group(BitmapGroup::YoyImpostor);
@@ -165,3 +191,8 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 		return yoy[(int) (Noise::random() * yoy.size())];
 	}
 }
+
+Trail::Trail(const Texture *texture, const Point &home)
+	: Sprite(texture, home, false) { }
+
+void Trail::update(Context &ctx) { }

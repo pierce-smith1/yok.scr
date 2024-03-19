@@ -13,7 +13,7 @@ public:
 	}
 
 private:
-	const Id m_id;
+	Id m_id;
 };
 
 using Color = std::tuple<unsigned char, unsigned char, unsigned char, unsigned char>;

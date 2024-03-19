@@ -9,7 +9,6 @@
 #include "resourcew.h"
 #include <set>
 
-
 struct Cfg {
 	struct Definition {
 		auto operator<=>(const Definition &other) const = default;
@@ -142,6 +141,24 @@ struct Cfg {
 		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
 	};
 
+	inline const static Definition TrailLength = {
+		.index = __COUNTER__,
+		.name = L"TrailLength",
+		.legacy_id = 1014,
+		.default_ = 0.0f,
+		.range = { 0.0f, 19.0f },
+		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
+	};
+
+	inline const static Definition TrailSpace = {
+		.index = __COUNTER__,
+		.name = L"TrailSpace",
+		.legacy_id = 1014,
+		.default_ = 1.0f,
+		.range = { 1.0f, 20.0f },
+		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
+	};
+
 	inline const static std::set<Definition> All = {
 		StepSize,
 		HomeDrift,
@@ -157,6 +174,8 @@ struct Cfg {
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
+		TrailLength,
+		TrailSpace,
 	};
 };
 
