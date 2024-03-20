@@ -14,13 +14,14 @@
 #include "context.h"
 #include "graphics.h"
 
-class Trail;
+class TrailSprite;
 
 class Sprite : public Identifiable<Empty> {
 public:
 	Sprite(const Texture *texture, const Point &home, const bool has_trail = true);
 
-	std::vector<Trail> trail;
+	std::vector<TrailSprite> m_trail;
+	int m_trail_iterator;
 
 	void change_texture(const Texture *texture);
 	virtual void draw(Context &ctx);
@@ -73,9 +74,12 @@ protected:
 	static Bitmaps::Definition &random_bitmap();
 };
 
-class Trail : public Sprite {
+class TrailSprite : public Sprite {
 public:
-	Trail(const Texture *palette, const Point &home);
+	TrailSprite(const Texture *palette, const Point &home);
 
 	virtual void update(Context &ctx) override;
+
+	static int get_trail_length();
+	static int get_trail_space();
 };

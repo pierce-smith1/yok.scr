@@ -9,11 +9,11 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f)
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_iterator(0)
 {
-	if (has_trail && round(cfg[Cfg::TrailLength]) > 1) {
-		for (int i = 0; i < (int)(round(std::clamp(cfg[Cfg::TrailLength], 1.0f, cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]) - 1) * max(round(cfg[Cfg::TrailSpace]), 1)); i++) {
-			trail.push_back(Trail(texture, home));
+	if (has_trail) {
+		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
+			m_trail.push_back(TrailSprite(texture, home));
 		}
 	}
 }
@@ -23,7 +23,6 @@ void Sprite::change_texture(const Texture *texture) {
 }
 
 void Sprite::draw(Context &ctx) {
-	update(ctx);
 	m_texture->apply();
 
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -45,7 +44,6 @@ void Sprite::draw(Context &ctx) {
 
 	glEnd();
 	glPopMatrix();
-
 }
 
 void Sprite::update(Context &ctx) {
@@ -76,18 +74,16 @@ void Sprite::transform() {
 }
 
 void Sprite::update_trail() {
-	if (round(cfg[Cfg::TrailLength]) <= 1) {
+	if (TrailSprite::get_trail_length() < 1) {
 		return;
 	}
 
-	trail.pop_back();
-	trail.insert(trail.begin(), Trail(m_texture, Point(final<X>(), final<Y>())));
+	m_trail.at(m_trail_iterator) = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
+	m_trail_iterator = (m_trail_iterator + 1) % TrailSprite::get_trail_length();
 }
 
 Yonker::Yonker(const Texture *texture, const Point &home) 
-	: Sprite(texture, home) {
-	m_emotion_vector = { 0.0f, 0.0f, 0.0f };
-}
+	: Sprite(texture, home), m_emotion_vector({ 0.0f, 0.0f, 0.0f }) { }
 
 void Yonker::update(Context &ctx) {
 	m_emotion_vector = emotion_vector(ctx);
@@ -192,7 +188,17 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 	}
 }
 
-Trail::Trail(const Texture *texture, const Point &home)
+TrailSprite::TrailSprite(const Texture *texture, const Point &home)
 	: Sprite(texture, home, false) { }
 
-void Trail::update(Context &ctx) { }
+void TrailSprite::update(Context &ctx) { }
+
+int TrailSprite::get_trail_length() {
+	int max_trail = (int) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);
+	int trail_length = std::clamp((int) round(cfg[Cfg::TrailLength]), 1, max_trail) - 1;
+	return trail_length * get_trail_space();
+}
+
+int TrailSprite::get_trail_space() {
+	return (int) max(round(cfg[Cfg::TrailSpace]), 1);
+}

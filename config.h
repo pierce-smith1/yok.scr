@@ -152,7 +152,7 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"TrailSpace",
 		.default_ = 5.0f,
-		.range = { 1.0f, 25.0f },
+		.range = { 1.0f, 50.0f },
 	};
 
 	// aka: kindly, calm the fuck down mate

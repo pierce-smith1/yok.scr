@@ -24,9 +24,9 @@ void Scene::draw() {
 
 	m_choreographer.update();
 
-	for (int i = (int)(round(std::clamp(cfg[Cfg::TrailLength], 1.0f, cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]) - 1) * max(round(cfg[Cfg::TrailSpace]), 1)) - 1; i >= 0; i -= (int) max(round(cfg[Cfg::TrailSpace]), 1)) {
+	for (int i = 0; i < TrailSprite::get_trail_length(); i += TrailSprite::get_trail_space()) {
 		for (Sprite *sprite : m_sprites) {
-			sprite->trail.at(i).draw(m_ctx);
+			sprite->m_trail.at((i + sprite->m_trail_iterator) % TrailSprite::get_trail_length()).draw(m_ctx);
 		}
 	}
 
