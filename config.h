@@ -144,14 +144,14 @@ struct Cfg {
 	inline const static Definition TrailLength = {
 		.index = __COUNTER__,
 		.name = L"TrailLength",
-		.default_ = 0.0f,
+		.default_ = 1.0f,
 		.range = { 1.0f, 25.0f },
 	};
 
 	inline const static Definition TrailSpace = {
 		.index = __COUNTER__,
 		.name = L"TrailSpace",
-		.default_ = 5.0f,
+		.default_ = 10.0f,
 		.range = { 1.0f, 50.0f },
 	};
 

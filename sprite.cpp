@@ -9,11 +9,11 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_iterator(0)
+	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
 {
 	if (has_trail) {
 		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
-			m_trail.push_back(TrailSprite(texture, home));
+			m_trail.emplace_back(texture, home);
 		}
 	}
 }
@@ -23,6 +23,8 @@ void Sprite::change_texture(const Texture *texture) {
 }
 
 void Sprite::draw(Context &ctx) {
+	draw_trail(ctx);
+
 	m_texture->apply();
 
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -78,8 +80,23 @@ void Sprite::update_trail() {
 		return;
 	}
 
-	m_trail.at(m_trail_iterator) = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
-	m_trail_iterator = (m_trail_iterator + 1) % TrailSprite::get_trail_length();
+	get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
+	increment_trail_index();
+}
+
+TrailSprite& Sprite::get_trail(const size_t index) {
+	return m_trail.at((m_trail_start_index + index) % TrailSprite::get_trail_length());
+}
+
+void Sprite::increment_trail_index(const size_t amount) {
+	m_trail_start_index += amount;
+	m_trail_start_index %= TrailSprite::get_trail_length();
+}
+
+void Sprite::draw_trail(Context &ctx) {
+	for (size_t i = 0; i < TrailSprite::get_trail_length(); i += TrailSprite::get_trail_space()) {
+		get_trail(i).draw(ctx);
+	}
 }
 
 Yonker::Yonker(const Texture *texture, const Point &home) 
@@ -192,6 +209,8 @@ TrailSprite::TrailSprite(const Texture *texture, const Point &home)
 	: Sprite(texture, home, false) { }
 
 void TrailSprite::update(Context &ctx) { }
+
+void TrailSprite::draw_trail(Context &ctx) { }
 
 int TrailSprite::get_trail_length() {
 	int max_trail = (int) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);

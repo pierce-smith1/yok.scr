@@ -24,12 +24,6 @@ void Scene::draw() {
 
 	m_choreographer.update();
 
-	for (int i = 0; i < TrailSprite::get_trail_length(); i += TrailSprite::get_trail_space()) {
-		for (Sprite *sprite : m_sprites) {
-			sprite->m_trail.at((i + sprite->m_trail_iterator) % TrailSprite::get_trail_length()).draw(m_ctx);
-		}
-	}
-
 	for (Sprite *sprite : m_sprites) {
 		sprite->draw(m_ctx);
 	}

@@ -20,9 +20,6 @@ class Sprite : public Identifiable<Empty> {
 public:
 	Sprite(const Texture *texture, const Point &home, const bool has_trail = true);
 
-	std::vector<TrailSprite> m_trail;
-	int m_trail_iterator;
-
 	void change_texture(const Texture *texture);
 	virtual void draw(Context &ctx);
 	virtual void update(Context &ctx);
@@ -36,11 +33,16 @@ public:
 protected:
 	void transform();
 	void update_trail();
+	void increment_trail_index(const size_t amount = 1);
+	TrailSprite& get_trail(const size_t index = 0);
+	virtual void draw_trail(Context &ctx);
 
 	const Texture *m_texture;
 	Point m_relpos;
 	Point m_home;
 	GLfloat m_size;
+	std::vector<TrailSprite> m_trail;
+	size_t m_trail_start_index;
 };
 
 class Yonker : public Sprite {
@@ -82,4 +84,7 @@ public:
 
 	static int get_trail_length();
 	static int get_trail_space();
+
+protected:
+	virtual void draw_trail(Context &ctx) override;
 };
