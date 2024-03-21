@@ -30,6 +30,7 @@ enum class PaletteGroup {
 	Canon,
 	NonCanon,
 	RandomlyGenerated,
+	Custom,
 	_PALETTE_OPTION_COUNT
 };
 
@@ -774,15 +775,17 @@ struct Palettes {
 	};
 };
 
+using PaletteBag = std::vector<const PaletteData *>;
+
 struct PaletteGroups {
 private:
-	static std::vector<Palettes::Definition> palettes_of_group(PaletteGroup group);
+	static PaletteBag palettes_of_group(PaletteGroup group);
 	
 public:
 	struct Definition {
 		std::wstring name;
 		PaletteGroup group;
-		std::vector<Palettes::Definition> members;
+		PaletteBag members;
 	};
 
 	inline const static Definition Canon = {
@@ -811,3 +814,4 @@ public:
 		}
 	}
 };
+

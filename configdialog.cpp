@@ -33,6 +33,12 @@ void ConfigDialog::save() {
 	for (const auto &opt : Cfg::All) {
 		registry.write(opt.name, m_current_config[opt]);
 	}
+
+	DataStore store;
+
+	for (const auto &def : Storage::All) {
+		store.write(def.name, m_current_store[def.name]);
+	}
 }
 
 BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {

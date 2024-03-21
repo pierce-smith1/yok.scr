@@ -41,6 +41,9 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 
 	switch (message) {
 		case WM_INITDIALOG: {
+			DataStore store;
+			auto stuff = store.read(L"hey");
+			store.write(L"hey", L"i like you");
 			cfg_dialog = new ConfigDialog(dialog);
 			return TRUE;
 		} 

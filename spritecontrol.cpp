@@ -14,16 +14,14 @@ SpriteGenerator::SpriteGenerator() {
 
 	PaletteGroup palette_group = (PaletteGroup) (cfg[Cfg::Palette]);
 
-	std::vector<const PaletteData *> bag_of_palettes;
+	PaletteBag bag_of_palettes;
 	if (palette_group == PaletteGroup::RandomlyGenerated) {
 		for (int i = Cfg::MaxColors.range.first; i < Cfg::MaxColors.range.second; i++) {
 			bag_of_palettes.push_back(RandomPalettes::random(i));
 		}
 	} else {
 		auto group = PaletteGroups::get(palette_group);
-		for (const auto &palette : group.members) {
-			bag_of_palettes.push_back(palette.data);
-		}
+		bag_of_palettes = group.members;
 	}
 
 	int max_colors = (int) round(cfg[Cfg::MaxColors] * bag_of_palettes.size() / Cfg::MaxColors.range.second);

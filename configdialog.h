@@ -30,6 +30,7 @@ private:
 	Registry m_registry;
 	HWND m_dialog;
 	Config m_current_config;
+	ConfigStore m_current_store;
 };
 
 const static std::map<PatternName, std::wstring> pattern_strings = {

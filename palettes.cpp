@@ -199,11 +199,16 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 	return traits;
 }
 
-std::vector<Palettes::Definition> PaletteGroups::palettes_of_group(PaletteGroup group) {
+PaletteBag PaletteGroups::palettes_of_group(PaletteGroup group) {
 	std::vector<Palettes::Definition> palettes;
-	std::copy_if(Palettes::All.begin(), Palettes::All.end(), std::back_inserter(palettes), [&](const Palettes::Definition &bitmap) {
-		return group == PaletteGroup::All || bitmap.group == group;
+	std::copy_if(Palettes::All.begin(), Palettes::All.end(), std::back_inserter(palettes), [&](const Palettes::Definition &palette) {
+		return group == PaletteGroup::All || palette.group == group;
 	});
 
-	return palettes;
+	PaletteBag palette_datas;
+	std::transform(palettes.begin(), palettes.end(), std::back_inserter(palette_datas), [](const Palettes::Definition &palette) {
+		return palette.data;
+	});
+
+	return palette_datas;
 }

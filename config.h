@@ -142,6 +142,12 @@ struct Cfg {
 		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
 	};
 
+	inline const static Definition CustomPaletteIndex = {
+		.index = __COUNTER__,
+		.name = L"CustomPaletteIndex",
+		.default_ = -1.0f,
+	};
+
 	inline const static std::set<Definition> All = {
 		StepSize,
 		HomeDrift,
@@ -157,6 +163,25 @@ struct Cfg {
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
+		CustomPaletteIndex,
+	};
+};
+
+struct Storage {
+	struct Definition {
+		auto operator<=>(const Definition &other) const = default;
+
+		const std::wstring name;
+		const std::wstring default_;
+	};
+
+	inline const static Definition CustomPalettes {
+		.name = L"CustomPalettes",
+		.default_ = L"",
+	};
+
+	inline const static std::set<Definition> All = {
+		CustomPalettes,
 	};
 };
 
@@ -171,17 +196,37 @@ private:
 	std::vector<float> m_store;
 };
 
+using ConfigStore = std::map<std::wstring, std::wstring>;
+
 class Registry {
 public:
 	Registry();
 
 	Config get_config();
+
 	float get(const std::wstring &opt, float default_);
+	std::wstring get_string(const std::wstring &opt, const std::wstring &default_);
+
 	void write(const std::wstring &opt, float value);
+	void write_string(const std::wstring &opt, const std::wstring &value);
+
 	void remove(const std::wstring &opt);
 
 private:
 	HKEY m_reg_key;
+};
+
+class DataStore {
+public:
+	DataStore();
+
+	ConfigStore get_store();
+
+	std::wstring read(const std::wstring &filename);
+	void write(const std::wstring &filename, const std::wstring &contents);
+
+private:
+	std::wstring m_data_folder_path;
 };
 
 const static Config cfg = Registry().get_config();

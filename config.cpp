@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <utility>
+#include <shlobj_core.h>
 
 #include "config.h"
 
@@ -48,7 +49,8 @@ Config Registry::get_config() {
 	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
 
 	for (const auto &opt : Cfg::All) {
-		if (is_registry_migrated) {
+		bool has_no_legacy = opt.legacy_id == 0;
+		if (is_registry_migrated || has_no_legacy) {
 			config[opt] = get(opt.name, opt.default_);
 		} else {
 			config[opt] = get(std::to_wstring(opt.legacy_id), opt.default_);
@@ -65,9 +67,14 @@ Config Registry::get_config() {
 }
 
 float Registry::get(const std::wstring &opt, float default_) {
-	wchar_t result[1 << 6] {};
+	auto value = get_string(opt, std::to_wstring(default_));
+	return std::stof(value);
+}
+
+std::wstring Registry::get_string(const std::wstring &opt, const std::wstring &default_) {
+	wchar_t result[1 << 12] {};
 	DWORD result_type;
-	DWORD result_size = 1 << 6;
+	DWORD result_size = 1 << 12;
 
 	LSTATUS status = RegGetValue(
 		m_reg_key,
@@ -83,17 +90,21 @@ float Registry::get(const std::wstring &opt, float default_) {
 		return default_;
 	}
 
-	return std::stof(result);
+	return result;
 }
 
 void Registry::write(const std::wstring &opt, float value) {
+	write_string(opt, std::to_wstring(value));
+}
+
+void Registry::write_string(const std::wstring &opt, const std::wstring &value) {
 	RegSetValueEx(
 		m_reg_key,
 		opt.c_str(),
 		0,
 		REG_SZ,
-		(BYTE *) std::to_wstring(value).c_str(),
-		(std::to_wstring(value).size() + 1) * 2
+		(BYTE *) value.c_str(),
+		(value.size() + 1) * 2
 	);
 }
 
@@ -101,5 +112,77 @@ void Registry::remove(const std::wstring &opt) {
 	RegDeleteValue(
 		m_reg_key,
 		opt.c_str()
+	);
+}
+
+DataStore::DataStore() {
+	wchar_t *raw_appdata_path = nullptr;
+	auto code = SHGetKnownFolderPath(
+		FOLDERID_RoamingAppData, 
+		KF_FLAG_CREATE, 
+		NULL, 
+		&raw_appdata_path
+	);
+	
+	m_data_folder_path = raw_appdata_path;
+	m_data_folder_path += L"\\yokscr";
+
+	CreateDirectory(m_data_folder_path.c_str(), NULL);
+}
+
+ConfigStore DataStore::get_store() {
+	ConfigStore store;
+
+	for (const auto &key : Storage::All) {
+		store[key.name] = read(key.name);
+	}
+
+	return store;
+}
+
+std::wstring DataStore::read(const std::wstring &filename) {
+	HANDLE file = CreateFile(
+		(m_data_folder_path + L"\\" + filename).c_str(),
+		GENERIC_READ,
+		0,
+		NULL,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL
+	);
+
+	// Yes I went there, no I no longer care.
+	// The brave may dare to live on a prayer.
+	const size_t buffer_size = 1 << 20;
+	wchar_t *buffer = new wchar_t[buffer_size];
+	DWORD bytes_read;
+	bool read_file_ok = ReadFile(file, buffer, buffer_size, &bytes_read, NULL);
+
+	buffer[(bytes_read / 2)] = L'\0';
+	std::wstring data = buffer;
+
+	CloseHandle(file);
+	delete[] buffer;
+
+	return data;
+}
+
+void DataStore::write(const std::wstring &filename, const std::wstring &contents) {
+	HANDLE file = CreateFile(
+		(m_data_folder_path + L"\\" + filename).c_str(),
+		GENERIC_WRITE,
+		0,
+		NULL,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL
+	);
+
+	WriteFile(
+		file,
+		contents.c_str(),
+		contents.size() * 2,
+		NULL,
+		NULL
 	);
 }
