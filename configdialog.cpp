@@ -82,7 +82,7 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 }
 
 BOOL ConfigDialog::slider_changed(WPARAM wparam, HWND slider) {
-	int value = SendMessage(slider, TBM_GETPOS, 0, 0);
+	auto value = SendMessage(slider, TBM_GETPOS, 0, 0);
 
 	auto opt = *std::find_if(Cfg::All.begin(), Cfg::All.end(), [&](const auto &opt) {
 		return opt.dialog_control_id == GetDlgCtrlID(slider);
@@ -119,11 +119,11 @@ BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Def
 
 // Continuous sliders use integers only...
 // What Redmond designer responds to this folly?!
-int ConfigDialog::encodef(float value) {
-	return (int) (value * 8.0f);
+long long ConfigDialog::encodef(double value) {
+	return cast<long long>(value * 8.0f);
 }
 
-float ConfigDialog::decodef(int value) {
+double ConfigDialog::decodef(long long value) {
 	return value / 8.0f;
 }
 

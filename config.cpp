@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "config.h"
+#include "common.h"
 
 Config::Config() 
 	: m_store(Cfg::All.size())
@@ -13,11 +14,11 @@ Config::Config()
 	}
 }
 
-float &Config::operator[](const Cfg::Definition &opt) {
+double &Config::operator[](const Cfg::Definition &opt) {
 	return m_store[opt.index];
 }
 
-float Config::operator[](const Cfg::Definition &opt) const {
+double Config::operator[](const Cfg::Definition &opt) const {
 	return m_store[opt.index];
 }
 
@@ -64,7 +65,7 @@ Config Registry::get_config() {
 	return config;
 }
 
-float Registry::get(const std::wstring &opt, float default_) {
+double Registry::get(const std::wstring &opt, double default_) {
 	wchar_t result[1 << 6] {};
 	DWORD result_type;
 	DWORD result_size = 1 << 6;
@@ -86,14 +87,17 @@ float Registry::get(const std::wstring &opt, float default_) {
 	return std::stof(result);
 }
 
-void Registry::write(const std::wstring &opt, float value) {
+void Registry::write(const std::wstring &opt, double value) {
+	auto string_value = std::to_wstring(value);
+	auto data_size = cast<DWORD>((string_value.size() + 1) * 2);
+
 	RegSetValueEx(
 		m_reg_key,
 		opt.c_str(),
 		0,
 		REG_SZ,
-		(BYTE *) std::to_wstring(value).c_str(),
-		(std::to_wstring(value).size() + 1) * 2
+		(BYTE *) string_value.c_str(),
+		data_size
 	);
 }
 

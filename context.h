@@ -19,7 +19,7 @@ public:
 	RECT rect();
 	unsigned int &frame_count();
 
-	float t();
+	double t();
 
 private:
 	HWND m_window;

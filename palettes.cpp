@@ -43,11 +43,11 @@ const PaletteData *RandomPalettes::random(int rng_token) {
 }
 
 PaletteData *RandomPalettes::new_random_palette() {
-	static int bias_intensity = (int) (20.0f / ((cfg[Cfg::MaxColors] + 4.0f) / Cfg::MaxColors.range.second));
+	static int bias_intensity = (int) (20.0 / ((cfg[Cfg::MaxColors] + 4.0) / Cfg::MaxColors.range.second));
 
-	static float red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
-	static float green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
-	static float blue_bias = rand() % bias_intensity * (rand() % 2 ? -1.0f : 1.0f);
+	static double red_bias = rand() % bias_intensity * (rand() % 2 ? -1.0 : 1.0);
+	static double green_bias = rand() % bias_intensity * (rand() % 2 ? -1.0 : 1.0);
+	static double blue_bias = rand() % bias_intensity * (rand() % 2 ? -1.0 : 1.0);
 
 	std::array<Color, _PALETTE_SIZE> colors;
 
@@ -120,14 +120,14 @@ Color RandomPalettes::random_gray() {
 }
 
 Color RandomPalettes::darken_color(const Color &color) {
-	int new_red = std::get<RED>(color) / 2;
-	int new_green = std::get<GREEN>(color) / 2;
-	int new_blue = std::get<BLUE>(color) / 1.5; 
+	double new_red = std::get<RED>(color) / 2;
+	double new_green = std::get<GREEN>(color) / 2;
+	double new_blue = std::get<BLUE>(color) / 1.5; 
 
 	return {
-		std::clamp(new_red, 0, 255),
-		std::clamp(new_green, 0, 255),
-		std::clamp(new_blue, 0, 255),
+		std::clamp(cast<int>(new_red), 0, 255),
+		std::clamp(cast<int>(new_green), 0, 255),
+		std::clamp(cast<int>(new_blue), 0, 255),
 		255,
 	};
 }
@@ -145,47 +145,47 @@ Color RandomPalettes::lighten_color(const Color &color) {
 	};
 }
 
-Color RandomPalettes::noisify(const Color &color, float degree) {
-	int new_red = std::get<RED>(color) + (((rand() % 100) / 100.0f) * degree);
-	int new_green = std::get<GREEN>(color) + (((rand() % 100) / 100.0f) * degree);
-	int new_blue = std::get<BLUE>(color) + (((rand() % 100) / 100.0f) * degree);
+Color RandomPalettes::noisify(const Color &color, double degree) {
+	double new_red = std::get<RED>(color) + (((rand() % 100) / 100.0) * degree);
+	double new_green = std::get<GREEN>(color) + (((rand() % 100) / 100.0) * degree);
+	double new_blue = std::get<BLUE>(color) + (((rand() % 100) / 100.0) * degree);
 
 	return {
-		std::clamp(new_red, 0, 255),
-		std::clamp(new_green, 0, 255),
-		std::clamp(new_blue, 0, 255),
+		std::clamp(cast<int>(new_red), 0, 255),
+		std::clamp(cast<int>(new_green), 0, 255),
+		std::clamp(cast<int>(new_blue), 0, 255),
 		255,
 	};
 }
 
-Color RandomPalettes::recolorize(const Color &color, float red_weight, float green_weight, float blue_weight) {
-	int new_red = std::get<RED>(color) + (rand() % 100 / 50.0f) * red_weight;
-	int new_green = std::get<GREEN>(color) + (rand() % 100 / 50.0f) * green_weight;
-	int new_blue = std::get<BLUE>(color) + (rand() % 100 / 50.0f) * blue_weight;
+Color RandomPalettes::recolorize(const Color &color, double red_weight, double green_weight, double blue_weight) {
+	double new_red = std::get<RED>(color) + (rand() % 100 / 50.0) * red_weight;
+	double new_green = std::get<GREEN>(color) + (rand() % 100 / 50.0) * green_weight;
+	double new_blue = std::get<BLUE>(color) + (rand() % 100 / 50.0) * blue_weight;
 
 	return {
-		std::clamp(new_red, 0, 255),
-		std::clamp(new_green, 0, 255),
-		std::clamp(new_blue, 0, 255),
+		std::clamp(cast<int>(new_red), 0, 255),
+		std::clamp(cast<int>(new_green), 0, 255),
+		std::clamp(cast<int>(new_blue), 0, 255),
 		255,
 	};
 }
 
 std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
-	auto random_inverse_falloff_percent = [](float scale) -> float {
+	auto random_inverse_falloff_percent = [](double scale) -> double {
 		if (rand() % 50 == 0) {
-			return 1.0f; // Very ocassionally, a trait will have 100% chance
+			return 1.0; // Very ocassionally, a trait will have 100% chance
 		}
 
-		return 1.0f / ((rand() % 300 / 100.0f + 2) + 0.25f) * scale;
+		return 1.0 / ((rand() % 300 / 100.0 + 2) + 0.25) * scale;
 	};
 
-	const static std::map<GenerationTraits, float> trait_chances = {
-		{ GenerationTraits::ColorfulHorns, random_inverse_falloff_percent(0.7f) },
-		{ GenerationTraits::SwapHornsAndScales, random_inverse_falloff_percent(0.4f) },
-		{ GenerationTraits::BlackEyes, random_inverse_falloff_percent(0.2f) },
-		{ GenerationTraits::PastelScales, random_inverse_falloff_percent(0.3f) },
-		{ GenerationTraits::CrystalBody, random_inverse_falloff_percent(0.2f) },
+	const static std::map<GenerationTraits, double> trait_chances = {
+		{ GenerationTraits::ColorfulHorns, random_inverse_falloff_percent(0.7) },
+		{ GenerationTraits::SwapHornsAndScales, random_inverse_falloff_percent(0.4) },
+		{ GenerationTraits::BlackEyes, random_inverse_falloff_percent(0.2) },
+		{ GenerationTraits::PastelScales, random_inverse_falloff_percent(0.3) },
+		{ GenerationTraits::CrystalBody, random_inverse_falloff_percent(0.2) },
 	};
 
 	std::set<GenerationTraits> traits;

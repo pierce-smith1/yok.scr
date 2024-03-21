@@ -19,7 +19,7 @@ void Sprite::draw(Context &ctx) {
 	update(ctx);
 	m_texture->apply();
 
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	glColor4d(1.0, 1.0, 1.0, 1.0);
 
 	glPushMatrix();
 	transform();
@@ -29,12 +29,12 @@ void Sprite::draw(Context &ctx) {
 	// But plastered on a rectangular screen.
 	// Here we adjust so the ratio's fair
 	// And our wandering Llokin are properly seen.
-	float squarifiy_offset = (float) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
+	double squarifiy_offset = (double) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
 
-	glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f - squarifiy_offset, -1.0f);
-	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f - squarifiy_offset, 1.0f);
-	glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f + squarifiy_offset, 1.0f);
-	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f + squarifiy_offset, -1.0f);
+	glTexCoord2d(1.0, 0.0); glVertex2d(1.0 - squarifiy_offset, -1.0);
+	glTexCoord2d(1.0, 1.0); glVertex2d(1.0 - squarifiy_offset, 1.0);
+	glTexCoord2d(0.0, 1.0); glVertex2d(-1.0 + squarifiy_offset, 1.0);
+	glTexCoord2d(0.0, 0.0); glVertex2d(-1.0 + squarifiy_offset, -1.0);
 
 	glEnd();
 	glPopMatrix();
@@ -42,7 +42,7 @@ void Sprite::draw(Context &ctx) {
 }
 
 void Sprite::update(Context &ctx) {
-	auto wrap = [](float home, float total, float min, float max) -> float {
+	auto wrap = [](double home, double total, double min, double max) -> double {
 		if (total < min) {
 			return home + (max - min);
 		} else if (total > max) {
@@ -52,9 +52,9 @@ void Sprite::update(Context &ctx) {
 		}
 	};
 
-	float edge_boundary = 0.15f + m_size / 1.1f;
-	float horizontal_correction = max((float) ctx.rect().right / (float) ctx.rect().bottom, 1.0f);
-	float vertical_correction = max((float) ctx.rect().bottom / (float) ctx.rect().right, 1.0f);
+	double edge_boundary = 0.15f + m_size / 1.1f;
+	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0f);
+	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0f);
 	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
 	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
 }
@@ -64,8 +64,8 @@ Point &Sprite::home() {
 }
 
 void Sprite::transform() {
-	glTranslatef(final<X>(), final<Y>(), 0.0f);
-	glScalef(m_size, m_size, 1.0f);
+	glTranslated(final<X>(), final<Y>(), 0.0f);
+	glScaled(m_size, m_size, 1.0f);
 }
 
 Yonker::Yonker(const Texture *texture, const Point &home) 
@@ -74,16 +74,16 @@ Yonker::Yonker(const Texture *texture, const Point &home)
 void Yonker::update(Context &ctx) {
 	m_emotion_vector = emotion_vector(ctx);
 
-	auto abs_plus = [](float a, float b) -> float {
+	auto abs_plus = [](double a, double b) -> double {
 		return a + abs(b);
 	};
 
-	float emotion_magnitude =
-		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0f, abs_plus);
+	double emotion_magnitude =
+		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0, abs_plus);
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	if (cfg[Cfg::HomeDrift] >= 0.000001f) {
+	if (cfg[Cfg::HomeDrift] >= 0.000001) {
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
 			-cfg[Cfg::HomeDrift],
@@ -105,7 +105,7 @@ void Yonker::update(Context &ctx) {
 }
 
 const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
-	auto emotion_map_index_of = [](float emotion) -> int {
+	auto emotion_map_index_of = [](double emotion) -> int {
 		return std::clamp((int) round(emotion * cfg[Cfg::EmotionScale]), -1, 1) + 1;
 	};
 
@@ -138,7 +138,7 @@ const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	return *emotion_map[empathetic][optimistic][ambitious].data;
 }
 
-std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) const {
+std::array<double, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) const {
 	// Continous noise will be perfect for this;
 	// Nearby to those pissed will also be pissed.
 	return {
@@ -159,7 +159,7 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 	static auto impostors = Bitmaps::bitmaps_of_group(BitmapGroup::Impostor);
 	static auto yoy = Bitmaps::bitmaps_of_group(BitmapGroup::YoyImpostor);
 
-	if (Noise::random() < 0.5f) {
+	if (Noise::random() < 0.5) {
 		return impostors[(int) (Noise::random() * impostors.size())];
 	} else {
 		return yoy[(int) (Noise::random() * yoy.size())];

@@ -17,8 +17,8 @@ struct Cfg {
 		const size_t index;
 		const std::wstring name;
 		const int legacy_id;
-		const float default_;
-		const std::pair<float, float> range;
+		const double default_;
+		const std::pair<double, double> range;
 		const int dialog_control_id;
 	};
 
@@ -164,11 +164,11 @@ class Config {
 public:
 	Config();
 
-	float &operator[](const Cfg::Definition &opt);
-	float operator[](const Cfg::Definition &opt) const;
+	double &operator[](const Cfg::Definition &opt);
+	double operator[](const Cfg::Definition &opt) const;
 
 private:
-	std::vector<float> m_store;
+	std::vector<double> m_store;
 };
 
 class Registry {
@@ -176,8 +176,8 @@ public:
 	Registry();
 
 	Config get_config();
-	float get(const std::wstring &opt, float default_);
-	void write(const std::wstring &opt, float value);
+	double get(const std::wstring &opt, double default_);
+	void write(const std::wstring &opt, double value);
 	void remove(const std::wstring &opt);
 
 private:
