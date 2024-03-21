@@ -24,7 +24,6 @@
 #define IDB_BITMAP19                    156
 #define IDB_BITMAP20                    157
 #define IDB_BITMAP21                    158
-#define IDC_COMBO1                      1001
 #define IDC_YONK_PATTERN                1001
 #define IDC_YONK_SHAKE_FACTOR           1002
 #define IDC_YONK_PALETTE                1003
@@ -39,10 +38,9 @@
 #define IDC_DEFAULTS_BUTTON             1015
 #define IDC_TRAIL_SPACE                 1016
 #define IDC_IMPOSTOR_CHANCE             1018
-#define IDC_CHECK1                      1019
 #define IDC_PATTERN_FIX                 1019
 #define IDC_VERSION_LABEL               1020
-#define IDC_CLEAR_SCREEN                1022
+#define IDC_TRAILS_ENABLED              1021
 #define IDC_PLAY_OVER_DESKTOP           1022
 #define DLG_SCREENSAVERCONFIGURE        2003
 

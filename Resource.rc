@@ -106,13 +106,14 @@ BEGIN
     LTEXT           "yokscr version ???",IDC_VERSION_LABEL,222,348,149,8,WS_DISABLED
     CONTROL         "Play over the desktop",IDC_PLAY_OVER_DESKTOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,228,240,158,10
     LTEXT           "Trail Length:",IDC_STATIC,12,289,41,8
-    CONTROL         "",IDC_TRAIL_LENGTH,"msctls_trackbar32",TBS_BOTH | WS_TABSTOP,48,302,100,24
-    LTEXT           "Short",IDC_STATIC,12,308,18,8
-    LTEXT           "Long",IDC_STATIC,155,308,16,8
-    LTEXT           "Trail Spacing:",IDC_STATIC,12,332,44,8
-    LTEXT           "Near",IDC_STATIC,12,350,16,8
+    CONTROL         "",IDC_TRAIL_LENGTH,"msctls_trackbar32",TBS_BOTH | WS_TABSTOP,48,301,100,24
+    LTEXT           "Short",IDC_STATIC,12,307,18,8
+    LTEXT           "Long",IDC_STATIC,155,307,16,8
+    LTEXT           "Trail Spacing:",IDC_STATIC,12,331,44,8
+    LTEXT           "Near",IDC_STATIC,12,349,16,8
     CONTROL         "",IDC_TRAIL_SPACE,"msctls_trackbar32",TBS_BOTH | WS_TABSTOP,48,343,102,24
-    LTEXT           "Distant",IDC_STATIC,155,350,24,8
+    LTEXT           "Distant",IDC_STATIC,155,349,24,8
+    CONTROL         "Enable trails",IDC_TRAILS_ENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,132,289,55,10
 END
 
 

@@ -144,7 +144,7 @@ struct Cfg {
 	inline const static Definition TrailLength = {
 		.index = __COUNTER__,
 		.name = L"TrailLength",
-		.default_ = 1.0f,
+		.default_ = 3.0f,
 		.range = { 1.0f, 25.0f },
 		.dialog_control_id = IDC_TRAIL_LENGTH,
 	};
@@ -162,6 +162,13 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"MaxTrailCount",
 		.default_ = 3000.0f,
+	};
+
+	inline const static Definition TrailsEnabled = {
+		.index = __COUNTER__,
+		.name = L"TrailsEnabled",
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_TRAILS_ENABLED,
 	};
 
 	inline const static std::set<Definition> All = {
@@ -182,6 +189,7 @@ struct Cfg {
 		TrailLength,
 		TrailSpace,
 		MaxTrailCount,
+		TrailsEnabled,
 	};
 };
 

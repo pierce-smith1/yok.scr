@@ -75,6 +75,12 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			break;
 		}
+		case IDC_TRAILS_ENABLED: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::TrailsEnabled);
+			}
+			break;
+		}
 	}
 
 
@@ -171,4 +177,8 @@ void ConfigDialog::refresh() {
 	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0f;
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
+
+	bool are_trails_enabled = m_current_config[Cfg::TrailsEnabled] == 1.0f;
+	HWND trails_enabled_check = GetDlgItem(m_dialog, IDC_TRAILS_ENABLED);
+	Button_SetCheck(trails_enabled_check, are_trails_enabled);
 }

@@ -213,8 +213,12 @@ void TrailSprite::update(Context &ctx) { }
 void TrailSprite::draw_trail(Context &ctx) { }
 
 int TrailSprite::get_trail_length() {
+	if (cfg[Cfg::TrailsEnabled] != 1.0f) {
+		return 0;
+	}
+
 	int max_trail = (int) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);
-	int trail_length = std::clamp((int) round(cfg[Cfg::TrailLength]), 1, max_trail) - 1;
+	int trail_length = std::clamp((int) round(cfg[Cfg::TrailLength]) + 1, 1, max_trail) - 1;
 	return trail_length * get_trail_space();
 }
 
