@@ -146,6 +146,7 @@ struct Cfg {
 		.name = L"TrailLength",
 		.default_ = 1.0f,
 		.range = { 1.0f, 25.0f },
+		.dialog_control_id = IDC_TRAIL_LENGTH,
 	};
 
 	inline const static Definition TrailSpace = {
@@ -153,6 +154,7 @@ struct Cfg {
 		.name = L"TrailSpace",
 		.default_ = 10.0f,
 		.range = { 1.0f, 50.0f },
+		.dialog_control_id = IDC_TRAIL_SPACE,
 	};
 
 	// aka: kindly, calm the fuck down mate
