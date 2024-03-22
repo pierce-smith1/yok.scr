@@ -4,8 +4,10 @@
 #include <set>
 #include <initializer_list>
 #include <vector>
+#include <variant>
 
 #include "common.h"
+#include "config.h"
 
 enum PaletteIndex {
 	PI_TRANSPARENT = 0,      
@@ -775,17 +777,15 @@ struct Palettes {
 	};
 };
 
-using PaletteBag = std::vector<const PaletteData *>;
-
 struct PaletteGroups {
 private:
-	static PaletteBag palettes_of_group(PaletteGroup group);
+	static std::vector<Palettes::Definition> palettes_of_group(PaletteGroup group);
 	
 public:
 	struct Definition {
 		std::wstring name;
 		PaletteGroup group;
-		PaletteBag members;
+		std::vector<Palettes::Definition> members;
 	};
 
 	inline const static Definition Canon = {
@@ -815,3 +815,38 @@ public:
 	}
 };
 
+// This is 100% registry-backed storage. Do not access it in hot paths.
+class PaletteRepository {
+public:
+	void set_palette(Registry &registry, const std::wstring &name, const PaletteData &data);
+	std::optional<Palettes::Definition> get_palette(Registry &registry, const std::wstring &name);
+	std::vector<Palettes::Definition> get_all_custom_palettes(Registry &registry);
+
+private:
+	const static inline std::wstring PaletteMasterListKey = L"_CustomPalettesAll";
+
+	void add_to_master_list(Registry &registry, const std::wstring &name);
+	void remove_from_master_list(Registry &registry, const std::wstring &name);
+
+	std::wstring to_registry_name(const std::wstring &palette_name);
+	std::wstring serialize(const PaletteData &palette);
+	PaletteData deserialize(const std::wstring &serialized);
+};
+
+/*
+class PaletteGroupRepository {
+public:
+	void add_palette(Registry &registry, const std::wstring &group_name, const std::wstring &palette_name);
+	void remove_palette(Registry &registry, const std::wstring &group_name, const std::wstring &palette_name);
+	std::wstring get_all_palettes(Registry &registry, const std::wstring &group_name);
+	size_t get_index_of(Registry &registry, const std::wstring &group_name);
+
+private:
+	const static inline std::wstring GroupMasterListKey = L"_CustomPaletteGroupsAll";
+
+	void add_to_master_list(Registry &registry, const std::wstring &name);
+
+	std::wstring to_registry_name(const std::wstring &group_name);
+};
+
+*/

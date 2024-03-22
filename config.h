@@ -6,9 +6,9 @@
 #include <string>
 #include <optional>
 #include <vector>
-#include "resourcew.h"
 #include <set>
 
+#include "resourcew.h"
 
 struct Cfg {
 	struct Definition {
