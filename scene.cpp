@@ -23,6 +23,7 @@ void Scene::draw() {
 	}
 
 	m_choreographer.update();
+
 	for (Sprite *sprite : m_sprites) {
 		sprite->draw(m_ctx);
 	}

@@ -14,9 +14,11 @@
 #include "context.h"
 #include "graphics.h"
 
+class TrailSprite;
+
 class Sprite : public Identifiable<Empty> {
 public:
-	Sprite(const Texture *texture, const Point &home);
+	Sprite(const Texture *texture, const Point &home, const bool has_trail = true);
 
 	void change_texture(const Texture *texture);
 	virtual void draw(Context &ctx);
@@ -30,11 +32,17 @@ public:
 
 protected:
 	void transform();
+	void update_trail();
+	void increment_trail_index(const size_t amount = 1);
+	TrailSprite& get_trail(const size_t index = 0);
+	virtual void draw_trail(Context &ctx);
 
 	const Texture *m_texture;
 	Point m_relpos;
 	Point m_home;
 	GLdouble m_size;
+	std::vector<TrailSprite> m_trail;
+	size_t m_trail_start_index;
 };
 
 class Yonker : public Sprite {
@@ -62,6 +70,21 @@ class Impostor : public Sprite {
 public:
 	Impostor(const PaletteData *palette, const Point &home);
 
+	virtual void update(Context &ctx) override;
+
 protected:
 	static Bitmaps::Definition &random_bitmap();
+};
+
+class TrailSprite : public Sprite {
+public:
+	TrailSprite(const Texture *palette, const Point &home);
+
+	virtual void update(Context &ctx) override;
+
+	static int get_trail_length();
+	static int get_trail_space();
+
+protected:
+	virtual void draw_trail(Context &ctx) override;
 };
