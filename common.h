@@ -13,7 +13,7 @@ public:
 	}
 
 private:
-	const Id m_id;
+	Id m_id;
 };
 
 using Color = std::tuple<unsigned char, unsigned char, unsigned char, unsigned char>;
@@ -25,14 +25,17 @@ enum Channel {
 };
 
 template <typename String> std::vector<String> split(const String &string, const String &delimiter) {
+	if (string.empty()) {
+		return {};
+	}
+
 	std::vector<String> parts;
 
 	size_t prev_index = 0;
 	size_t next_index = String::npos;
 	while ((next_index = string.find(delimiter, prev_index)) != String::npos) {
 		parts.push_back(string.substr(prev_index, next_index - prev_index));
-		prev_index = next_index;
-		next_index++;
+		prev_index = next_index + 1;
 	}
 
 	parts.push_back(string.substr(prev_index, next_index - prev_index));

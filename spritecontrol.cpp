@@ -14,7 +14,7 @@ SpriteGenerator::SpriteGenerator() {
 
 	PaletteGroup palette_group = (PaletteGroup) (cfg[Cfg::Palette]);
 
-	PaletteBag bag_of_palettes;
+	std::vector<Palettes::Definition> bag_of_palettes;
 	if (palette_group == PaletteGroup::RandomlyGenerated) {
 		for (int i = Cfg::MaxColors.range.first; i < Cfg::MaxColors.range.second; i++) {
 			bag_of_palettes.push_back(RandomPalettes::random(i));
@@ -29,7 +29,7 @@ SpriteGenerator::SpriteGenerator() {
 
 	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
-		m_palettes.push_back(bag_of_palettes[random_palette_index]);
+		m_palettes.push_back(bag_of_palettes[random_palette_index].data);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
 	}
 }

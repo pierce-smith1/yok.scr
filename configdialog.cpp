@@ -6,9 +6,10 @@
 
 #include "configdialog.h"
 #include "yokscr.h"
+#include "resourcew.h"
 
 ConfigDialog::ConfigDialog(HWND dialog)
-	: m_dialog(dialog), m_current_config(m_registry.get_config())
+	: m_dialog(dialog), m_current_config(Registry::get_config())
 { 
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	for (const auto &entry : pattern_strings) {
@@ -33,12 +34,6 @@ void ConfigDialog::save() {
 	for (const auto &opt : Cfg::All) {
 		registry.write(opt.name, m_current_config[opt]);
 	}
-
-	DataStore store;
-
-	for (const auto &def : Storage::All) {
-		store.write(def.name, m_current_store[def.name]);
-	}
 }
 
 BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
@@ -56,6 +51,15 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			refresh();
 			return FALSE;
+		}
+		case IDC_PALETTE_CUSTOMIZE: {
+			DialogBox(
+				NULL,
+				MAKEINTRESOURCE(DLG_PALETTE_CUSTOMIZER),
+				m_dialog,
+				(DLGPROC) ScreenSaverPaletteCustomizeDialog
+			);
+			break;
 		}
 		case IDC_YONK_PATTERN: {
 			if (HIWORD(wparam) == CBN_SELENDOK) {
@@ -177,4 +181,233 @@ void ConfigDialog::refresh() {
 	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0f;
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
+}
+
+PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
+	: m_dialog(dialog), 
+	  // BITMAP11 is lksix - we use this one because it shows
+	  // off every color in the palette.
+	  m_preview_bitmap(Bitmaps::load_raw_resource(IDB_BITMAP11)),
+	  // The "Friend" palette makes a good, netural-toned default.
+	  m_current_palette(*Palettes::Friend.data)
+{
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	if (!all_palettes.empty()) {
+		m_current_palette_name = all_palettes[0].name;
+		m_current_palette = *all_palettes[0].data;
+	}
+
+	refresh();
+	refresh_palette_list();
+}
+
+BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
+	switch (LOWORD(wparam)) {
+		case IDOK: {
+			save_current_palette();
+			EndDialog(m_dialog, true);
+			return TRUE;
+		}
+		case IDC_PALDLG_SCALE_COLOR:
+		case IDC_PALDLG_SCALE_HIGHLIGHT_COLOR:
+		case IDC_PALDLG_SCALE_SHADOW_COLOR:
+		case IDC_PALDLG_HORN_COLOR:
+		case IDC_PALDLG_HORN_SHADOW_COLOR:
+		case IDC_PALDLG_EYE_COLOR:
+		case IDC_PALDLG_WHITES_COLOR: {
+			int palette_index = palette_index_for_control(LOWORD(wparam));
+			get_and_save_color(palette_index);
+			break;
+		}
+		case IDC_PALDLG_PALETTE_LIST: {
+			switch (HIWORD(wparam)) {
+				case LBN_SELCHANGE: {
+					update_current_palette();
+					refresh();
+					break;
+				}
+			}
+			break;
+		}
+	}
+
+	return FALSE;
+}
+
+HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM lparam) {
+	HWND button = (HWND) lparam;
+	int button_id = GetDlgCtrlID(button);
+
+	if ((button_id != IDC_PALDLG_SCALE_COLOR
+	 && button_id != IDC_PALDLG_SCALE_HIGHLIGHT_COLOR
+	 && button_id != IDC_PALDLG_SCALE_SHADOW_COLOR
+	 && button_id != IDC_PALDLG_HORN_COLOR
+	 && button_id != IDC_PALDLG_HORN_SHADOW_COLOR
+	 && button_id != IDC_PALDLG_EYE_COLOR
+	 && button_id != IDC_PALDLG_WHITES_COLOR)
+	 || !IsWindowEnabled(button)
+	) {
+		return FALSE;
+	}
+
+	int palette_index = palette_index_for_control(button_id);
+	Color color = m_current_palette[palette_index];
+
+	HBRUSH brush = CreateSolidBrush(RGB(
+		std::get<RED>(color),
+		std::get<GREEN>(color),
+		std::get<BLUE>(color)
+	));
+
+	return brush;
+}
+
+void PaletteCustomizeDialog::refresh() {
+	std::vector<HWND> controls_to_disable = {
+		GetDlgItem(m_dialog, IDC_PALDLG_DELETE_PALETTE),
+		GetDlgItem(m_dialog, IDC_PALDLG_SCALE_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_SCALE_HIGHLIGHT_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_SCALE_SHADOW_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_HORN_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_HORN_SHADOW_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_EYE_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_WHITES_COLOR),
+	};
+
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	for (HWND control : controls_to_disable) {
+		EnableWindow(control, !all_palettes.empty());
+	}
+
+	apply_palette_to_preview(m_current_palette);
+	SendDlgItemMessage(
+		m_dialog,
+		IDC_PALDLG_PREVIEW,
+		STM_SETIMAGE,
+		IMAGE_BITMAP,
+		(LPARAM) m_preview_bitmap
+	);
+
+	// Force the color buttons to re-paint, they won't on their own
+	InvalidateRect(m_dialog, NULL, TRUE);
+}
+
+void PaletteCustomizeDialog::refresh_palette_list() {
+	HWND palette_list = GetDlgItem(m_dialog, IDC_PALDLG_PALETTE_LIST);
+	ListBox_ResetContent(palette_list);
+
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	for (const auto &palette : all_palettes) {
+		ListBox_AddString(palette_list, palette.name.c_str());
+	}
+}
+
+void PaletteCustomizeDialog::update_current_palette() {
+	save_current_palette();
+
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	size_t palette_index = SendDlgItemMessage(
+		m_dialog, 
+		IDC_PALDLG_PALETTE_LIST, 
+		LB_GETCURSEL, 
+		0, 
+		0
+	);
+
+	auto *buffer = new wchar_t[1 << 10] { 0 };
+	SendDlgItemMessage(
+		m_dialog,
+		IDC_PALDLG_PALETTE_LIST,
+		LB_GETTEXT,
+		palette_index,
+		(LPARAM) buffer
+	);
+	std::wstring selected = buffer;
+
+	m_current_palette_name = selected;
+	m_current_palette = *std::find_if(all_palettes.begin(), all_palettes.end(), [&](const Palettes::Definition &palette) {
+		return palette.name == selected;
+	})->data;
+
+	delete[] buffer;
+}
+
+void PaletteCustomizeDialog::save_current_palette() {
+	m_palette_repo.set_palette(m_current_palette_name, m_current_palette);
+}
+
+void PaletteCustomizeDialog::apply_palette_to_preview(const PaletteData &palette) {
+	HDC memory_context = CreateCompatibleDC(GetDC(m_dialog));
+	
+	SelectBitmap(memory_context, m_preview_bitmap);
+	RGBQUAD colors[_PALETTE_SIZE];
+
+	// I REALLY don't want to go down a rabbit hole of figuring out how to make this bitmap
+	// actually transparent (it's an absolute miracle any of this works _at all_!), so we
+	// just guess what the base color of the dialog is to fake transparency.
+	// We could get the actual color from a system brush, but that sounds like effort!
+	colors[PI_TRANSPARENT] = {
+		.rgbBlue = 240,
+		.rgbGreen = 240,
+		.rgbRed = 240
+	};
+
+	for (int i = 1; i < _PALETTE_SIZE; i++) {
+		colors[i] = {
+			.rgbBlue = std::get<BLUE>(palette[i]),
+			.rgbGreen = std::get<GREEN>(palette[i]),
+			.rgbRed = std::get<RED>(palette[i]),
+		};
+	}
+
+	SetDIBColorTable(
+		memory_context,
+		0,
+		_PALETTE_SIZE,
+		colors
+	);
+
+	DeleteDC(memory_context);
+}
+
+int PaletteCustomizeDialog::palette_index_for_control(int color_button_control_id) {
+	switch (color_button_control_id) {
+		default:
+		case IDC_PALDLG_SCALE_COLOR: return PI_SCALES;
+		case IDC_PALDLG_SCALE_HIGHLIGHT_COLOR: return PI_SCALES_HIGHLIGHT;
+		case IDC_PALDLG_SCALE_SHADOW_COLOR: return PI_SCALES_SHADOW;
+		case IDC_PALDLG_HORN_COLOR: return PI_HORNS;
+		case IDC_PALDLG_HORN_SHADOW_COLOR: return PI_HORNS_SHADOW;
+		case IDC_PALDLG_EYE_COLOR: return PI_EYE;
+		case IDC_PALDLG_WHITES_COLOR: return PI_WHITES;
+	}
+}
+
+void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
+	static COLORREF custom_colors[16];
+
+	Color current_color = m_current_palette[palette_index];
+	CHOOSECOLOR color_options = {
+		.lStructSize = sizeof(CHOOSECOLOR),
+		.hwndOwner = m_dialog,
+		.hInstance = NULL,
+		.rgbResult = RGB(std::get<RED>(current_color), std::get<GREEN>(current_color), std::get<BLUE>(current_color)),
+		.lpCustColors = custom_colors,
+		.Flags = CC_FULLOPEN,
+		.lCustData = 0,
+		.lpfnHook = NULL,
+		.lpTemplateName = NULL,
+	};
+
+	bool color_choice_successful = ChooseColor(&color_options);
+	if (color_choice_successful) {
+		m_current_palette[palette_index] = {
+			GetRValue(color_options.rgbResult),
+			GetGValue(color_options.rgbResult),
+			GetBValue(color_options.rgbResult),
+			255
+		};
+
+		refresh();
+	}
 }

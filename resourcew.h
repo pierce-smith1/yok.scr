@@ -24,6 +24,7 @@
 #define IDB_BITMAP19                    156
 #define IDB_BITMAP20                    157
 #define IDB_BITMAP21                    158
+#define DLG_PALETTE_CUSTOMIZER          159
 #define IDC_COMBO1                      1001
 #define IDC_YONK_PATTERN                1001
 #define IDC_YONK_SHAKE_FACTOR           1002
@@ -42,15 +43,28 @@
 #define IDC_VERSION_LABEL               1020
 #define IDC_CLEAR_SCREEN                1022
 #define IDC_PLAY_OVER_DESKTOP           1022
+#define IDC_PALDLG_PALETTE_LIST         1025
+#define IDC_PALETTE_CUSTOMIZE           1031
+#define IDC_PALDG_NEW_PALETTE           1036
+#define IDC_PALDLG_DELETE_PALETTE_BUTTON 1040
+#define IDC_PALDLG_DELETE_PALETTE       1040
+#define IDC_PALDLG_SCALE_SHADOW_COLOR   1045
+#define IDC_PALDLG_SCALE_COLOR          1046
+#define IDC_PALDLG_SCALE_HIGHLIGHT_COLOR 1047
+#define IDC_PALDLG_HORN_SHADOW_COLOR    1048
+#define IDC_PALDLG_HORN_COLOR           1049
+#define IDC_PALDLG_PREVIEW              1050
+#define IDC_PALDLG_EYE_COLOR            1052
+#define IDC_PALDLG_WHITES_COLOR         1053
 #define DLG_SCREENSAVERCONFIGURE        2003
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        159
+#define _APS_NEXT_RESOURCE_VALUE        162
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

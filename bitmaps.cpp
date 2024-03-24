@@ -7,13 +7,7 @@
 #include "bitmaps.h"
 #include <iterator>
 
-BitmapData *Bitmaps::load(int resource_id) {
-	static std::map<int, BitmapData *> bitmap_cache;
-
-	if (bitmap_cache.find(resource_id) != bitmap_cache.end()) {
-		return bitmap_cache.at(resource_id);
-	}
-
+HANDLE Bitmaps::load_raw_resource(int resource_id) {
 	HANDLE bitmap_resource = LoadImage(
 		GetModuleHandle(NULL), 
 		MAKEINTRESOURCE(resource_id),
@@ -22,6 +16,18 @@ BitmapData *Bitmaps::load(int resource_id) {
 		BITMAP_WH,
 		LR_CREATEDIBSECTION
 	);
+
+	return bitmap_resource;
+}
+
+BitmapData *Bitmaps::load(int resource_id) {
+	static std::map<int, BitmapData *> bitmap_cache;
+
+	if (bitmap_cache.find(resource_id) != bitmap_cache.end()) {
+		return bitmap_cache.at(resource_id);
+	}
+
+	HANDLE bitmap_resource = load_raw_resource(resource_id);
 
 	BITMAP bitmap_header;
 	GetObject(bitmap_resource, sizeof(BITMAP), &bitmap_header);

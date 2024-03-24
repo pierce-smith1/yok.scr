@@ -33,7 +33,7 @@ PaletteData::PaletteData(const std::array<std::string, _PALETTE_SIZE - 1> &hex_s
 	});
 }
 
-const PaletteData *RandomPalettes::random(int rng_token) {
+Palettes::Definition RandomPalettes::random(int rng_token) {
 	static std::map<int, PaletteData *> generated_palettes;
 
 	auto result = generated_palettes.find(rng_token);
@@ -42,7 +42,13 @@ const PaletteData *RandomPalettes::random(int rng_token) {
 		generated_palettes[rng_token] = new_random_palette();
 	}
 
-	return generated_palettes.at(rng_token);
+	Palettes::Definition palette = {
+		.name = L"random",
+		.group = PaletteGroup::RandomlyGenerated,
+		.data = generated_palettes.at(rng_token)
+	};
+
+	return palette;
 }
 
 PaletteData *RandomPalettes::new_random_palette() {
@@ -211,64 +217,42 @@ std::vector<Palettes::Definition> PaletteGroups::palettes_of_group(PaletteGroup 
 	return palettes;
 }
 
-void PaletteRepository::set_palette(Registry &registry, const std::wstring &name, const PaletteData &data) {
-	registry.write_string(to_registry_name(name), serialize(data));
+PaletteRepository::PaletteRepository() 
+	: m_map(L"CustomPalette") { }
 
-	add_to_master_list(registry, name);
+void PaletteRepository::set_palette(const std::wstring &name, const PaletteData &data) {
+	m_map.set(name, serialize(data));
 }
 
-std::optional<Palettes::Definition> PaletteRepository::get_palette(Registry &registry, const std::wstring &name) {
-	auto known_palette = std::find_if(Palettes::All.begin(), Palettes::All.end(), [&](const Palettes::Definition &palette) {
-		palette.name == name;
-	});
+void PaletteRepository::remove_palette(const std::wstring &name) {
+	m_map.remove(name);
+}
 
-	if (known_palette != Palettes::All.end()) {
-		return *known_palette;
-	}
+std::optional<Palettes::Definition> PaletteRepository::get_palette(const std::wstring &name) {
+	auto palette_string = m_map.get(name, L"");
 
-	auto palette_data = registry.get_string(to_registry_name(name), L"");
-
-	if (palette_data.empty()) {
+	if (palette_string == L"") {
 		return {};
 	}
 
 	Palettes::Definition definition = {
 		.name = name,
 		.group = PaletteGroup::Custom,
-		.data = new PaletteData { deserialize(palette_data) },
+		.data = new PaletteData { deserialize(palette_string) },
 	};
 
 	return definition;
 }
 
-std::vector<Palettes::Definition> PaletteRepository::get_all_custom_palettes(Registry &registry) {
-	auto custom_palette_names = split<std::wstring>(registry.get_string(PaletteMasterListKey, L""), L",");
-	
-	std::vector<Palettes::Definition> definitions;
-	std::transform(custom_palette_names.begin(), custom_palette_names.end(), std::back_inserter(definitions), [&](const std::wstring &name) {
-		return *get_palette(registry, name);
+std::vector<Palettes::Definition> PaletteRepository::get_all_custom_palettes() {
+	auto items = m_map.items();
+
+	std::vector<Palettes::Definition> palettes;
+	std::transform(items.begin(), items.end(), std::back_inserter(palettes), [&](const RegistryBackedMap::Item &item) {
+		return *get_palette(item.first);
 	});
 
-	return definitions;
-}
-
-void PaletteRepository::add_to_master_list(Registry &registry, const std::wstring &name) {
-	auto all_names = split<std::wstring>(registry.get_string(PaletteMasterListKey, L""), L",");
-	auto all_names_set = std::set<std::wstring>(all_names.begin(), all_names.end());
-	all_names_set.insert(name);
-	registry.write_string(PaletteMasterListKey, join<std::wstring>(all_names_set, L","));
-}
-
-void PaletteRepository::remove_from_master_list(Registry &registry, const std::wstring &name) {
-	auto all_names = split<std::wstring>(registry.get_string(PaletteMasterListKey, L""), L",");
-	auto all_names_set = std::set<std::wstring>(all_names.begin(), all_names.end());
-	all_names_set.erase(name);
-	registry.write_string(PaletteMasterListKey, join<std::wstring>(all_names_set, L","));
-}
-
-std::wstring PaletteRepository::to_registry_name(const std::wstring &palette_name) {
-	auto registry_name = L"_CustomPalette:" + palette_name;
-	return registry_name;
+	return palettes;
 }
 
 std::wstring PaletteRepository::serialize(const PaletteData &palette) {
@@ -285,43 +269,102 @@ std::wstring PaletteRepository::serialize(const PaletteData &palette) {
 PaletteData PaletteRepository::deserialize(const std::wstring &serialized) {
 	auto colors = split<std::wstring>(serialized, L";");
 
-	if (colors.size() != _PALETTE_SIZE - 1) {
-		throw std::runtime_error(std::format("Wrong number of colors ({}) in serialized palette '{}'", colors.size(), serialized));
-	}
-
 	std::array<std::string, _PALETTE_SIZE - 1> raw_color_strings;
 	std::transform(colors.begin(), colors.end(), raw_color_strings.begin(), [](const std::wstring &color_string) {
-		return std::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>>().to_bytes(color_string);
+		const size_t buffer_size = 1 << 6;
+		char ansi_string[buffer_size];
+		WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			color_string.c_str(),
+			-1,
+			ansi_string,
+			buffer_size,
+			NULL,
+			NULL
+		);
+		return std::string(ansi_string);
 	});
 
 	PaletteData palette_data = raw_color_strings;
 	return palette_data;
 }
-/*
 
+PaletteGroupRepository::PaletteGroupRepository()
+	: m_map(L"CustomPaletteGroup") { }
 
+PaletteGroupRepository::Group::Group(const std::wstring &key, const RegistryBackedMap &repo_map)
+	: m_key(key), m_repo_map(repo_map) { }
 
+void PaletteGroupRepository::Group::add_palette(const std::wstring &name) {
+	auto group_contents = m_repo_map.get(m_key, L"");
+	auto names = split<std::wstring>(group_contents, ListDelimiter);
 
+	auto palette_name = std::find(names.begin(), names.end(), name);
+	if (palette_name != names.end()) {
+		return;
+	}
 
-
-
-void PaletteGroupRepository::add_palette(Registry &registry, const std::wstring &group_name, const std::wstring &palette_name) {
-	auto palette_list = split<std::wstring>(registry.get_string(to_registry_name(group_name), L""), L",");
-
-	auto palette_set = std::set<std::wstring>(palette_list.begin(), palette_list.end());
-	palette_set.insert(palette_name);
-	registry.write_string(to_registry_name(group_name), join<std::wstring>(palette_set, L","));
+	names.push_back(name);
+	auto new_group = join<std::wstring>(names, ListDelimiter);
+	m_repo_map.set(m_key, new_group);
 }
 
-std::wstring PaletteGroupRepository::to_registry_name(const std::wstring &group_name) {
-	auto registry_name = L"_CustomPaletteGroup:" + group_name;
-	return registry_name;
+void PaletteGroupRepository::Group::remove_palette(const std::wstring &name) {
+	auto group_contents = m_repo_map.get(m_key, L"");
+	auto names = split<std::wstring>(group_contents, ListDelimiter);
+
+	auto palette_name = std::find(names.begin(), names.end(), name);
+	if (palette_name == names.end()) {
+		return;
+	}
+
+	names.erase(palette_name);
+	auto new_group = join<std::wstring>(names, ListDelimiter);
+	m_repo_map.set(m_key, new_group);
 }
 
-void PaletteGroupRepository::add_to_master_list(Registry &registry, const std::wstring &name) {
-	auto all_names = split<std::wstring>(registry.get_string(GroupMasterListKey, L""), L",");
-	auto all_names_set = std::set<std::wstring>(all_names.begin(), all_names.end());
-	all_names_set.insert(name);
-	registry.write_string(GroupMasterListKey, join<std::wstring>(all_names_set, L","));
+std::vector<std::wstring> PaletteGroupRepository::Group::get_all_palettes() {
+	auto group_contents = m_repo_map.get(m_key, L"");
+	auto names = split<std::wstring>(group_contents, ListDelimiter);
+	
+	return names;
 }
-*/
+
+std::wstring PaletteGroupRepository::Group::name() {
+	return m_key;
+}
+
+PaletteGroupRepository::Group PaletteGroupRepository::get_group(const std::wstring &name) {
+	Group group(name, m_map);
+	return group;
+}
+
+std::optional<size_t> PaletteGroupRepository::get_group_index(const std::wstring &group_name) {
+	auto groups = m_map.items();
+
+	auto group = std::find_if(groups.begin(), groups.end(), [&](const RegistryBackedMap::Item group_item) {
+		return group_item.first == group_name;
+	});
+
+	if (group == groups.end()) {
+		return {};
+	}
+
+	return group - groups.begin();
+}
+
+void PaletteGroupRepository::remove_group(const std::wstring &name) {
+	m_map.remove(name);
+}
+
+std::vector<PaletteGroupRepository::Group> PaletteGroupRepository::get_all_groups() {
+	auto items = m_map.items();
+
+	std::vector<Group> groups;
+	std::transform(items.begin(), items.end(), std::back_inserter(groups), [&](const RegistryBackedMap::Item &item) {
+		return Group(item.first, m_map);
+	});
+
+	return groups;
+}

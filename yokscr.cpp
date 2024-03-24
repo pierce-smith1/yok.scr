@@ -41,9 +41,24 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 
 	switch (message) {
 		case WM_INITDIALOG: {
-			DataStore store;
-			auto stuff = store.read(L"hey");
-			store.write(L"hey", L"i like you");
+
+			PaletteRepository palette_repo;
+			palette_repo.set_palette(L"alpha", *Palettes::Aemil.data);
+			palette_repo.set_palette(L"zeta", *Palettes::Zoog.data);
+			palette_repo.set_palette(L"lambda", *Palettes::Loxxe.data);
+			palette_repo.set_palette(L"luna", *Palettes::Ascent.data);
+			palette_repo.set_palette(L"fall", *Palettes::Autumn.data);
+
+			PaletteGroupRepository group_repo;
+			auto greek = group_repo.get_group(L"greek");
+			greek.add_palette(L"alpha");
+			greek.add_palette(L"zeta");
+			greek.add_palette(L"lambda");
+
+			auto wp = group_repo.get_group(L"wallpapers");
+			wp.add_palette(L"luna");
+			wp.add_palette(L"fall");
+
 			cfg_dialog = new ConfigDialog(dialog);
 			return TRUE;
 		} 
@@ -56,6 +71,23 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 			if (handle != NULL) {
 				return cfg_dialog->slider_changed(wparam, handle);
 			}
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	static PaletteCustomizeDialog *palette_dialog;
+
+	switch (message) {
+		case WM_INITDIALOG: {
+			palette_dialog = new PaletteCustomizeDialog(dialog);
+			return TRUE;
+		} case WM_COMMAND: {
+			return palette_dialog->command(wparam, lparam);
+		} case WM_CTLCOLORBTN: {
+			return (LRESULT) palette_dialog->handle_color_button_message(wparam, lparam);
 		}
 	}
 

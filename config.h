@@ -201,8 +201,12 @@ using ConfigStore = std::map<std::wstring, std::wstring>;
 class Registry {
 public:
 	Registry();
+	~Registry();
 
-	Config get_config();
+	Registry(const Registry &other) = delete;
+	Registry &operator=(const Registry &other) = delete;
+
+	static Config get_config();
 
 	float get(const std::wstring &opt, float default_);
 	std::wstring get_string(const std::wstring &opt, const std::wstring &default_);
@@ -216,17 +220,27 @@ private:
 	HKEY m_reg_key;
 };
 
-class DataStore {
+class RegistryBackedMap {
 public:
-	DataStore();
+	using Item = std::pair<std::wstring, std::wstring>;
 
-	ConfigStore get_store();
+	RegistryBackedMap(const std::wstring &prefix);
 
-	std::wstring read(const std::wstring &filename);
-	void write(const std::wstring &filename, const std::wstring &contents);
+	std::wstring get(const std::wstring &key, const std::wstring &default_);
+	void set(const std::wstring &key, const std::wstring &value);
+	void remove(const std::wstring &key);
+	std::vector<Item> items();
+
+	std::wstring prefix_key(const std::wstring &key);
 
 private:
-	std::wstring m_data_folder_path;
+	const static inline std::wstring IndexDelimiter = L",";
+
+	std::wstring m_prefix;
+	std::wstring m_index_key;
+
+	void ensure_in_index(Registry &registry, const std::wstring &key);
+	void remove_from_index(Registry &registry, const std::wstring &key);
 };
 
-const static Config cfg = Registry().get_config();
+const static Config cfg = Registry::get_config();

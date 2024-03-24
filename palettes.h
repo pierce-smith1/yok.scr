@@ -36,29 +36,6 @@ enum class PaletteGroup {
 	_PALETTE_OPTION_COUNT
 };
 
-class RandomPalettes {
-public:
-	static const PaletteData *random(int rng_token);
-
-private:
-	enum class GenerationTraits {
-		ColorfulHorns,
-		SwapHornsAndScales,
-		BlackEyes,
-		PastelScales,
-		CrystalBody,
-	};
-
-	static PaletteData *new_random_palette();
-	static Color random_color();
-	static Color random_gray();
-	static Color darken_color(const Color &color);
-	static Color lighten_color(const Color &color);
-	static Color noisify(const Color &color, float degree = 1.0f);
-	static Color recolorize(const Color &color, float red_weight, float green_weight, float blue_weight);
-	static std::set<GenerationTraits> random_traits();
-};
-
 struct Palettes {
 	struct Definition {
 		auto operator<=>(const Definition &other) const = default;
@@ -777,6 +754,29 @@ struct Palettes {
 	};
 };
 
+class RandomPalettes {
+public:
+	static Palettes::Definition random(int rng_token);
+
+private:
+	enum class GenerationTraits {
+		ColorfulHorns,
+		SwapHornsAndScales,
+		BlackEyes,
+		PastelScales,
+		CrystalBody,
+	};
+
+	static PaletteData *new_random_palette();
+	static Color random_color();
+	static Color random_gray();
+	static Color darken_color(const Color &color);
+	static Color lighten_color(const Color &color);
+	static Color noisify(const Color &color, float degree = 1.0f);
+	static Color recolorize(const Color &color, float red_weight, float green_weight, float blue_weight);
+	static std::set<GenerationTraits> random_traits();
+};
+
 struct PaletteGroups {
 private:
 	static std::vector<Palettes::Definition> palettes_of_group(PaletteGroup group);
@@ -818,35 +818,47 @@ public:
 // This is 100% registry-backed storage. Do not access it in hot paths.
 class PaletteRepository {
 public:
-	void set_palette(Registry &registry, const std::wstring &name, const PaletteData &data);
-	std::optional<Palettes::Definition> get_palette(Registry &registry, const std::wstring &name);
-	std::vector<Palettes::Definition> get_all_custom_palettes(Registry &registry);
+	PaletteRepository();
+
+	void set_palette(const std::wstring &name, const PaletteData &data);
+	void remove_palette(const std::wstring &name);
+	std::optional<Palettes::Definition> get_palette(const std::wstring &name);
+	std::vector<Palettes::Definition> get_all_custom_palettes();
 
 private:
-	const static inline std::wstring PaletteMasterListKey = L"_CustomPalettesAll";
-
-	void add_to_master_list(Registry &registry, const std::wstring &name);
-	void remove_from_master_list(Registry &registry, const std::wstring &name);
-
-	std::wstring to_registry_name(const std::wstring &palette_name);
 	std::wstring serialize(const PaletteData &palette);
 	PaletteData deserialize(const std::wstring &serialized);
+
+	RegistryBackedMap m_map;
 };
 
-/*
 class PaletteGroupRepository {
 public:
-	void add_palette(Registry &registry, const std::wstring &group_name, const std::wstring &palette_name);
-	void remove_palette(Registry &registry, const std::wstring &group_name, const std::wstring &palette_name);
-	std::wstring get_all_palettes(Registry &registry, const std::wstring &group_name);
-	size_t get_index_of(Registry &registry, const std::wstring &group_name);
+	PaletteGroupRepository();
+
+	class Group {
+	public:
+		Group(const std::wstring &key, const RegistryBackedMap &repo_map);
+
+		void add_palette(const std::wstring &name);
+		void remove_palette(const std::wstring &name);
+		std::vector<std::wstring> get_all_palettes();
+
+		std::wstring name();
+		
+	private:
+		const static inline std::wstring ListDelimiter = L",";
+
+		std::wstring m_key;
+		RegistryBackedMap m_repo_map;
+	};
+
+	Group get_group(const std::wstring &name);
+	std::optional<size_t> get_group_index(const std::wstring &group_name);
+	void remove_group(const std::wstring &name);
+	std::vector<Group> get_all_groups();
 
 private:
-	const static inline std::wstring GroupMasterListKey = L"_CustomPaletteGroupsAll";
-
-	void add_to_master_list(Registry &registry, const std::wstring &name);
-
-	std::wstring to_registry_name(const std::wstring &group_name);
+	RegistryBackedMap m_map;
 };
 
-*/

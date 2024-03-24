@@ -2,9 +2,11 @@
 
 #include <vector>
 #include <utility>
-#include <shlobj_core.h>
+#include <format>
+#include <algorithm>
 
 #include "config.h"
+#include "common.h"
 
 Config::Config() 
 	: m_store(Cfg::All.size())
@@ -42,25 +44,30 @@ Registry::Registry()
 	);
 }
 
+Registry::~Registry() {
+	RegCloseKey(m_reg_key);
+}
+
 Config Registry::get_config() {
+	Registry registry;
 	Config config;
 
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
-	bool is_registry_migrated = get(is_registry_migrated_name, 0.0f) != 0.0f;
+	bool is_registry_migrated = registry.get(is_registry_migrated_name, 0.0f) != 0.0f;
 
 	for (const auto &opt : Cfg::All) {
 		bool has_no_legacy = opt.legacy_id == 0;
 		if (is_registry_migrated || has_no_legacy) {
-			config[opt] = get(opt.name, opt.default_);
+			config[opt] = registry.get(opt.name, opt.default_);
 		} else {
-			config[opt] = get(std::to_wstring(opt.legacy_id), opt.default_);
-			write(opt.name, config[opt]);
-			remove(std::to_wstring(opt.legacy_id));
+			config[opt] = registry.get(std::to_wstring(opt.legacy_id), opt.default_);
+			registry.write(opt.name, config[opt]);
+			registry.remove(std::to_wstring(opt.legacy_id));
 		}
 	}
 
 	if (!is_registry_migrated) {
-		write(is_registry_migrated_name, 1.0f);
+		registry.write(is_registry_migrated_name, 1.0f);
 	}
 
 	return config;
@@ -115,74 +122,73 @@ void Registry::remove(const std::wstring &opt) {
 	);
 }
 
-DataStore::DataStore() {
-	wchar_t *raw_appdata_path = nullptr;
-	auto code = SHGetKnownFolderPath(
-		FOLDERID_RoamingAppData, 
-		KF_FLAG_CREATE, 
-		NULL, 
-		&raw_appdata_path
-	);
-	
-	m_data_folder_path = raw_appdata_path;
-	m_data_folder_path += L"\\yokscr";
+RegistryBackedMap::RegistryBackedMap(const std::wstring &prefix)
+	: m_prefix(prefix), m_index_key(std::format(L"_{}_index", prefix)) { }
 
-	CreateDirectory(m_data_folder_path.c_str(), NULL);
+std::wstring RegistryBackedMap::get(const std::wstring &key, const std::wstring &default_) {
+	Registry registry;
+
+	auto value = registry.get_string(prefix_key(key), default_);
+	return value;
 }
 
-ConfigStore DataStore::get_store() {
-	ConfigStore store;
+void RegistryBackedMap::set(const std::wstring &key, const std::wstring &value) {
+	Registry registry;
 
-	for (const auto &key : Storage::All) {
-		store[key.name] = read(key.name);
+	registry.write_string(prefix_key(key), value);
+	ensure_in_index(registry, key);
+}
+
+void RegistryBackedMap::remove(const std::wstring &key) {
+	Registry registry;
+
+	registry.remove(prefix_key(key));
+	remove_from_index(registry, key);
+}
+
+std::vector<std::pair<std::wstring, std::wstring>> RegistryBackedMap::items() {
+	Registry registry;
+
+	auto index_contents = registry.get_string(m_index_key, L"");
+	auto keys = split<std::wstring>(index_contents, IndexDelimiter);
+
+	std::vector<Item> items;
+	std::transform(keys.begin(), keys.end(), std::back_inserter(items), [&](const std::wstring &key) -> Item {
+		return { key, registry.get_string(prefix_key(key), L"") };
+	});
+
+	return items;
+}
+
+std::wstring RegistryBackedMap::prefix_key(const std::wstring &key) {
+	auto prefixed_key = std::format(L"_{}:{}", m_prefix, key);
+	return prefixed_key;
+}
+
+void RegistryBackedMap::ensure_in_index(Registry &registry, const std::wstring &key) {
+	auto index_contents = registry.get_string(m_index_key, L"");
+	auto keys = split<std::wstring>(index_contents, IndexDelimiter);
+
+	auto index_key = std::find(keys.begin(), keys.end(), key);
+	if (index_key != keys.end()) {
+		return;
 	}
 
-	return store;
+	keys.push_back(key);
+	auto new_index = join<std::wstring>(keys, IndexDelimiter);
+	registry.write_string(m_index_key, new_index);
 }
 
-std::wstring DataStore::read(const std::wstring &filename) {
-	HANDLE file = CreateFile(
-		(m_data_folder_path + L"\\" + filename).c_str(),
-		GENERIC_READ,
-		0,
-		NULL,
-		OPEN_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL
-	);
+void RegistryBackedMap::remove_from_index(Registry &registry, const std::wstring &key) {
+	auto index_contents = registry.get_string(m_index_key, L"");
+	auto keys = split<std::wstring>(index_contents, IndexDelimiter);
 
-	// Yes I went there, no I no longer care.
-	// The brave may dare to live on a prayer.
-	const size_t buffer_size = 1 << 20;
-	wchar_t *buffer = new wchar_t[buffer_size];
-	DWORD bytes_read;
-	bool read_file_ok = ReadFile(file, buffer, buffer_size, &bytes_read, NULL);
+	auto index_key = std::find(keys.begin(), keys.end(), key);
+	if (index_key == keys.end()) {
+		return;
+	}
 
-	buffer[(bytes_read / 2)] = L'\0';
-	std::wstring data = buffer;
-
-	CloseHandle(file);
-	delete[] buffer;
-
-	return data;
-}
-
-void DataStore::write(const std::wstring &filename, const std::wstring &contents) {
-	HANDLE file = CreateFile(
-		(m_data_folder_path + L"\\" + filename).c_str(),
-		GENERIC_WRITE,
-		0,
-		NULL,
-		CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL
-	);
-
-	WriteFile(
-		file,
-		contents.c_str(),
-		contents.size() * 2,
-		NULL,
-		NULL
-	);
+	keys.erase(index_key);
+	auto new_index = join<std::wstring>(keys, IndexDelimiter);
+	registry.write_string(m_index_key, new_index);
 }

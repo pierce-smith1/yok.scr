@@ -27,10 +27,37 @@ private:
 		})->first;
 	}
 
-	Registry m_registry;
 	HWND m_dialog;
 	Config m_current_config;
 	ConfigStore m_current_store;
+};
+
+class PaletteCustomizeDialog {
+public:
+	PaletteCustomizeDialog(HWND dialog);
+
+	BOOL command(WPARAM wparam, LPARAM lparam);
+	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
+
+private:
+	void refresh();
+	void refresh_palette_list();
+
+	void update_current_palette();
+	void save_current_palette();
+
+	void apply_palette_to_preview(const PaletteData &palette);
+	int palette_index_for_control(int color_button_control_id);
+	void get_and_save_color(int palette_index);
+
+	std::optional<std::wstring> m_selected_group;
+
+	HWND m_dialog;
+	HANDLE m_preview_bitmap;
+	PaletteData m_current_palette;
+	std::wstring m_current_palette_name;
+	PaletteRepository m_palette_repo;
+	PaletteGroupRepository m_group_repo;
 };
 
 const static std::map<PatternName, std::wstring> pattern_strings = {
