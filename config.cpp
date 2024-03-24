@@ -89,7 +89,7 @@ double Registry::get(const std::wstring &opt, double default_) {
 
 void Registry::write(const std::wstring &opt, double value) {
 	auto string_value = std::to_wstring(value);
-	auto data_size = (string_value.size() + 1) * 2;
+	auto data_size = cast<DWORD>((string_value.size() + 1) * 2);
 
 	RegSetValueEx(
 		m_reg_key,
