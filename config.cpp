@@ -46,7 +46,7 @@ Config Registry::get_config() {
 	Config config;
 
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
-	bool is_registry_migrated = get(is_registry_mirated_name, 0.0) != 0.0;
+	bool is_registry_migrated = get(is_registry_migrated_name, 0.0) != 0.0;
 
 	for (const auto &opt : Cfg::All) {
 		if (is_registry_migrated) {
