@@ -15,7 +15,7 @@ void Scene::draw() {
 	gluPerspective(45, 1.0 * m_ctx.rect().right / m_ctx.rect().bottom, 1.0, 1000);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (cfg[Cfg::PlayOverDesktop]) {
