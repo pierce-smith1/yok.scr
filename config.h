@@ -147,6 +147,7 @@ struct Cfg {
 		.name = L"UseCustomPalettes",
 		.default_ = 0.0f,
 		.dialog_control_id = IDC_CUSTOM_PALETTES_CHECK,
+	};
 
 	inline const static Definition TrailLength = {
 		.index = __COUNTER__,
