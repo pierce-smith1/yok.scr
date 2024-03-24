@@ -88,6 +88,12 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 		case IDC_CUSTOM_PALETTES_CHECK: {
 			if (HIWORD(wparam) == BN_CLICKED) {
 				return checkbox_checked(wparam, (HWND) lparam, Cfg::UseCustomPalettes);
+      }
+      break;
+    }
+		case IDC_TRAILS_ENABLED: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::TrailsEnabled);
 			}
 			break;
 		}
@@ -187,6 +193,14 @@ void ConfigDialog::refresh() {
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
 
+  bool are_trails_enabled = m_current_config[Cfg::TrailsEnabled] == 1.0f;
+	HWND trail_length_slider = GetDlgItem(m_dialog, IDC_TRAIL_LENGTH);
+	HWND trail_space_slider = GetDlgItem(m_dialog, IDC_TRAIL_SPACE);
+	HWND trails_enabled_check = GetDlgItem(m_dialog, IDC_TRAILS_ENABLED);
+	Button_SetCheck(trails_enabled_check, are_trails_enabled);
+	EnableWindow(trail_length_slider, are_trails_enabled);
+	EnableWindow(trail_space_slider, are_trails_enabled);
+  
 	bool using_custom_palettes = m_current_config[Cfg::UseCustomPalettes] == 1.0f;
 	HWND palette_selector = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	HWND palette_customize_button = GetDlgItem(m_dialog, IDC_PALETTE_CUSTOMIZE);

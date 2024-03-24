@@ -147,6 +147,35 @@ struct Cfg {
 		.name = L"UseCustomPalettes",
 		.default_ = 0.0f,
 		.dialog_control_id = IDC_CUSTOM_PALETTES_CHECK,
+
+	inline const static Definition TrailLength = {
+		.index = __COUNTER__,
+		.name = L"TrailLength",
+		.default_ = 3.0f,
+		.range = { 1.0f, 25.0f },
+		.dialog_control_id = IDC_TRAIL_LENGTH,
+	};
+
+	inline const static Definition TrailSpace = {
+		.index = __COUNTER__,
+		.name = L"TrailSpace",
+		.default_ = 10.0f,
+		.range = { 1.0f, 50.0f },
+		.dialog_control_id = IDC_TRAIL_SPACE,
+	};
+
+	// aka: kindly, calm the fuck down mate
+	inline const static Definition MaxTrailCount = {
+		.index = __COUNTER__,
+		.name = L"MaxTrailCount",
+		.default_ = 3000.0f,
+	};
+
+	inline const static Definition TrailsEnabled = {
+		.index = __COUNTER__,
+		.name = L"TrailsEnabled",
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_TRAILS_ENABLED,
 	};
 
 	inline const static std::set<Definition> All = {
@@ -165,6 +194,10 @@ struct Cfg {
 		Palette,
 		PlayOverDesktop,
 		UseCustomPalettes,
+		TrailLength,
+		TrailSpace,
+		MaxTrailCount,
+		TrailsEnabled,
 	};
 };
 
