@@ -16,8 +16,8 @@ struct Cfg {
 		const size_t index;
 		const std::wstring name;
 		const int legacy_id;
-		const float default_;
-		const std::pair<float, float> range;
+		const double default_;
+		const std::pair<double, double> range;
 		const int dialog_control_id;
 	};
 
@@ -25,15 +25,15 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkStepSize", 
 		.legacy_id = 1001,
-		.default_ = 0.005f, 
+		.default_ = 0.005, 
 	};
 
 	inline const static Definition HomeDrift = { 
 		.index = __COUNTER__,
 		.name = L"YonkHomeDrift", 
 		.legacy_id = 1002,
-		.default_= 0.3f, 
-		.range = { 0.0f, 5.0f },
+		.default_= 0.3, 
+		.range = { 0.0, 5.0 },
 		.dialog_control_id = IDC_YONK_HOME_DRIFT,
 	};
 
@@ -41,8 +41,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkEmotionScale", 
 		.legacy_id = 1003,
-		.default_= 5.0f, 
-		.range = { 0.0f, 10.0f },
+		.default_= 5.0, 
+		.range = { 0.0, 10.0 },
 		.dialog_control_id = IDC_YONK_EMOTION_SCALE,
 	};
 
@@ -50,8 +50,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"TimeDivisor", 
 		.legacy_id = 1004,
-		.default_= 180.0f, 
-		.range = { 10.0f, 300.0f },
+		.default_= 180.0, 
+		.range = { 10.0, 300.0 },
 		.dialog_control_id = IDC_TIME_DIVISOR,
 	};
 
@@ -59,8 +59,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"MaxColors", 
 		.legacy_id = 1005,
-		.default_= 5.0f, 
-		.range = { 2.0f, 47.0f },
+		.default_= 5.0, 
+		.range = { 2.0, 47.0 },
 		.dialog_control_id = IDC_MAX_COLORS,
 	};
 
@@ -68,8 +68,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"SpriteCount",
 		.legacy_id = 1006,
-		.default_ = 80.0f,
-		.range = { 1.0f, 200.0f },
+		.default_ = 80.0,
+		.range = { 1.0, 200.0 },
 		.dialog_control_id = IDC_SPRITE_COUNT,
 	};
 
@@ -77,8 +77,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"SpriteSize",
 		.legacy_id = 1007,
-		.default_ = 50.0f,
-		.range = { 10.0f, 200.0f },
+		.default_ = 50.0,
+		.range = { 10.0, 200.0 },
 		.dialog_control_id = IDC_SPRITE_SIZE,
 	};
 
@@ -86,8 +86,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkShakeFactor",
 		.legacy_id = 1008,
-		.default_ = 2.0f,
-		.range = { 0.0f, 5.0f },
+		.default_ = 2.0,
+		.range = { 0.0, 5.0 },
 		.dialog_control_id = IDC_YONK_SHAKE_FACTOR,
 	};
 
@@ -95,7 +95,7 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkPattern",
 		.legacy_id = 1009,
-		.default_ = 0.0f,
+		.default_ = 0.0,
 		.dialog_control_id = IDC_YONK_PATTERN,
 	};
 
@@ -103,8 +103,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"PatternChangeInterval",
 		.legacy_id = 1010,
-		.default_ = 60.0f * 15.0f,
-		.range = { 30.0f, 60.0f * 30.0f },
+		.default_ = 60.0 * 15.0,
+		.range = { 30.0, 60.0 * 30.0 },
 		.dialog_control_id = IDC_PATTERN_CHANGE_INTERVAL,
 	};
 
@@ -112,7 +112,7 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"IsPatternFixed",
 		.legacy_id = 1011,
-		.default_ = 0.0f,
+		.default_ = 0.0,
 		.dialog_control_id = IDC_PATTERN_FIX,
 	};
 
@@ -120,8 +120,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"ImpostorChance",
 		.legacy_id = 1012,
-		.default_ = powf(0.002f, 1.0f / 3.0f),
-		.range = { 0.0f, 1.0f },
+		.default_ = pow(0.002, 1.0 / 3.0),
+		.range = { 0.0, 1.0 },
 		.dialog_control_id = IDC_IMPOSTOR_CHANCE,
 	};
 
@@ -129,7 +129,7 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkPalette",
 		.legacy_id = 1013,
-		.default_ = 0.0f,
+		.default_ = 0.0,
 		.dialog_control_id = IDC_YONK_PALETTE,
 	};
 
@@ -137,23 +137,23 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"PlayOverDesktop",
 		.legacy_id = 1014,
-		.default_ = 0.0f,
+		.default_ = 0.0,
 		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
 	};
 
 	inline const static Definition TrailLength = {
 		.index = __COUNTER__,
 		.name = L"TrailLength",
-		.default_ = 3.0f,
-		.range = { 1.0f, 25.0f },
+		.default_ = 3.0,
+		.range = { 1.0, 25.0 },
 		.dialog_control_id = IDC_TRAIL_LENGTH,
 	};
 
 	inline const static Definition TrailSpace = {
 		.index = __COUNTER__,
 		.name = L"TrailSpace",
-		.default_ = 10.0f,
-		.range = { 1.0f, 50.0f },
+		.default_ = 10.0,
+		.range = { 1.0, 50.0 },
 		.dialog_control_id = IDC_TRAIL_SPACE,
 	};
 
@@ -161,13 +161,13 @@ struct Cfg {
 	inline const static Definition MaxTrailCount = {
 		.index = __COUNTER__,
 		.name = L"MaxTrailCount",
-		.default_ = 3000.0f,
+		.default_ = 3000.0,
 	};
 
 	inline const static Definition TrailsEnabled = {
 		.index = __COUNTER__,
 		.name = L"TrailsEnabled",
-		.default_ = 0.0f,
+		.default_ = 0.0,
 		.dialog_control_id = IDC_TRAILS_ENABLED,
 	};
 
@@ -197,11 +197,11 @@ class Config {
 public:
 	Config();
 
-	float &operator[](const Cfg::Definition &opt);
-	float operator[](const Cfg::Definition &opt) const;
+	double &operator[](const Cfg::Definition &opt);
+	double operator[](const Cfg::Definition &opt) const;
 
 private:
-	std::vector<float> m_store;
+	std::vector<double> m_store;
 };
 
 class Registry {
@@ -209,8 +209,8 @@ public:
 	Registry();
 
 	Config get_config();
-	float get(const std::wstring &opt, float default_);
-	void write(const std::wstring &opt, float value);
+	double get(const std::wstring &opt, double default_);
+	void write(const std::wstring &opt, double value);
 	void remove(const std::wstring &opt);
 
 private:

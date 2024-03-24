@@ -24,7 +24,7 @@ public:
 	virtual void draw(Context &ctx);
 	virtual void update(Context &ctx);
 
-	template <int C> float final() const {
+	template <int C> double final() const {
 		return std::get<C>(m_home) + std::get<C>(m_relpos);
 	}
 
@@ -40,7 +40,7 @@ protected:
 	const Texture *m_texture;
 	Point m_relpos;
 	Point m_home;
-	GLfloat m_size;
+	GLdouble m_size;
 	std::vector<TrailSprite> m_trail;
 	size_t m_trail_start_index;
 };
@@ -53,7 +53,7 @@ public:
 		AMBITION = 2,
 		_EMOTIONS_COUNT
 	};
-	using EmotionVector = std::array<float, _EMOTIONS_COUNT>;
+	using EmotionVector = std::array<double, _EMOTIONS_COUNT>;
 
 	Yonker(const Texture *texture, const Point &home);
 

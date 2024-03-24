@@ -23,3 +23,7 @@ enum Channel {
 	BLUE = 2,
 	ALPHA = 3
 };
+
+template <typename To, typename From> To cast(From value) {
+	return static_cast<To>(value);
+}

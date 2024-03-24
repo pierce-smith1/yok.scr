@@ -7,7 +7,7 @@
 #include "graphics.h"
 #include "sprite.h"
 
-const static float M_PI = std::acos(-1);
+const static double M_PI = std::acos(-1);
 
 using Sprites = std::vector<Sprite *>;
 
@@ -46,7 +46,7 @@ public:
 protected:
 	PatternPlayer(Sprites *sprites, Context *ctx);
 
-	static float hash(unsigned int n);
+	static double hash(unsigned int n);
 
 	static unsigned int m_hash_offset;
 	PatternName m_pattern;
@@ -62,7 +62,7 @@ public:
 	std::set<PatternName> &compatible_patterns() override;
 
 protected:
-	using MoveFunction = std::function<void(Sprite *, Context *, float offset)>;
+	using MoveFunction = std::function<void(Sprite *, Context *, double offset)>;
 	static std::map<PatternName, MoveFunction> move_functions;
 };
 
@@ -74,7 +74,7 @@ public:
 	std::set<PatternName> &compatible_patterns() override;
 
 protected:
-	using MoveFunction = std::function<void(Sprites *, Context *, std::function<float(Id)>)>;
+	using MoveFunction = std::function<void(Sprites *, Context *, std::function<double(Id)>)>;
 	static std::map<PatternName, MoveFunction> move_functions;
 };
 

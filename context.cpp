@@ -54,6 +54,6 @@ unsigned int &Context::frame_count() {
 	return m_frame_count;
 }
 
-float Context::t() {
+double Context::t() {
 	return m_frame_count / cfg[Cfg::TimeDivisor];
 }
