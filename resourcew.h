@@ -33,14 +33,16 @@
 #define IDC_PATTERN_CHANGE_INTERVAL     1007
 #define IDC_YONK_EMOTION_SCALE          1009
 #define IDC_SPRITE_SIZE                 1010
+#define IDC_TRAIL_LENGTH                1011
 #define IDC_YONK_HOME_DRIFT             1012
 #define IDC_SPRITE_COUNT                1013
 #define IDC_MAX_COLORS                  1014
 #define IDC_DEFAULTS_BUTTON             1015
+#define IDC_TRAIL_SPACE                 1016
 #define IDC_IMPOSTOR_CHANCE             1018
 #define IDC_PATTERN_FIX                 1019
 #define IDC_VERSION_LABEL               1020
-#define IDC_CLEAR_SCREEN                1022
+#define IDC_TRAILS_ENABLED              1021
 #define IDC_PLAY_OVER_DESKTOP           1022
 #define IDC_PALDLG_PALETTE_LIST         1025
 #define IDC_PALETTE_CUSTOMIZE           1031
