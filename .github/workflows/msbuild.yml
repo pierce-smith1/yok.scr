@@ -33,6 +33,21 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
 
+    - name: Install Python
+      uses: actions/setup-python@v5.0.0
+      with:
+        python-version: 3.11
+
+    - name: Install Pillow
+      working-directory: ${{env.SOLUTION_FILE_PATH}}
+      run: |
+        python3 -m pip install --upgrade pip 
+        python3 -m pip install --upgrade Pillow
+        
+    - name: Make BMPs
+      working-directory: ${{env.SOLUTION_FILE_PATH}}
+      run: python3 .\bitmaps-to-bmp.py
+
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
