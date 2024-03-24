@@ -775,8 +775,8 @@ private:
 	static Color random_gray();
 	static Color darken_color(const Color &color);
 	static Color lighten_color(const Color &color);
-	static Color noisify(const Color &color, float degree = 1.0f);
-	static Color recolorize(const Color &color, float red_weight, float green_weight, float blue_weight);
+	static Color noisify(const Color &color, double degree = 1.0);
+	static Color recolorize(const Color &color, double red_weight, double green_weight, double blue_weight);
 	static std::set<GenerationTraits> random_traits();
 };
 

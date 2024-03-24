@@ -73,7 +73,7 @@ Config Registry::get_config() {
 	return config;
 }
 
-float Registry::get(const std::wstring &opt, float default_) {
+double Registry::get(const std::wstring &opt, double default_) {
 	auto value = get_string(opt, std::to_wstring(default_));
 	return std::stof(value);
 }
@@ -100,20 +100,19 @@ std::wstring Registry::get_string(const std::wstring &opt, const std::wstring &d
 	return result;
 }
 
-void Registry::write(const std::wstring &opt, float value) {
+void Registry::write(const std::wstring &opt, double value) {
 	write_string(opt, std::to_wstring(value));
 }
 
 void Registry::write_string(const std::wstring &opt, const std::wstring &value) {
-	auto string_value = std::to_wstring(value);
-	auto data_size = cast<DWORD>((string_value.size() + 1) * 2);
+	auto data_size = cast<DWORD>((value.size() + 1) * 2);
 
 	RegSetValueEx(
 		m_reg_key,
 		opt.c_str(),
 		0,
 		REG_SZ,
-		(BYTE *) string_value.c_str(),
+		(BYTE *) value.c_str(),
 		data_size
 	);
 }
