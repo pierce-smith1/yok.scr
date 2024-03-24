@@ -168,24 +168,6 @@ struct Cfg {
 	};
 };
 
-struct Storage {
-	struct Definition {
-		auto operator<=>(const Definition &other) const = default;
-
-		const std::wstring name;
-		const std::wstring default_;
-	};
-
-	inline const static Definition CustomPalettes {
-		.name = L"CustomPalettes",
-		.default_ = L"",
-	};
-
-	inline const static std::set<Definition> All = {
-		CustomPalettes,
-	};
-};
-
 class Config {
 public:
 	Config();
