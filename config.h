@@ -142,10 +142,11 @@ struct Cfg {
 		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
 	};
 
-	inline const static Definition CustomPaletteIndex = {
+	inline const static Definition UseCustomPalettes = {
 		.index = __COUNTER__,
-		.name = L"CustomPaletteIndex",
-		.default_ = -1.0f,
+		.name = L"UseCustomPalettes",
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_CUSTOM_PALETTES_CHECK,
 	};
 
 	inline const static std::set<Definition> All = {
@@ -163,7 +164,7 @@ struct Cfg {
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
-		CustomPaletteIndex,
+		UseCustomPalettes,
 	};
 };
 

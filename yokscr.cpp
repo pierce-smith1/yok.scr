@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windowsx.h>
+
 #include "yokscr.h"
 #include "scene.h"
 #include "noise.h"
@@ -41,24 +43,6 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 
 	switch (message) {
 		case WM_INITDIALOG: {
-
-			PaletteRepository palette_repo;
-			palette_repo.set_palette(L"alpha", *Palettes::Aemil.data);
-			palette_repo.set_palette(L"zeta", *Palettes::Zoog.data);
-			palette_repo.set_palette(L"lambda", *Palettes::Loxxe.data);
-			palette_repo.set_palette(L"luna", *Palettes::Ascent.data);
-			palette_repo.set_palette(L"fall", *Palettes::Autumn.data);
-
-			PaletteGroupRepository group_repo;
-			auto greek = group_repo.get_group(L"greek");
-			greek.add_palette(L"alpha");
-			greek.add_palette(L"zeta");
-			greek.add_palette(L"lambda");
-
-			auto wp = group_repo.get_group(L"wallpapers");
-			wp.add_palette(L"luna");
-			wp.add_palette(L"fall");
-
 			cfg_dialog = new ConfigDialog(dialog);
 			return TRUE;
 		} 
@@ -88,6 +72,58 @@ LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WP
 			return palette_dialog->command(wparam, lparam);
 		} case WM_CTLCOLORBTN: {
 			return (LRESULT) palette_dialog->handle_color_button_message(wparam, lparam);
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	switch (message) {
+		case WM_INITDIALOG: {
+			return TRUE;
+		} case WM_COMMAND: {
+			HWND name_input = GetDlgItem(dialog, IDC_PALDLG_NEW_PALETTE_NAME);
+
+			wchar_t name_buffer[PaletteCustomizeDialog::MaxPaletteNameSize] { L'\0' };
+			Edit_GetText(
+				name_input,
+				name_buffer,
+				PaletteCustomizeDialog::MaxPaletteNameSize
+			);
+			name_buffer[PaletteCustomizeDialog::MaxPaletteNameSize - 1] = L'\0';
+
+			switch (LOWORD(wparam)) {
+				case IDOK: {
+					auto *name = new std::wstring(name_buffer);
+					EndDialog(dialog, (INT_PTR) name);
+					return TRUE;
+				} case IDCANCEL: {
+					EndDialog(dialog, 0);
+					return TRUE;
+				} case IDC_PALDLG_NEW_PALETTE_NAME: {
+					switch (HIWORD(wparam)) {
+						case EN_CHANGE: {
+							// Various special characters might break the registry parsing if they are saved.
+							// The only catastrophe I can directly forsee is commas, but may as well just only allow
+							// alphanumerics and a few special characters to be extra safe.
+							static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:";
+							std::wstring name = name_buffer;
+
+							bool name_too_short = name.size() < PaletteCustomizeDialog::MinPaletteNameSize;
+							bool name_has_invalid_chars = name.find_first_not_of(valid_chars) != std::wstring::npos;
+							// There is no "name_too_long" check because names are 
+							// automatically truncated due to the buffer size.
+
+							HWND ok_button = GetDlgItem(dialog, IDOK);
+							EnableWindow(ok_button, !name_too_short && !name_has_invalid_chars);
+							break;
+						}
+					}
+					break;
+				}
+			}
+			break;
 		}
 	}
 

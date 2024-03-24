@@ -85,8 +85,13 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			break;
 		}
+		case IDC_CUSTOM_PALETTES_CHECK: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::UseCustomPalettes);
+			}
+			break;
+		}
 	}
-
 
 	return FALSE;
 }
@@ -181,6 +186,14 @@ void ConfigDialog::refresh() {
 	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0f;
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
+
+	bool using_custom_palettes = m_current_config[Cfg::UseCustomPalettes] == 1.0f;
+	HWND palette_selector = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
+	HWND palette_customize_button = GetDlgItem(m_dialog, IDC_PALETTE_CUSTOMIZE);
+	HWND custom_palettes_check = GetDlgItem(m_dialog, IDC_CUSTOM_PALETTES_CHECK);
+	EnableWindow(palette_selector, !using_custom_palettes);
+	EnableWindow(palette_customize_button, using_custom_palettes);
+	Button_SetCheck(custom_palettes_check, using_custom_palettes);
 }
 
 PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
@@ -193,8 +206,12 @@ PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
 {
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
 	if (!all_palettes.empty()) {
-		m_current_palette_name = all_palettes[0].name;
-		m_current_palette = *all_palettes[0].data;
+		m_current_palette = {
+			.data = *all_palettes[0].data,
+			.name = all_palettes[0].name
+		};
+	} else {
+		m_current_palette = {};
 	}
 
 	refresh();
@@ -229,6 +246,31 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			break;
 		}
+		case IDC_PALDLG_NEW_PALETTE: {
+			std::wstring *name = (std::wstring *) DialogBox(
+				NULL,
+				MAKEINTRESOURCE(DLG_NEW_CUSTOM_PALETTE),
+				m_dialog,
+				(DLGPROC) ScreenSaverNewCustomPaletteDialog
+			);
+
+			m_current_palette = {
+				.data = *DefaultPalette.data,
+				.name = *name
+			};
+
+			save_current_palette();
+			refresh_palette_list();
+
+			delete name;
+
+			break;
+		}
+		case IDC_PALDLG_DELETE_PALETTE: {
+			delete_current_palette();
+			refresh_palette_list();
+			break;
+		}
 	}
 
 	return FALSE;
@@ -245,13 +287,13 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 	 && button_id != IDC_PALDLG_HORN_SHADOW_COLOR
 	 && button_id != IDC_PALDLG_EYE_COLOR
 	 && button_id != IDC_PALDLG_WHITES_COLOR)
-	 || !IsWindowEnabled(button)
+	 || !m_current_palette
 	) {
 		return FALSE;
 	}
 
 	int palette_index = palette_index_for_control(button_id);
-	Color color = m_current_palette[palette_index];
+	Color color = m_current_palette->data[palette_index];
 
 	HBRUSH brush = CreateSolidBrush(RGB(
 		std::get<RED>(color),
@@ -259,6 +301,9 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 		std::get<BLUE>(color)
 	));
 
+	// This may be a resource leak because brushes are supposed to be freed
+	// after their use, but I have no idea how to get a reference to this brush
+	// back after it's been used. So, just let it leak?
 	return brush;
 }
 
@@ -279,7 +324,12 @@ void PaletteCustomizeDialog::refresh() {
 		EnableWindow(control, !all_palettes.empty());
 	}
 
-	apply_palette_to_preview(m_current_palette);
+	if (m_current_palette) {
+		apply_palette_to_preview(m_current_palette->data);
+	} else {
+		apply_palette_to_preview(*DisabledPalette.data);
+	}
+
 	SendDlgItemMessage(
 		m_dialog,
 		IDC_PALDLG_PREVIEW,
@@ -300,6 +350,12 @@ void PaletteCustomizeDialog::refresh_palette_list() {
 	for (const auto &palette : all_palettes) {
 		ListBox_AddString(palette_list, palette.name.c_str());
 	}
+
+	if (m_current_palette) {
+		ListBox_SelectString(palette_list, -1, m_current_palette->name.c_str());
+	}
+
+	refresh();
 }
 
 void PaletteCustomizeDialog::update_current_palette() {
@@ -314,7 +370,7 @@ void PaletteCustomizeDialog::update_current_palette() {
 		0
 	);
 
-	auto *buffer = new wchar_t[1 << 10] { 0 };
+	wchar_t buffer[MaxPaletteNameSize] { L'\0' };
 	SendDlgItemMessage(
 		m_dialog,
 		IDC_PALDLG_PALETTE_LIST,
@@ -324,16 +380,38 @@ void PaletteCustomizeDialog::update_current_palette() {
 	);
 	std::wstring selected = buffer;
 
-	m_current_palette_name = selected;
-	m_current_palette = *std::find_if(all_palettes.begin(), all_palettes.end(), [&](const Palettes::Definition &palette) {
-		return palette.name == selected;
-	})->data;
+	m_current_palette = {
+		.data = *std::find_if(all_palettes.begin(), all_palettes.end(), [&](const Palettes::Definition &palette) {
+			return palette.name == selected;
+		})->data,
+		.name = selected,
+	};
 
 	delete[] buffer;
 }
 
 void PaletteCustomizeDialog::save_current_palette() {
-	m_palette_repo.set_palette(m_current_palette_name, m_current_palette);
+	if (m_current_palette) {
+		m_palette_repo.set_palette(m_current_palette->name, m_current_palette->data);
+	}
+}
+
+void PaletteCustomizeDialog::delete_current_palette() {
+	if (!m_current_palette) {
+		return;
+	}
+
+	m_palette_repo.remove_palette(m_current_palette->name);
+
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	if (!all_palettes.empty()) {
+		m_current_palette = {
+			.data = *all_palettes[0].data,
+			.name = all_palettes[0].name,
+		};
+	} else {
+		m_current_palette = {};
+	}
 }
 
 void PaletteCustomizeDialog::apply_palette_to_preview(const PaletteData &palette) {
@@ -384,9 +462,13 @@ int PaletteCustomizeDialog::palette_index_for_control(int color_button_control_i
 }
 
 void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
+	if (!m_current_palette) {
+		return;
+	}
+
 	static COLORREF custom_colors[16];
 
-	Color current_color = m_current_palette[palette_index];
+	Color current_color = m_current_palette->data[palette_index];
 	CHOOSECOLOR color_options = {
 		.lStructSize = sizeof(CHOOSECOLOR),
 		.hwndOwner = m_dialog,
@@ -401,7 +483,7 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 
 	bool color_choice_successful = ChooseColor(&color_options);
 	if (color_choice_successful) {
-		m_current_palette[palette_index] = {
+		m_current_palette->data[palette_index] = {
 			GetRValue(color_options.rgbResult),
 			GetGValue(color_options.rgbResult),
 			GetBValue(color_options.rgbResult),
