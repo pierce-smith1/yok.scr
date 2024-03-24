@@ -179,8 +179,6 @@ private:
 	std::vector<float> m_store;
 };
 
-using ConfigStore = std::map<std::wstring, std::wstring>;
-
 class Registry {
 public:
 	Registry();

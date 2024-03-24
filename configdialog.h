@@ -29,7 +29,6 @@ private:
 
 	HWND m_dialog;
 	Config m_current_config;
-	ConfigStore m_current_store;
 };
 
 class PaletteCustomizeDialog {
