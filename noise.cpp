@@ -63,13 +63,13 @@ std::array<PerlinNoise::Vector, 8> PerlinNoise::cell_corners(const Vector &v) {
 
 	return {
 		Vector(x, y, z),
-		Vector(x + 1.0f, y, z),
-		Vector(x, y + 1.0f, z),
-		Vector(x, y, z + 1.0f),
-		Vector(x + 1.0f, y + 1.0f, z),
-		Vector(x + 1.0f, y, z + 1.0f),
-		Vector(x, y + 1.0f, z + 1.0f),
-		Vector(x + 1.0f, y + 1.0f, z + 1.0f)
+		Vector(x + 1.0, y, z),
+		Vector(x, y + 1.0, z),
+		Vector(x, y, z + 1.0),
+		Vector(x + 1.0, y + 1.0, z),
+		Vector(x + 1.0, y, z + 1.0),
+		Vector(x, y + 1.0, z + 1.0),
+		Vector(x + 1.0, y + 1.0, z + 1.0)
 	};
 }
 
@@ -125,7 +125,7 @@ double PerlinNoise::interpolate(double a, double b, double w) {
 }
 
 double Noise::wiggle(double base, double min, double max, double step) {
-	bool up = random() < 0.5f;
+	bool up = random() < 0.5;
 
 	if (up) {
 		return base + random() * (max - base) * step;
@@ -137,7 +137,7 @@ double Noise::wiggle(double base, double min, double max, double step) {
 double Noise::random() {
 	static std::random_device device;
 	static std::mt19937 rng(device());
-	static std::uniform_real_distribution<> dist(0.0f, 1.0f);
+	static std::uniform_real_distribution<> dist(0.0, 1.0);
 
 	return dist(rng);
 }

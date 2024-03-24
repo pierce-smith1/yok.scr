@@ -9,7 +9,7 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
+	: m_texture(texture), m_home(home), m_relpos(0.0, 0.0), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
 {
 	if (has_trail) {
 		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
@@ -59,11 +59,11 @@ void Sprite::update(Context &ctx) {
 		}
 	};
 
-	double edge_boundary = 0.15f + m_size / 1.1f;
-	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0f);
-	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0f);
-	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0f - (edge_boundary / horizontal_correction), 1.0f + (edge_boundary / horizontal_correction));
-	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0f - (edge_boundary / vertical_correction), 1.0f + (edge_boundary / vertical_correction));
+	double edge_boundary = 0.15 + m_size / 1.1;
+	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
+	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
+	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
 }
 
 Point &Sprite::home() {
@@ -71,8 +71,8 @@ Point &Sprite::home() {
 }
 
 void Sprite::transform() {
-	glTranslated(final<X>(), final<Y>(), 0.0f);
-	glScaled(m_size, m_size, 1.0f);
+	glTranslated(final<X>(), final<Y>(), 0.0);
+	glScaled(m_size, m_size, 1.0);
 }
 
 void Sprite::update_trail() {
@@ -100,7 +100,7 @@ void Sprite::draw_trail(Context &ctx) {
 }
 
 Yonker::Yonker(const Texture *texture, const Point &home) 
-	: Sprite(texture, home), m_emotion_vector({ 0.0f, 0.0f, 0.0f }) { }
+	: Sprite(texture, home), m_emotion_vector({ 0.0, 0.0, 0.0 }) { }
 
 void Yonker::update(Context &ctx) {
 	m_emotion_vector = emotion_vector(ctx);
@@ -213,7 +213,7 @@ void TrailSprite::update(Context &ctx) { }
 void TrailSprite::draw_trail(Context &ctx) { }
 
 int TrailSprite::get_trail_length() {
-	if (cfg[Cfg::TrailsEnabled] != 1.0f) {
+	if (cfg[Cfg::TrailsEnabled] != 1.0) {
 		return 0;
 	}
 

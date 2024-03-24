@@ -191,7 +191,7 @@ std::set<RandomPalettes::GenerationTraits> RandomPalettes::random_traits() {
 	std::set<GenerationTraits> traits;
 
 	for (const auto &pair : trait_chances) {
-		if (rand() % 100 / 100.0f < pair.second) {
+		if (rand() % 100 / 100.0 < pair.second) {
 			traits.insert(pair.first);
 		}
 	}

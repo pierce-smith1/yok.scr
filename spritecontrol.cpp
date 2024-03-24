@@ -62,7 +62,7 @@ const PaletteData *SpriteGenerator::next_palette() const {
 	// You'd be kicked outta Vegas for logarithmic repeating.
 	while (true) {
 		for (auto palette : m_palettes) {
-			if (Noise::random() < 1.8f / cfg[Cfg::MaxColors]) {
+			if (Noise::random() < 1.8 / cfg[Cfg::MaxColors]) {
 				return palette;
 			}
 		}
@@ -116,7 +116,7 @@ PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
 	: m_pattern(Roamers), m_sprites(sprites), m_ctx(ctx) { }
 
 double PatternPlayer::hash(unsigned int n) {
-	return ((n * n * 562448657) % 4096) / 4096.0f;
+	return ((n * n * 562448657) % 4096) / 4096.0;
 }
 
 unsigned int PatternPlayer::m_hash_offset = 0;
@@ -161,7 +161,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, double offset) {
 		get<X>(sprite->home()) += offset < 0.5 ? ((1.0 - offset) / cfg[Cfg::TimeDivisor]) : 0.0;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0f: (offset / cfg[Cfg::TimeDivisor]);
+		get<Y>(sprite->home()) += offset < 0.5 ? 0.0: (offset / cfg[Cfg::TimeDivisor]);
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, double offset) {
 		static int NorthWest = 0b01;
@@ -184,7 +184,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 			get<X>(sprite->home()) = signbit(get<X>(sprite->home())) ? -1.0 : 1.0;
 		}
 
-		if (get<Y>(sprite->home()) > 1.0f || get<Y>(sprite->home()) < -1.0) {
+		if (get<Y>(sprite->home()) > 1.0 || get<Y>(sprite->home()) < -1.0) {
 			directions[sprite->id()] ^= South;
 			get<Y>(sprite->home()) = signbit(get<Y>(sprite->home())) ? -1.0 : 1.0;
 		}
@@ -204,7 +204,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 	}},
 	{ Rose, [](Sprite *sprite, Context *ctx, double offset) {
 		double t = ctx->t() - (offset * 0.03 * cfg[Cfg::SpriteCount]);
-		double r = 0.04f * cfg[Cfg::SpriteCount] * t;
+		double r = 0.04 * cfg[Cfg::SpriteCount] * t;
 
 		double target_x = sin(r) * cos(t) * 0.8;
 		double target_y = sin(r) * sin(t) * 0.8;

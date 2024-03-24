@@ -106,10 +106,10 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 
 	switch (option_type) {
 		case IDC_YONK_PATTERN:
-			m_current_config[Cfg::Pattern] = (float) reverse_lookup(pattern_strings, option_name);
+			m_current_config[Cfg::Pattern] = (double) reverse_lookup(pattern_strings, option_name);
 			break;
 		case IDC_YONK_PALETTE:
-			m_current_config[Cfg::Palette] = (float) reverse_lookup(palette_strings, option_name);
+			m_current_config[Cfg::Palette] = (double) reverse_lookup(palette_strings, option_name);
 			break;
 	}
 
@@ -118,7 +118,7 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 
 BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Definition &option) {
 	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
-	m_current_config[option] = checked ? 1.0f : 0.0f;
+	m_current_config[option] = checked ? 1.0 : 0.0;
 	refresh();
 	return FALSE;
 }
@@ -126,11 +126,11 @@ BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Def
 // Continuous sliders use integers only...
 // What Redmond designer responds to this folly?!
 long long ConfigDialog::encodef(double value) {
-	return cast<long long>(value * 8.0f);
+	return cast<long long>(value * 8.0);
 }
 
 double ConfigDialog::decodef(long long value) {
-	return value / 8.0f;
+	return value / 8.0;
 }
 
 void ConfigDialog::refresh() {
@@ -168,17 +168,17 @@ void ConfigDialog::refresh() {
 		(PaletteGroup) m_current_config[Cfg::Palette]).c_str()
 	);
 
-	bool is_pattern_fixed = m_current_config[Cfg::IsPatternFixed] == 1.0f;
+	bool is_pattern_fixed = m_current_config[Cfg::IsPatternFixed] == 1.0;
 	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
 	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
 	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);
 	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
 
-	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0f;
+	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0;
 	HWND play_over_desktop_check = GetDlgItem(m_dialog, IDC_PLAY_OVER_DESKTOP);
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
 
-	bool are_trails_enabled = m_current_config[Cfg::TrailsEnabled] == 1.0f;
+	bool are_trails_enabled = m_current_config[Cfg::TrailsEnabled] == 1.0;
 	HWND trail_length_slider = GetDlgItem(m_dialog, IDC_TRAIL_LENGTH);
 	HWND trail_space_slider = GetDlgItem(m_dialog, IDC_TRAIL_SPACE);
 	HWND trails_enabled_check = GetDlgItem(m_dialog, IDC_TRAILS_ENABLED);
