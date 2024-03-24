@@ -254,6 +254,10 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				(DLGPROC) ScreenSaverNewCustomPaletteDialog
 			);
 
+			if (name == nullptr) {
+				break;
+			}
+
 			m_current_palette = {
 				.data = *DefaultPalette.data,
 				.name = *name
@@ -386,8 +390,6 @@ void PaletteCustomizeDialog::update_current_palette() {
 		})->data,
 		.name = selected,
 	};
-
-	delete[] buffer;
 }
 
 void PaletteCustomizeDialog::save_current_palette() {
