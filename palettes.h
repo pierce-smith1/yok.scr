@@ -5,6 +5,9 @@
 #include <initializer_list>
 #include <vector>
 #include <variant>
+#include <string>
+#include <stdexcept>
+
 
 #include "common.h"
 #include "config.h"
@@ -811,6 +814,7 @@ public:
 			case PaletteGroup::Canon: return Canon;
 			case PaletteGroup::NonCanon: return NonCanon;
 			case PaletteGroup::All: return All;
+			default: throw std::domain_error("PaletteGroup " + std::to_string((int) group) + " is not valid.");
 		}
 	}
 };

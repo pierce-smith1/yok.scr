@@ -16,11 +16,11 @@ Config::Config()
 	}
 }
 
-float &Config::operator[](const Cfg::Definition &opt) {
+double &Config::operator[](const Cfg::Definition &opt) {
 	return m_store[opt.index];
 }
 
-float Config::operator[](const Cfg::Definition &opt) const {
+double Config::operator[](const Cfg::Definition &opt) const {
 	return m_store[opt.index];
 }
 
@@ -53,7 +53,7 @@ Config Registry::get_config() {
 	Config config;
 
 	const std::wstring is_registry_migrated_name = L"IsRegistryMigrated";
-	bool is_registry_migrated = registry.get(is_registry_migrated_name, 0.0f) != 0.0f;
+	bool is_registry_migrated = registry.get(is_registry_migrated_name, 0.0) != 0.0;
 
 	for (const auto &opt : Cfg::All) {
 		bool has_no_legacy = opt.legacy_id == 0;
@@ -67,7 +67,7 @@ Config Registry::get_config() {
 	}
 
 	if (!is_registry_migrated) {
-		registry.write(is_registry_migrated_name, 1.0f);
+		registry.write(is_registry_migrated_name, 1.0);
 	}
 
 	return config;
@@ -105,13 +105,16 @@ void Registry::write(const std::wstring &opt, float value) {
 }
 
 void Registry::write_string(const std::wstring &opt, const std::wstring &value) {
+	auto string_value = std::to_wstring(value);
+	auto data_size = cast<DWORD>((string_value.size() + 1) * 2);
+
 	RegSetValueEx(
 		m_reg_key,
 		opt.c_str(),
 		0,
 		REG_SZ,
-		(BYTE *) value.c_str(),
-		(value.size() + 1) * 2
+		(BYTE *) string_value.c_str(),
+		data_size
 	);
 }
 

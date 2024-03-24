@@ -7,7 +7,7 @@ Scene::Scene(HWND window)
 // It's of utmost importance the context comes first!
 // Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
-	  m_sprites(SpriteGenerator().make(cfg[Cfg::SpriteCount])),
+	  m_sprites(SpriteGenerator().make(cast<unsigned int>(cfg[Cfg::SpriteCount]))),
 	  m_choreographer((PatternName) cfg[Cfg::Pattern], &m_sprites, &m_ctx) { }
 
 void Scene::draw() {
@@ -56,10 +56,10 @@ void Scene::draw_background() {
 
 	glBegin(GL_QUADS);
 
-	glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, -1.0f);
-	glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, 1.0f);
-	glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f, 1.0f);
-	glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
+	glTexCoord2f(1.0, 0.0); glVertex2f(1.0, -1.0);
+	glTexCoord2f(1.0, 1.0); glVertex2f(1.0, 1.0);
+	glTexCoord2f(0.0, 1.0); glVertex2f(-1.0, 1.0);
+	glTexCoord2f(0.0, 0.0); glVertex2f(-1.0, -1.0);
 
 	glEnd();
 }

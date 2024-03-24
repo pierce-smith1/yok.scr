@@ -17,8 +17,8 @@ public:
 	BOOL combobox_changed(HWND combobox, int option);
 	
 private:
-	int encodef(float value);
-	float decodef(int value);
+	long long encodef(double value);
+	double decodef(long long value);
 	void refresh();
 	
 	template <typename K, typename V> K reverse_lookup(const std::map<K, V> &map, V value) {

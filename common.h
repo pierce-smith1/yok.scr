@@ -24,6 +24,7 @@ enum Channel {
 	ALPHA = 3
 };
 
+
 template <typename String> std::vector<String> split(const String &string, const String &delimiter) {
 	if (string.empty()) {
 		return {};
@@ -51,4 +52,8 @@ template <typename String, typename Container> String join(const Container &stri
 	}
 
 	return joined.substr(0, joined.size() - delimiter.size());
+}
+  
+template <typename To, typename From> To cast(From value) {
+	return static_cast<To>(value);
 }
