@@ -97,3 +97,6 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 	{ PaletteGroup::NonCanon, L"Non-Canon" },
 	{ PaletteGroup::RandomlyGenerated, L"I'm Feeling Lucky" },
 };
+
+LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
