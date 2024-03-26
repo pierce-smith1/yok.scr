@@ -3,6 +3,8 @@
 #include "config.h"
 #include "spritecontrol.h"
 
+#include <ColorDlg.h>
+
 Scene::Scene(HWND window)
 // It's of utmost importance the context comes first!
 // Else reality cursed, at the seams it will burst!!!

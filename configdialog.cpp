@@ -495,10 +495,10 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 		.hInstance = NULL,
 		.rgbResult = RGB(std::get<RED>(current_color), std::get<GREEN>(current_color), std::get<BLUE>(current_color)),
 		.lpCustColors = custom_colors,
-		.Flags = CC_FULLOPEN,
+		.Flags = CC_FULLOPEN | CC_ENABLETEMPLATE | CC_ENABLEHOOK,
 		.lCustData = 0,
-		.lpfnHook = NULL,
-		.lpTemplateName = NULL,
+		.lpfnHook = (LPCCHOOKPROC) CustomColorDialog,
+		.lpTemplateName = MAKEINTRESOURCE(DLG_CUSTOM_CHOOSECOLOR),
 	};
 
 	bool color_choice_successful = ChooseColor(&color_options);
@@ -600,6 +600,100 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 				}
 			}
 			break;
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	const static size_t max_hex_code_length = 7; // 6 digits + the pound sign (#)
+
+	static auto color_from_hex_string = [&](const std::wstring &hex_code) -> std::optional<Color> {
+		static const std::wstring valid_hex_digits = L"0123456789abcdefABCDEF";
+
+		bool starts_with_pound = hex_code[0] == L'#';
+		bool has_invalid_hex_digit = hex_code.find_first_not_of(valid_hex_digits) != std::wstring::npos;
+		bool has_invalid_hex_digit_after_first = hex_code.find_first_not_of(valid_hex_digits, 1) != std::wstring::npos;
+
+		bool is_valid_pound_code = (hex_code.size() == max_hex_code_length)
+			&& (starts_with_pound && !has_invalid_hex_digit_after_first);
+		bool is_valid_digits_code = (hex_code.size() == max_hex_code_length - 1)
+			&& (!starts_with_pound && !has_invalid_hex_digit);
+
+		if (!is_valid_pound_code && !is_valid_digits_code) {
+			return {};
+		}
+
+		if (is_valid_pound_code) {
+			auto red = std::stoi(hex_code.substr(1, 2), nullptr, 16);
+			auto green = std::stoi(hex_code.substr(3, 2), nullptr, 16);
+			auto blue = std::stoi(hex_code.substr(5, 2), nullptr, 16);
+
+			return { { red, green, blue, 255 } };
+		}
+
+		if (is_valid_digits_code) {
+			auto red = std::stoi(hex_code.substr(0, 2), nullptr, 16);
+			auto green = std::stoi(hex_code.substr(2, 2), nullptr, 16);
+			auto blue = std::stoi(hex_code.substr(4, 2), nullptr, 16);
+
+			return { { red, green, blue, 255 } };
+		}
+
+		return {};
+	};
+
+	static UINT set_rgb_message_code = RegisterWindowMessage(SETRGBSTRING);
+
+	switch (message) {
+		case WM_INITDIALOG: {
+			SendDlgItemMessage(
+				dialog,
+				IDC_COLORDLG_HEX_CODE,
+				EM_SETLIMITTEXT,
+				max_hex_code_length,
+				0
+			);
+			break;
+		}
+		case WM_NOTIFY: {
+			if (lparam != NULL) {
+				NMHDR notification = *((NMHDR *) lparam);
+				auto a = 0;
+			}
+			break;
+		}
+		case WM_COMMAND: {
+			switch (LOWORD(wparam)) {
+				case IDC_COLORDLG_HEX_CODE: {
+					switch (HIWORD(wparam)) {
+						case EN_CHANGE: {
+							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
+							wchar_t hex_code_buffer[max_hex_code_length + 1] { L'\0' };
+							Edit_GetText(
+								hex_input,
+								hex_code_buffer,
+								max_hex_code_length + 1
+							);
+							hex_code_buffer[max_hex_code_length] = L'\0';
+							std::wstring hex_code = hex_code_buffer;
+
+							auto color = color_from_hex_string(hex_code);
+							if (!color) {
+								return FALSE;
+							}
+
+							SendMessage(
+								dialog,
+								set_rgb_message_code,
+								0,
+								(LPARAM) RGB(std::get<RED>(*color), std::get<GREEN>(*color), std::get<BLUE>(*color))
+							);
+						}
+					}
+				}
+			}
 		}
 	}
 

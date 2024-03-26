@@ -28,6 +28,7 @@ public:
 	PaletteData(const std::array<Color, _PALETTE_SIZE> &colors);
 	PaletteData(const std::initializer_list<Color> &i_list);
 	PaletteData(const std::array<std::string, _PALETTE_SIZE - 1> &hex_strings);
+
 };
 
 enum class PaletteGroup {
