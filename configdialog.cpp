@@ -510,6 +510,8 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 			255
 		};
 
+		// fuck it
+		save_current_palette();
 		refresh();
 	}
 }
