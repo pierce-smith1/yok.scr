@@ -15,4 +15,4 @@
 
 #include <string>
 
-const static std::wstring YOKSCR_VERSION = L"1.1.1";
+const static std::wstring YOKSCR_VERSION = L"1.2.0";
