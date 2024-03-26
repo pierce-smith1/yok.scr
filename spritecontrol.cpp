@@ -15,24 +15,31 @@ SpriteGenerator::SpriteGenerator() {
 
 	PaletteGroup palette_group = (PaletteGroup) (cfg[Cfg::Palette]);
 
-	std::vector<const PaletteData *> bag_of_palettes;
-	if (palette_group == PaletteGroup::RandomlyGenerated) {
+	std::vector<Palettes::Definition> bag_of_palettes;
+	if (cfg[Cfg::UseCustomPalettes] == 1.0f) {
+		bag_of_palettes = PaletteRepository().get_all_custom_palettes();
+	} else if (palette_group == PaletteGroup::RandomlyGenerated) {
 		for (int i = cast<int>(Cfg::MaxColors.range.first); i < Cfg::MaxColors.range.second; i++) {
 			bag_of_palettes.push_back(RandomPalettes::random(i));
 		}
 	} else {
 		auto group = PaletteGroups::get(palette_group);
-		for (const auto &palette : group.members) {
-			bag_of_palettes.push_back(palette.data);
-		}
+		bag_of_palettes = group.members;
 	}
 
+	if (bag_of_palettes.empty()) {
+		bag_of_palettes = PaletteGroups::All.members;
+	}
+
+	int min_colors = bag_of_palettes.size() < Cfg::MaxColors.range.first
+		? cast<int>(bag_of_palettes.size())
+		: cast<int>(Cfg::MaxColors.range.first);
 	int max_colors = (int) round(cfg[Cfg::MaxColors] * bag_of_palettes.size() / Cfg::MaxColors.range.second);
-	max_colors = std::clamp(max_colors, (int) Cfg::MaxColors.range.first, (int) bag_of_palettes.size());
+	max_colors = std::clamp(max_colors, min_colors, (int) bag_of_palettes.size());
 
 	for (int i = 0; i < max_colors; i++) {
 		size_t random_palette_index = std::rand() % bag_of_palettes.size();
-		m_palettes.push_back(bag_of_palettes[random_palette_index]);
+		m_palettes.push_back(bag_of_palettes[random_palette_index].data);
 		bag_of_palettes.erase(bag_of_palettes.begin() + random_palette_index);
 	}
 }

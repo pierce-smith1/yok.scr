@@ -6,8 +6,9 @@
 #include <string>
 #include <optional>
 #include <vector>
-#include "resourcew.h"
 #include <set>
+
+#include "resourcew.h"
 
 struct Cfg {
 	struct Definition {
@@ -141,6 +142,13 @@ struct Cfg {
 		.dialog_control_id = IDC_PLAY_OVER_DESKTOP,
 	};
 
+	inline const static Definition UseCustomPalettes = {
+		.index = __COUNTER__,
+		.name = L"UseCustomPalettes",
+		.default_ = 0.0f,
+		.dialog_control_id = IDC_CUSTOM_PALETTES_CHECK,
+	};
+
 	inline const static Definition TrailLength = {
 		.index = __COUNTER__,
 		.name = L"TrailLength",
@@ -186,6 +194,7 @@ struct Cfg {
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
+		UseCustomPalettes,
 		TrailLength,
 		TrailSpace,
 		MaxTrailCount,
@@ -207,14 +216,46 @@ private:
 class Registry {
 public:
 	Registry();
+	~Registry();
 
-	Config get_config();
+	Registry(const Registry &other) = delete;
+	Registry &operator=(const Registry &other) = delete;
+
+	static Config get_config();
+
 	double get(const std::wstring &opt, double default_);
+	std::wstring get_string(const std::wstring &opt, const std::wstring &default_);
+
 	void write(const std::wstring &opt, double value);
+	void write_string(const std::wstring &opt, const std::wstring &value);
+
 	void remove(const std::wstring &opt);
 
 private:
 	HKEY m_reg_key;
 };
 
-const static Config cfg = Registry().get_config();
+class RegistryBackedMap {
+public:
+	using Item = std::pair<std::wstring, std::wstring>;
+
+	RegistryBackedMap(const std::wstring &prefix);
+
+	std::wstring get(const std::wstring &key, const std::wstring &default_);
+	void set(const std::wstring &key, const std::wstring &value);
+	void remove(const std::wstring &key);
+	std::vector<Item> items();
+
+	std::wstring prefix_key(const std::wstring &key);
+
+private:
+	const static inline std::wstring IndexDelimiter = L",";
+
+	std::wstring m_prefix;
+	std::wstring m_index_key;
+
+	void ensure_in_index(Registry &registry, const std::wstring &key);
+	void remove_from_index(Registry &registry, const std::wstring &key);
+};
+
+const static Config cfg = Registry::get_config();

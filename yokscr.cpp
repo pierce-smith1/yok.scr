@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windowsx.h>
+
 #include "yokscr.h"
 #include "scene.h"
 #include "noise.h"
@@ -34,29 +36,6 @@ LRESULT WINAPI ScreenSaverProc(HWND window, UINT message, WPARAM wparam, LPARAM 
 	}
 
 	return DefScreenSaverProc(window, message, wparam, lparam);
-}
-
-BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
-	static ConfigDialog *cfg_dialog;
-
-	switch (message) {
-		case WM_INITDIALOG: {
-			cfg_dialog = new ConfigDialog(dialog);
-			return TRUE;
-		} 
-		case WM_COMMAND: {
-			return cfg_dialog->command(wparam, lparam);
-		}
-		case WM_HSCROLL: {
-			HWND handle = (HWND) lparam;
-
-			if (handle != NULL) {
-				return cfg_dialog->slider_changed(wparam, handle);
-			}
-		}
-	}
-
-	return FALSE;
 }
 
 BOOL WINAPI RegisterDialogClasses(HANDLE instance) {

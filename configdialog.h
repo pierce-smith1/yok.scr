@@ -27,9 +27,56 @@ private:
 		})->first;
 	}
 
-	Registry m_registry;
 	HWND m_dialog;
 	Config m_current_config;
+};
+
+class PaletteCustomizeDialog {
+public:
+	PaletteCustomizeDialog(HWND dialog);
+
+	BOOL command(WPARAM wparam, LPARAM lparam);
+	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
+
+	const static inline size_t MinPaletteNameSize = 2;
+	const static inline size_t MaxPaletteNameSize = 64;
+	const static inline Palettes::Definition DefaultPalette = Palettes::Friend;
+	const static inline Palettes::Definition DisabledPalette = {
+		.name = L"disabled",
+		.data = new PaletteData {{
+			"#aaaaaa",
+			"#aaaaaa",
+			"#aaaaaa",
+			"#aaaaaa",
+			"#aaaaaa",
+			"#aaaaaa",
+			"#aaaaaa",
+		}},
+	};
+
+private:
+	void refresh();
+	void refresh_palette_list();
+
+	void update_current_palette();
+	void save_current_palette();
+	void delete_current_palette();
+
+	void apply_palette_to_preview(const PaletteData &palette);
+	int palette_index_for_control(int color_button_control_id);
+	void get_and_save_color(int palette_index);
+
+	struct CurrentPalette {
+		PaletteData data;
+		std::wstring name;
+	};
+
+	std::optional<CurrentPalette> m_current_palette;
+
+	HWND m_dialog;
+	HANDLE m_preview_bitmap;
+	PaletteRepository m_palette_repo;
+	PaletteGroupRepository m_group_repo;
 };
 
 const static std::map<PatternName, std::wstring> pattern_strings = {
@@ -49,3 +96,7 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 	{ PaletteGroup::NonCanon, L"Non-Canon" },
 	{ PaletteGroup::RandomlyGenerated, L"I'm Feeling Lucky" },
 };
+
+LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);

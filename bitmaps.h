@@ -33,6 +33,7 @@ struct Bitmaps {
 		BitmapData *data;
 	};
 
+	static HANDLE load_raw_resource(int resource_id);
 	static BitmapData *load(int resource_id);
 
 	inline const static Definition Cvjoy = {

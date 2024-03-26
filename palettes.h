@@ -4,10 +4,13 @@
 #include <set>
 #include <initializer_list>
 #include <vector>
+#include <variant>
 #include <string>
 #include <stdexcept>
 
+
 #include "common.h"
+#include "config.h"
 
 enum PaletteIndex {
 	PI_TRANSPARENT = 0,      
@@ -32,30 +35,8 @@ enum class PaletteGroup {
 	Canon,
 	NonCanon,
 	RandomlyGenerated,
+	Custom,
 	_PALETTE_OPTION_COUNT
-};
-
-class RandomPalettes {
-public:
-	static const PaletteData *random(int rng_token);
-
-private:
-	enum class GenerationTraits {
-		ColorfulHorns,
-		SwapHornsAndScales,
-		BlackEyes,
-		PastelScales,
-		CrystalBody,
-	};
-
-	static PaletteData *new_random_palette();
-	static Color random_color();
-	static Color random_gray();
-	static Color darken_color(const Color &color);
-	static Color lighten_color(const Color &color);
-	static Color noisify(const Color &color, double degree = 1.0);
-	static Color recolorize(const Color &color, double red_weight, double green_weight, double blue_weight);
-	static std::set<GenerationTraits> random_traits();
 };
 
 struct Palettes {
@@ -776,6 +757,29 @@ struct Palettes {
 	};
 };
 
+class RandomPalettes {
+public:
+	static Palettes::Definition random(int rng_token);
+
+private:
+	enum class GenerationTraits {
+		ColorfulHorns,
+		SwapHornsAndScales,
+		BlackEyes,
+		PastelScales,
+		CrystalBody,
+	};
+
+	static PaletteData *new_random_palette();
+	static Color random_color();
+	static Color random_gray();
+	static Color darken_color(const Color &color);
+	static Color lighten_color(const Color &color);
+	static Color noisify(const Color &color, double degree = 1.0);
+	static Color recolorize(const Color &color, double red_weight, double green_weight, double blue_weight);
+	static std::set<GenerationTraits> random_traits();
+};
+
 struct PaletteGroups {
 private:
 	static std::vector<Palettes::Definition> palettes_of_group(PaletteGroup group);
@@ -814,3 +818,51 @@ public:
 		}
 	}
 };
+
+// This is 100% registry-backed storage. Do not access it in hot paths.
+class PaletteRepository {
+public:
+	PaletteRepository();
+
+	void set_palette(const std::wstring &name, const PaletteData &data);
+	void remove_palette(const std::wstring &name);
+	std::optional<Palettes::Definition> get_palette(const std::wstring &name);
+	std::vector<Palettes::Definition> get_all_custom_palettes();
+
+private:
+	std::wstring serialize(const PaletteData &palette);
+	PaletteData deserialize(const std::wstring &serialized);
+
+	RegistryBackedMap m_map;
+};
+
+class PaletteGroupRepository {
+public:
+	PaletteGroupRepository();
+
+	class Group {
+	public:
+		Group(const std::wstring &key, const RegistryBackedMap &repo_map);
+
+		void add_palette(const std::wstring &name);
+		void remove_palette(const std::wstring &name);
+		std::vector<std::wstring> get_all_palettes();
+
+		std::wstring name();
+		
+	private:
+		const static inline std::wstring ListDelimiter = L",";
+
+		std::wstring m_key;
+		RegistryBackedMap m_repo_map;
+	};
+
+	Group get_group(const std::wstring &name);
+	std::optional<size_t> get_group_index(const std::wstring &group_name);
+	void remove_group(const std::wstring &name);
+	std::vector<Group> get_all_groups();
+
+private:
+	RegistryBackedMap m_map;
+};
+
