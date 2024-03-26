@@ -9,8 +9,7 @@
 #include "resourcew.h"
 
 ConfigDialog::ConfigDialog(HWND dialog)
-	: m_dialog(dialog), m_current_config(Registry::get_config())
-{ 
+	: m_dialog(dialog), m_current_config(Registry::get_config()) {
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 	for (const auto &entry : pattern_strings) {
 		// They saw in the API great awkwardness...
@@ -21,7 +20,7 @@ ConfigDialog::ConfigDialog(HWND dialog)
 	}
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
-	for (const auto& entry : palette_strings) {
+	for (const auto &entry : palette_strings) {
 		ComboBox_AddString(palette_box, entry.second.c_str());
 	}
 
@@ -88,9 +87,9 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 		case IDC_CUSTOM_PALETTES_CHECK: {
 			if (HIWORD(wparam) == BN_CLICKED) {
 				return checkbox_checked(wparam, (HWND) lparam, Cfg::UseCustomPalettes);
-      }
-      break;
-    }
+			}
+			break;
+		}
 		case IDC_TRAILS_ENABLED: {
 			if (HIWORD(wparam) == BN_CLICKED) {
 				return checkbox_checked(wparam, (HWND) lparam, Cfg::TrailsEnabled);
@@ -162,14 +161,12 @@ void ConfigDialog::refresh() {
 	}
 
 	// these should probably be put somewhere else at some point
-	if (m_current_config[Cfg::Pattern] < 0 
-	 || m_current_config[Cfg::Pattern] >= (int) _PATTERN_COUNT) 
-	{
+	if (m_current_config[Cfg::Pattern] < 0
+	 || m_current_config[Cfg::Pattern] >= (int) _PATTERN_COUNT) {
 		m_current_config[Cfg::Pattern] = 0;
 	}
-	if (m_current_config[Cfg::Palette] < 0 
-	 || m_current_config[Cfg::Palette] >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) 
-	{
+	if (m_current_config[Cfg::Palette] < 0
+	 || m_current_config[Cfg::Palette] >= (int) PaletteGroup::_PALETTE_OPTION_COUNT) {
 		m_current_config[Cfg::Palette] = 0;
 	}
 
@@ -200,7 +197,7 @@ void ConfigDialog::refresh() {
 	Button_SetCheck(trails_enabled_check, are_trails_enabled);
 	EnableWindow(trail_length_slider, are_trails_enabled);
 	EnableWindow(trail_space_slider, are_trails_enabled);
-  
+
 	bool using_custom_palettes = m_current_config[Cfg::UseCustomPalettes] == 1.0;
 	HWND palette_selector = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	HWND palette_customize_button = GetDlgItem(m_dialog, IDC_PALETTE_CUSTOMIZE);
@@ -211,13 +208,12 @@ void ConfigDialog::refresh() {
 }
 
 PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
-	: m_dialog(dialog), 
-	  // BITMAP11 is lksix - we use this one because it shows
-	  // off every color in the palette.
-	  m_preview_bitmap(Bitmaps::load_raw_resource(IDB_BITMAP11)),
-	  // The "Friend" palette makes a good, netural-toned default.
-	  m_current_palette(*Palettes::Friend.data)
-{
+	: m_dialog(dialog),
+	// BITMAP11 is lksix - we use this one because it shows
+	// off every color in the palette.
+	m_preview_bitmap(Bitmaps::load_raw_resource(IDB_BITMAP11)),
+	// The "Friend" palette makes a good, netural-toned default.
+	m_current_palette(*Palettes::Friend.data) {
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
 	if (!all_palettes.empty()) {
 		m_current_palette = {
@@ -264,6 +260,7 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			break;
 		}
+		case IDC_PALDLG_DUPE_PALETTE:
 		case IDC_PALDLG_NEW_PALETTE: {
 			std::wstring *name = (std::wstring *) DialogBox(
 				NULL,
@@ -276,8 +273,12 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				break;
 			}
 
+			auto new_data = LOWORD(wparam) == IDC_PALDLG_DUPE_PALETTE
+				? m_current_palette->data
+				: *DefaultPalette.data;
+
 			m_current_palette = {
-				.data = *DefaultPalette.data,
+				.data = new_data,
 				.name = *name
 			};
 
@@ -303,12 +304,12 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 	int button_id = GetDlgCtrlID(button);
 
 	if ((button_id != IDC_PALDLG_SCALE_COLOR
-	 && button_id != IDC_PALDLG_SCALE_HIGHLIGHT_COLOR
-	 && button_id != IDC_PALDLG_SCALE_SHADOW_COLOR
-	 && button_id != IDC_PALDLG_HORN_COLOR
-	 && button_id != IDC_PALDLG_HORN_SHADOW_COLOR
-	 && button_id != IDC_PALDLG_EYE_COLOR
-	 && button_id != IDC_PALDLG_WHITES_COLOR)
+		&& button_id != IDC_PALDLG_SCALE_HIGHLIGHT_COLOR
+		&& button_id != IDC_PALDLG_SCALE_SHADOW_COLOR
+		&& button_id != IDC_PALDLG_HORN_COLOR
+		&& button_id != IDC_PALDLG_HORN_SHADOW_COLOR
+		&& button_id != IDC_PALDLG_EYE_COLOR
+		&& button_id != IDC_PALDLG_WHITES_COLOR)
 	 || !m_current_palette
 	) {
 		return FALSE;
@@ -339,6 +340,7 @@ void PaletteCustomizeDialog::refresh() {
 		GetDlgItem(m_dialog, IDC_PALDLG_HORN_SHADOW_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_EYE_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_WHITES_COLOR),
+		GetDlgItem(m_dialog, IDC_PALDLG_DUPE_PALETTE),
 	};
 
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
@@ -385,10 +387,10 @@ void PaletteCustomizeDialog::update_current_palette() {
 
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
 	size_t palette_index = SendDlgItemMessage(
-		m_dialog, 
-		IDC_PALDLG_PALETTE_LIST, 
-		LB_GETCURSEL, 
-		0, 
+		m_dialog,
+		IDC_PALDLG_PALETTE_LIST,
+		LB_GETCURSEL,
+		0,
 		0
 	);
 
@@ -436,7 +438,7 @@ void PaletteCustomizeDialog::delete_current_palette() {
 
 void PaletteCustomizeDialog::apply_palette_to_preview(const PaletteData &palette) {
 	HDC memory_context = CreateCompatibleDC(GetDC(m_dialog));
-	
+
 	SelectBitmap(memory_context, m_preview_bitmap);
 	RGBQUAD colors[_PALETTE_SIZE];
 
@@ -523,7 +525,7 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 		case WM_INITDIALOG: {
 			cfg_dialog = new ConfigDialog(dialog);
 			return TRUE;
-		} 
+		}
 		case WM_COMMAND: {
 			return cfg_dialog->command(wparam, lparam);
 		}
