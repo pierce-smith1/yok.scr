@@ -209,11 +209,11 @@ void ConfigDialog::refresh() {
 
 PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
 	: m_dialog(dialog),
-	// BITMAP11 is lksix - we use this one because it shows
-	// off every color in the palette.
-	m_preview_bitmap(Bitmaps::load_raw_resource(IDB_BITMAP11)),
+	// We use lksix because it shows off every color in the palette.
+	m_preview_bitmap(Bitmaps::load_raw_resource(Bitmaps::Lksix.resource_id)),
 	// The "Friend" palette makes a good, netural-toned default.
-	m_current_palette(*Palettes::Friend.data) {
+	m_current_palette(*Palettes::Friend.data) 
+{
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
 	if (!all_palettes.empty()) {
 		m_current_palette = {
@@ -282,10 +282,36 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				.name = *name
 			};
 
-			save_current_palette();
+			save_current_palette_as_new();
 			refresh_palette_list();
 
 			delete name;
+
+			break;
+		}
+		case IDC_PALDLG_INSERT_PREDEFINED: {
+			std::wstring *predefined_palette_name = (std::wstring *) DialogBox(
+				NULL,
+				MAKEINTRESOURCE(DLG_INSERT_PREDEFINED),
+				m_dialog,
+				(DLGPROC) AddPredefinedPaletteDialog
+			);
+
+			if (predefined_palette_name == nullptr) {
+				return FALSE;
+			}
+
+			auto palette = *std::find_if(Palettes::All.begin(), Palettes::All.end(), [&](const Palettes::Definition &palette) {
+				return *predefined_palette_name == palette.name;
+			});
+
+			m_current_palette = {
+				.data = *palette.data,
+				.name = palette.name
+			};
+
+			save_current_palette_as_new();
+			refresh_palette_list();
 
 			break;
 		}
@@ -349,18 +375,10 @@ void PaletteCustomizeDialog::refresh() {
 	}
 
 	if (m_current_palette) {
-		apply_palette_to_preview(m_current_palette->data);
+		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, m_current_palette->data);
 	} else {
-		apply_palette_to_preview(*DisabledPalette.data);
+		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, *DisabledPalette.data);
 	}
-
-	SendDlgItemMessage(
-		m_dialog,
-		IDC_PALDLG_PREVIEW,
-		STM_SETIMAGE,
-		IMAGE_BITMAP,
-		(LPARAM) m_preview_bitmap
-	);
 
 	// Force the color buttons to re-paint, they won't on their own
 	InvalidateRect(m_dialog, NULL, TRUE);
@@ -418,6 +436,40 @@ void PaletteCustomizeDialog::save_current_palette() {
 	}
 }
 
+void PaletteCustomizeDialog::save_current_palette_as_new() {
+	static auto get_copy_name = [](const std::wstring &name, int i) -> std::wstring {
+		return std::format(L"{} {}", name, i);
+	};
+
+	if (m_current_palette) {
+		// If we try to save a palette whose name is already taken, we want to
+		// instead save it with the name "palette 2", then "palette 3", and so on.
+		// (like Windows's own "Copy Of Copy Of New Folder (2) (3)", but fewer words)
+		// This "is_nth_copy" variable gets set to 1 if it is the first copy and needs
+		// no name change, and anything > 1 if it is a copy and does need a name change.
+		int is_nth_copy = [&]() -> int {
+			if (!m_palette_repo.get_palette(m_current_palette->name)) {
+				return 1;
+			}
+
+			for (int i = 2; true; i++) {
+				std::wstring copy_name = get_copy_name(m_current_palette->name, i);
+				if (!m_palette_repo.get_palette(copy_name)) {
+					return i;
+				}
+			}
+		}();
+
+		if (is_nth_copy == 1) {
+			m_palette_repo.set_palette(m_current_palette->name, m_current_palette->data);
+		} else {
+			auto copy_name = get_copy_name(m_current_palette->name, is_nth_copy);
+			m_palette_repo.set_palette(copy_name, m_current_palette->data);
+			m_current_palette->name = copy_name;
+		}
+	}
+}
+
 void PaletteCustomizeDialog::delete_current_palette() {
 	if (!m_current_palette) {
 		return;
@@ -436,10 +488,10 @@ void PaletteCustomizeDialog::delete_current_palette() {
 	}
 }
 
-void PaletteCustomizeDialog::apply_palette_to_preview(const PaletteData &palette) {
-	HDC memory_context = CreateCompatibleDC(GetDC(m_dialog));
+void PaletteCustomizeDialog::apply_palette_to_preview(HWND dialog, HANDLE preview_bitmap, int preview_control_id, const PaletteData &palette) {
+	HDC memory_context = CreateCompatibleDC(GetDC(dialog));
 
-	SelectBitmap(memory_context, m_preview_bitmap);
+	SelectBitmap(memory_context, preview_bitmap);
 	RGBQUAD colors[_PALETTE_SIZE];
 
 	// I REALLY don't want to go down a rabbit hole of figuring out how to make this bitmap
@@ -468,6 +520,14 @@ void PaletteCustomizeDialog::apply_palette_to_preview(const PaletteData &palette
 	);
 
 	DeleteDC(memory_context);
+
+	SendDlgItemMessage(
+		dialog,
+		preview_control_id,
+		STM_SETIMAGE,
+		IMAGE_BITMAP,
+		(LPARAM) preview_bitmap
+	);
 }
 
 int PaletteCustomizeDialog::palette_index_for_control(int color_button_control_id) {
@@ -565,10 +625,8 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 		} case WM_COMMAND: {
 			HWND name_input = GetDlgItem(dialog, IDC_PALDLG_NEW_PALETTE_NAME);
 
-			std::wstring name = string_from_buffer<
-				wchar_t, 
-				PaletteCustomizeDialog::MaxPaletteNameSize
-			>([&](wchar_t *buffer, size_t size) {
+			const static size_t max_size = PaletteCustomizeDialog::MaxPaletteNameSize;
+			std::wstring name = string_from_buffer<wchar_t, max_size>([&](wchar_t *buffer, size_t size) {
 				Edit_GetText(
 					name_input,
 					buffer,
@@ -590,7 +648,7 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 							// Various special characters might break the registry parsing if they are saved.
 							// The only catastrophe I can directly forsee is commas, but may as well just only allow
 							// alphanumerics and a few special characters to be extra safe.
-							static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:";
+							const static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:";
 
 							bool name_too_short = name.size() < PaletteCustomizeDialog::MinPaletteNameSize;
 							bool name_has_invalid_chars = name.find_first_not_of(valid_chars) != std::wstring::npos;
@@ -705,27 +763,84 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 	return FALSE;
 }
 
-LRESULT CALLBACK AddPredefinedDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	const static HANDLE preview_bitmap = Bitmaps::load_raw_resource(Bitmaps::Lk.resource_id);
+
+	static auto current_palette = Palettes::Aemil;
+
 	auto get_palette_control = [&]() -> HWND {
 		return GetDlgItem(dialog, IDC_PALDLG_CHOOSE_PREDEFINED);
+	};
+
+	auto update_preview = [&]() {
+		PaletteCustomizeDialog::apply_palette_to_preview(
+			dialog,
+			preview_bitmap,
+			IDC_PALDLG_PREDEFINED_PREVIEW,
+			*current_palette.data
+		);
 	};
 
 	switch (message) {
 		case WM_INITDIALOG: {
 			auto palette_combobox = get_palette_control();
+
 			for (const Palettes::Definition &palette : Palettes::All) {
 				ComboBox_AddString(palette_combobox, palette.name.c_str());
 			}
+
+			ComboBox_SelectString(palette_combobox, -1, current_palette.name.c_str());
+			update_preview();
+
 			break;
 		}
 		case WM_COMMAND: {
 			switch (LOWORD(wparam)) {
 				case IDOK: {
 					auto palette_combobox = get_palette_control();
-					auto selection_index = ComboBox_GetCurSel(palette_combobox);
+
+					std::wstring palette_name = string_from_buffer<wchar_t>([&](wchar_t *buffer, size_t size) {
+						ComboBox_GetText(
+							palette_combobox,
+							buffer,
+							size
+						);
+					});
+
+					auto *returned_name = new std::wstring(palette_name);
+					EndDialog(dialog, (INT_PTR) returned_name);
+					return TRUE;
 				}
-				break;
+				case IDCANCEL: {
+					EndDialog(dialog, (INT_PTR) nullptr);
+					return TRUE;
+				}
+				case IDC_PALDLG_CHOOSE_PREDEFINED: {
+					switch (HIWORD(wparam)) {
+						case CBN_SELCHANGE: {
+							auto palette_combobox = get_palette_control();
+
+							std::wstring palette_name = string_from_buffer<wchar_t>([&](wchar_t *buffer, size_t size) {
+								ComboBox_GetText(
+									palette_combobox,
+									buffer,
+									size
+								);
+							});
+
+							current_palette = *std::find_if(Palettes::All.begin(), Palettes::All.end(), [&](const Palettes::Definition &palette) {
+								return palette.name == palette_name;
+							});
+
+							update_preview();
+
+							break;
+						}
+					}
+					break;
+				}
 			}
+			break;
 		}
 	}
 
