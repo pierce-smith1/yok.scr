@@ -81,6 +81,7 @@
 #define IDC_PALDLG_PALETTE_LIST         1025
 #define IDC_PALETTE_CUSTOMIZE           1031
 #define IDC_PALDLG_NEW_PALETTE          1036
+#define IDC_PALDLG_IMPORT_EXPORT_PALETTES 1037
 #define IDC_PALDLG_DELETE_PALETTE       1040
 #define IDC_PALDLG_SCALE_SHADOW_COLOR   1045
 #define IDC_PALDLG_SCALE_COLOR          1046
@@ -97,12 +98,13 @@
 #define IDC_BUTTON1                     1057
 #define IDC_PALDLG_DUPE_PALETTE         1057
 #define DLG_SCREENSAVERCONFIGURE        2003
+#define DLG_IMPORT_EXPORT_PALETTES      2004
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_RESOURCE_VALUE        168
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1058
 #define _APS_NEXT_SYMED_VALUE           101

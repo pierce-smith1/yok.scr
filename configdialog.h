@@ -38,6 +38,9 @@ public:
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
 
+	std::wstring export_palettes();
+	void import_palettes();
+
 	const static inline size_t MinPaletteNameSize = 2;
 	const static inline size_t MaxPaletteNameSize = 64;
 	const static inline Palettes::Definition DefaultPalette = Palettes::Friend;
@@ -100,3 +103,4 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);

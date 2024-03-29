@@ -294,6 +294,20 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			refresh_palette_list();
 			break;
 		}
+		case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
+			std::wstring *palettes = (std::wstring *) DialogBoxParam(
+				NULL,
+				MAKEINTRESOURCE(DLG_IMPORT_EXPORT_PALETTES),
+				m_dialog,
+				(DLGPROC) ScreenSaverImportExportPalettesDialog,
+				(LPARAM) (export_palettes().c_str())
+			);
+
+			if (palettes == nullptr) {
+				break;
+			}
+			break;
+		}
 	}
 
 	return FALSE;
@@ -518,6 +532,23 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 	}
 }
 
+std::wstring PaletteCustomizeDialog::export_palettes() {
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	std::wstring palettes_string = L"";
+
+	for (const auto &palette : all_palettes) {
+		auto name = palette.name;
+		auto *data = palette.data;
+
+		palettes_string.append(palette.name + L": ");
+		palettes_string.append(m_palette_repo.serialize(*data));
+		palettes_string.append(L"\r\n");
+	}
+	palettes_string.append(L"~");
+
+	return palettes_string;
+}
+
 BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
 	static ConfigDialog *cfg_dialog;
 
@@ -698,6 +729,60 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 					}
 				}
 			}
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	HWND palettes_input = GetDlgItem(dialog, IDC_PALDLG_IMPORT_EXPORT_PALETTES);
+	switch (message) {
+		case WM_INITDIALOG: {
+			Edit_SetText(
+				palettes_input,
+				(wchar_t *) lparam
+			);
+			return TRUE;
+		} case WM_COMMAND: {
+
+			wchar_t palettes_buffer[1 << 16] { L'\0' };
+			Edit_GetText(
+				palettes_input,
+				palettes_buffer,
+				1 << 16
+			);
+			palettes_buffer[(1 << 16) - 1] = L'\0';
+
+			switch (LOWORD(wparam)) {
+				case IDOK: {
+					auto *palettes = new std::wstring(palettes_buffer);
+					EndDialog(dialog, (INT_PTR) palettes);
+					return TRUE;
+				} case IDCANCEL: {
+					EndDialog(dialog, 0);
+					return TRUE;
+				} case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
+					switch (HIWORD(wparam)) {
+						case EN_CHANGE: {
+							// Various special characters might break the registry parsing if they are saved.
+							// The only catastrophe I can directly forsee is commas, but may as well just only allow
+							// alphanumerics and a few special characters to be extra safe.
+							static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:#;~\r\n";
+							std::wstring palettes = palettes_buffer;
+
+							bool palettes_too_short = palettes.size() < PaletteCustomizeDialog::MinPaletteNameSize + 57;
+							bool palettes_has_invalid_chars = palettes.find_first_not_of(valid_chars) != std::wstring::npos;
+
+							HWND ok_button = GetDlgItem(dialog, IDOK);
+							EnableWindow(ok_button, !palettes_too_short && !palettes_has_invalid_chars);
+							break;
+						}
+					}
+					break;
+				}
+			}
+			break;
 		}
 	}
 
