@@ -271,19 +271,19 @@ PaletteData PaletteRepository::deserialize(const std::wstring &serialized) {
 
 	std::array<std::string, _PALETTE_SIZE - 1> raw_color_strings;
 	std::transform(colors.begin(), colors.end(), raw_color_strings.begin(), [](const std::wstring &color_string) {
-		const size_t buffer_size = 1 << 6;
-		char ansi_string[buffer_size];
-		WideCharToMultiByte(
-			CP_UTF8,
-			0,
-			color_string.c_str(),
-			-1,
-			ansi_string,
-			buffer_size,
-			NULL,
-			NULL
-		);
-		return std::string(ansi_string);
+		std::string ansi_string = string_from_buffer<char>([&](char *buffer, size_t size) {
+			WideCharToMultiByte(
+				CP_UTF8,
+				0,
+				color_string.c_str(),
+				-1,
+				buffer,
+				size,
+				NULL,
+				NULL
+			);
+		});
+		return ansi_string;
 	});
 
 	PaletteData palette_data = raw_color_strings;

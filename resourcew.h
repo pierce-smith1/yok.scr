@@ -94,17 +94,20 @@
 #define IDC_PALDLG_NEW_PALETTE_NAME     1055
 #define IDC_EDIT1                       1056
 #define IDC_COLORDLG_HEX_CODE           1056
-#define IDC_BUTTON1                     1057
 #define IDC_PALDLG_DUPE_PALETTE         1057
+#define IDC_PALDLG_INSERT_PREFAB        1060
+#define IDC_COMBO1                      1061
+#define IDC_PALDLG_CHOOSE_PREDEFINED    1061
 #define DLG_SCREENSAVERCONFIGURE        2003
+#define DLG_INSERT_PREFAB               2004
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_RESOURCE_VALUE        168
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1058
+#define _APS_NEXT_CONTROL_VALUE         1062
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

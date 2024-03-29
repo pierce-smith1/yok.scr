@@ -394,15 +394,15 @@ void PaletteCustomizeDialog::update_current_palette() {
 		0
 	);
 
-	wchar_t buffer[MaxPaletteNameSize] { L'\0' };
-	SendDlgItemMessage(
-		m_dialog,
-		IDC_PALDLG_PALETTE_LIST,
-		LB_GETTEXT,
-		palette_index,
-		(LPARAM) buffer
-	);
-	std::wstring selected = buffer;
+	std::wstring selected = string_from_buffer<wchar_t>([&](wchar_t *buffer, size_t size) {
+		SendDlgItemMessage(
+			m_dialog,
+			IDC_PALDLG_PALETTE_LIST,
+			LB_GETTEXT,
+			palette_index,
+			(LPARAM) buffer
+		);
+	});
 
 	m_current_palette = {
 		.data = *std::find_if(all_palettes.begin(), all_palettes.end(), [&](const Palettes::Definition &palette) {
@@ -565,18 +565,21 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 		} case WM_COMMAND: {
 			HWND name_input = GetDlgItem(dialog, IDC_PALDLG_NEW_PALETTE_NAME);
 
-			wchar_t name_buffer[PaletteCustomizeDialog::MaxPaletteNameSize] { L'\0' };
-			Edit_GetText(
-				name_input,
-				name_buffer,
+			std::wstring name = string_from_buffer<
+				wchar_t, 
 				PaletteCustomizeDialog::MaxPaletteNameSize
-			);
-			name_buffer[PaletteCustomizeDialog::MaxPaletteNameSize - 1] = L'\0';
+			>([&](wchar_t *buffer, size_t size) {
+				Edit_GetText(
+					name_input,
+					buffer,
+					size
+				);
+			});
 
 			switch (LOWORD(wparam)) {
 				case IDOK: {
-					auto *name = new std::wstring(name_buffer);
-					EndDialog(dialog, (INT_PTR) name);
+					auto *returned_name = new std::wstring(name);
+					EndDialog(dialog, (INT_PTR) returned_name);
 					return TRUE;
 				} case IDCANCEL: {
 					EndDialog(dialog, 0);
@@ -588,7 +591,6 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 							// The only catastrophe I can directly forsee is commas, but may as well just only allow
 							// alphanumerics and a few special characters to be extra safe.
 							static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:";
-							std::wstring name = name_buffer;
 
 							bool name_too_short = name.size() < PaletteCustomizeDialog::MinPaletteNameSize;
 							bool name_has_invalid_chars = name.find_first_not_of(valid_chars) != std::wstring::npos;
@@ -674,14 +676,13 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
 							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
-							wchar_t hex_code_buffer[max_hex_code_length + 1] { L'\0' };
-							Edit_GetText(
-								hex_input,
-								hex_code_buffer,
-								max_hex_code_length + 1
-							);
-							hex_code_buffer[max_hex_code_length] = L'\0';
-							std::wstring hex_code = hex_code_buffer;
+							std::wstring hex_code = string_from_buffer<wchar_t, max_hex_code_length>([&](wchar_t *buffer, size_t size) {
+								Edit_GetText(
+									hex_input,
+									buffer,
+									size
+								);
+							});
 
 							auto color = color_from_hex_string(hex_code);
 							if (!color) {
@@ -697,6 +698,33 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 						}
 					}
 				}
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK AddPredefinedDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	auto get_palette_control = [&]() -> HWND {
+		return GetDlgItem(dialog, IDC_PALDLG_CHOOSE_PREDEFINED);
+	};
+
+	switch (message) {
+		case WM_INITDIALOG: {
+			auto palette_combobox = get_palette_control();
+			for (const Palettes::Definition &palette : Palettes::All) {
+				ComboBox_AddString(palette_combobox, palette.name.c_str());
+			}
+			break;
+		}
+		case WM_COMMAND: {
+			switch (LOWORD(wparam)) {
+				case IDOK: {
+					auto palette_combobox = get_palette_control();
+					auto selection_index = ComboBox_GetCurSel(palette_combobox);
+				}
+				break;
 			}
 		}
 	}
