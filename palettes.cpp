@@ -278,7 +278,7 @@ PaletteData PaletteRepository::deserialize(const std::wstring &serialized) {
 				color_string.c_str(),
 				-1,
 				buffer,
-				size,
+				cast<int>(size),
 				NULL,
 				NULL
 			);

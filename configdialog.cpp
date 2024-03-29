@@ -630,7 +630,7 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 				Edit_GetText(
 					name_input,
 					buffer,
-					size
+					cast<int>(size)
 				);
 			});
 
@@ -738,7 +738,7 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 								Edit_GetText(
 									hex_input,
 									buffer,
-									size
+									cast<int>(size)
 								);
 							});
 
@@ -803,7 +803,7 @@ LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wp
 						ComboBox_GetText(
 							palette_combobox,
 							buffer,
-							size
+							cast<int>(size)
 						);
 					});
 
@@ -824,7 +824,7 @@ LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wp
 								ComboBox_GetText(
 									palette_combobox,
 									buffer,
-									size
+									cast<int>(size)
 								);
 							});
 
