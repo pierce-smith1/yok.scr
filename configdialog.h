@@ -39,7 +39,7 @@ public:
 	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
 
 	std::wstring export_palettes();
-	void import_palettes();
+	void import_palettes(std::wstring *palettes);
 
 	const static inline size_t MinPaletteNameSize = 2;
 	const static inline size_t MaxPaletteNameSize = 64;

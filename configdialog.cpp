@@ -295,17 +295,20 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			break;
 		}
 		case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
+			std::wstring *exported_palettes = new std::wstring(export_palettes());
 			std::wstring *palettes = (std::wstring *) DialogBoxParam(
 				NULL,
 				MAKEINTRESOURCE(DLG_IMPORT_EXPORT_PALETTES),
 				m_dialog,
 				(DLGPROC) ScreenSaverImportExportPalettesDialog,
-				(LPARAM) (export_palettes().c_str())
+				(LPARAM) exported_palettes
 			);
 
 			if (palettes == nullptr) {
 				break;
 			}
+
+			import_palettes(palettes);
 			break;
 		}
 	}
@@ -542,11 +545,66 @@ std::wstring PaletteCustomizeDialog::export_palettes() {
 
 		palettes_string.append(palette.name + L": ");
 		palettes_string.append(m_palette_repo.serialize(*data));
-		palettes_string.append(L"\r\n");
+		palettes_string.append(L";\r\n");
 	}
 	palettes_string.append(L"~");
 
 	return palettes_string;
+}
+
+void PaletteCustomizeDialog::import_palettes(std::wstring *palettes) {
+	static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";
+	static std::wstring valid_hex_chars = L"0123456789abcdefABCDEF";
+	size_t current_index = palettes->find_first_of(valid_chars.c_str());
+	std::wstring last_successful_palette_name;
+	std::wstring current_name;
+	std::wstring current_data[7];
+	bool graceful_exit = false;
+	try {
+		while (true) {
+			current_name = palettes->substr(current_index, palettes->find_first_of(L':', current_index) - current_index);
+			if (current_name.find_first_not_of(valid_chars + L" ") != std::wstring::npos) {
+				throw ERROR_BAD_ARGUMENTS;
+			}
+			for (int i = 0; i < 7; i++) {
+				current_index = palettes->find_first_of(L'#', current_index) + 1;
+				if (palettes->find_first_of(L';', current_index) - current_index != 6) {
+					throw ERROR_BAD_ARGUMENTS;
+				}
+				current_data[i] = palettes->substr(current_index, 6);
+				if (current_data[i].find_first_not_of(valid_hex_chars) != std::wstring::npos) {
+					throw ERROR_BAD_ARGUMENTS;
+				}
+				current_index = palettes->find_first_of(L';', current_index);
+			}
+			last_successful_palette_name = current_name;
+			if (palettes->find_first_of(valid_chars, current_index) == std::wstring::npos) {
+				if (palettes->find_first_of(L'~', current_index) != std::wstring::npos) {
+					graceful_exit = true;
+				}
+				break;
+			}
+			else {
+				current_index = palettes->find_first_of(valid_chars, current_index);
+			}
+		}
+		if (!graceful_exit) {
+			MessageBox(
+				NULL,
+				(L"A terminating character was not found. One or more palettes may have failed to import. Last successful import: " + last_successful_palette_name).c_str(),
+				L"Palette Customizer",
+				MB_ICONWARNING
+			);
+		}
+	}
+	catch (...) {
+		MessageBox(
+			NULL,
+			(L"An error occurred when importing palette \"" + current_name + L"\". Last successful import: \"" + last_successful_palette_name + L"\"").c_str(),
+			L"Palette Customizer",
+			MB_ICONERROR
+		);
+	}
 }
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -739,13 +797,14 @@ LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message
 	HWND palettes_input = GetDlgItem(dialog, IDC_PALDLG_IMPORT_EXPORT_PALETTES);
 	switch (message) {
 		case WM_INITDIALOG: {
+			std::wstring *exported_palettes = (std::wstring *) lparam;
 			Edit_SetText(
 				palettes_input,
-				(wchar_t *) lparam
+				(wchar_t *) exported_palettes->c_str()
 			);
+			delete exported_palettes;
 			return TRUE;
 		} case WM_COMMAND: {
-
 			wchar_t palettes_buffer[1 << 16] { L'\0' };
 			Edit_GetText(
 				palettes_input,
@@ -761,6 +820,12 @@ LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message
 					return TRUE;
 				} case IDCANCEL: {
 					EndDialog(dialog, 0);
+					return TRUE;
+				} case IDRETRY: {
+					Edit_SetText(
+						palettes_input,
+						(wchar_t *) lparam
+					);
 					return TRUE;
 				} case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
 					switch (HIWORD(wparam)) {
