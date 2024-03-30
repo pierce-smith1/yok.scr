@@ -38,6 +38,8 @@ public:
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
 
+	static void apply_palette_to_preview(HWND dialog, HANDLE preview_bitmap, int preview_control_id, const PaletteData &palette);
+
 	const static inline size_t MinPaletteNameSize = 2;
 	const static inline size_t MaxPaletteNameSize = 64;
 	const static inline Palettes::Definition DefaultPalette = Palettes::Friend;
@@ -60,9 +62,9 @@ private:
 
 	void update_current_palette();
 	void save_current_palette();
+	void save_current_palette_as_new();
 	void delete_current_palette();
 
-	void apply_palette_to_preview(const PaletteData &palette);
 	int palette_index_for_control(int color_button_control_id);
 	void get_and_save_color(int palette_index);
 
@@ -100,3 +102,4 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
