@@ -60,18 +60,20 @@ private:
 	void refresh();
 	void refresh_palette_list();
 
+	struct CurrentPalette {
+		PaletteData data;
+		std::wstring name;
+	};
+
 	void update_current_palette();
 	void save_current_palette();
 	void save_current_palette_as_new();
 	void delete_current_palette();
 
+	void do_png_export(const std::wstring &path, const CurrentPalette &palette);
+
 	int palette_index_for_control(int color_button_control_id);
 	void get_and_save_color(int palette_index);
-
-	struct CurrentPalette {
-		PaletteData data;
-		std::wstring name;
-	};
 
 	std::optional<CurrentPalette> m_current_palette;
 

@@ -137,7 +137,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>scrnsavw.lib;opengl32.lib;glu32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>scrnsavw.lib;opengl32.lib;glu32.lib;comctl32.lib;Gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy /y "$(TargetPath)" "$(TargetDir)$(TargetName).exe"</Command>

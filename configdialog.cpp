@@ -1,12 +1,15 @@
 #include <Windows.h>
 #include <windowsx.h>
 #include <CommCtrl.h>
+#include <gdiplus.h>
+#include <ShObjIdl.h>
 
 #include <algorithm>
 
 #include "configdialog.h"
 #include "yokscr.h"
 #include "resourcew.h"
+#include "graphics.h"
 
 ConfigDialog::ConfigDialog(HWND dialog)
 	: m_dialog(dialog), m_current_config(Registry::get_config()) {
@@ -320,6 +323,44 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			refresh_palette_list();
 			break;
 		}
+		case IDC_PALDLG_PNG_EXPORT: {
+			if (m_current_palette) {
+				// I hope whoever designed this file picker API burns in hell.
+				IFileDialog *file_dialog;
+				CoCreateInstance(
+					CLSID_FileOpenDialog,
+					NULL,
+					CLSCTX_INPROC_SERVER,
+					IID_PPV_ARGS(&file_dialog)
+				);
+
+				DWORD flags;
+				file_dialog->GetOptions(&flags);
+				file_dialog->SetOptions(flags | FOS_PICKFOLDERS);
+				file_dialog->SetTitle(L"Choose where to save the ygklokin images");
+				file_dialog->SetOkButtonLabel(L"Save Yonklins Here");
+
+				auto result = file_dialog->Show(m_dialog);
+				if (result == HRESULT_FROM_WIN32(ERROR_CANCELLED)) {
+					break;
+				}
+
+				IShellItem *selected_folder;
+				file_dialog->GetResult(&selected_folder);
+
+				wchar_t *folder_name = nullptr;
+				selected_folder->GetDisplayName(SIGDN_FILESYSPATH, &folder_name);
+				
+				if (folder_name != nullptr) {
+					do_png_export(folder_name, *m_current_palette);
+					ShellExecute(NULL, L"explore", folder_name, NULL, NULL, SW_SHOWDEFAULT);
+					CoTaskMemFree(folder_name);
+				}
+
+				selected_folder->Release();
+			}
+			break;
+		}
 	}
 
 	return FALSE;
@@ -367,6 +408,7 @@ void PaletteCustomizeDialog::refresh() {
 		GetDlgItem(m_dialog, IDC_PALDLG_EYE_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_WHITES_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_DUPE_PALETTE),
+		GetDlgItem(m_dialog, IDC_PALDLG_PNG_EXPORT),
 	};
 
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
@@ -486,6 +528,79 @@ void PaletteCustomizeDialog::delete_current_palette() {
 	} else {
 		m_current_palette = {};
 	}
+}
+
+
+void PaletteCustomizeDialog::do_png_export(const std::wstring &base_path, const CurrentPalette &palette) {
+	Gdiplus::GdiplusStartupInput gdiStartup;
+	ULONG_PTR gdiplus_token;
+	Gdiplus::GdiplusStartup(&gdiplus_token, &gdiStartup, NULL);
+
+	for (const auto &bitmap_def : Bitmaps::All) {
+		// The most reliable way to get the data for the bitmap to GDI+ is to
+		// use the expanded data in its full, unindexed, 32 bits per pixel glory.
+		// A lot like how it is for OpenGL!
+		auto texture = Texture::of(&palette.data, bitmap_def);
+		GLubyte *texture_data = texture->data();
+
+		// We store texture data as RGBA, but GDI+ wants them as BGRA.
+		// So, swap the texture's red and blue channels.
+		for (int i = 0; i < BITMAP_WH * BITMAP_WH; i++) {
+			auto red = texture_data[i * 4 + RED];
+			texture_data[i * 4 + RED] = texture_data[i * 4 + BLUE];
+			texture_data[i * 4 + BLUE] = red;
+		}
+
+		// Almost there, but GDI+'s coordinate system is also upside down 
+		// relative to how we store the pixels.
+		// So, flip the image across the y.
+		for (int y = 0; y < BITMAP_WH / 2; y++) {
+			int y_prime = BITMAP_WH - 1 - y;
+
+			for (int x = 0; x < BITMAP_WH; x++) {
+				int i = x + y * BITMAP_WH;
+				int i_prime = x + y_prime * BITMAP_WH;
+
+				auto red = texture_data[i * 4 + RED];
+				auto green = texture_data[i * 4 + GREEN];
+				auto blue = texture_data[i * 4 + BLUE];
+				auto alpha = texture_data[i * 4 + ALPHA];
+
+				texture_data[i * 4 + RED] = texture_data[i_prime * 4 + RED];
+				texture_data[i * 4 + GREEN] = texture_data[i_prime * 4 + GREEN];
+				texture_data[i * 4 + BLUE] = texture_data[i_prime * 4 + BLUE];
+				texture_data[i * 4 + ALPHA] = texture_data[i_prime * 4 + ALPHA];
+
+				texture_data[i_prime * 4 + RED] = red;
+				texture_data[i_prime * 4 + GREEN] = green;
+				texture_data[i_prime * 4 + BLUE] = blue;
+				texture_data[i_prime * 4 + ALPHA] = alpha;
+			}
+		}
+
+		Gdiplus::Bitmap bitmap(
+			BITMAP_WH, 
+			BITMAP_WH, 
+			BITMAP_WH * 4, 
+			PixelFormat32bppARGB,
+			texture_data
+		);
+
+		// This is kind of gross, but the alternative is a 20-something line function
+		// with calls to GetImageEncoders and other crap... just to get the ID of the
+		// PNG encoder... seriously?
+		// I have no good reason to believe this ID will be different between machines
+		// or that any given machine will not have this encoder. So, blah.
+		struct __declspec(uuid("{557cf406-1a04-11d3-9a73-0000f81ef32e}")) PngEncoder;
+		auto png_encoder_sclid = __uuidof(PngEncoder);
+
+		const auto save_path = std::format(L"{}\\{}.png", base_path, bitmap_def.name);
+		bitmap.Save(save_path.c_str(), &png_encoder_sclid, NULL);
+
+		delete[] texture_data;
+	}
+
+	Gdiplus::GdiplusShutdown(gdiplus_token);
 }
 
 void PaletteCustomizeDialog::apply_palette_to_preview(HWND dialog, HANDLE preview_bitmap, int preview_control_id, const PaletteData &palette) {
