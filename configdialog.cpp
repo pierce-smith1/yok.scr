@@ -325,7 +325,6 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 		}
 		case IDC_PALDLG_PNG_EXPORT: {
 			if (m_current_palette) {
-				// I hope whoever designed this file picker API burns in hell.
 				IFileDialog *file_dialog;
 				CoCreateInstance(
 					CLSID_FileOpenDialog,
