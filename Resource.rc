@@ -144,7 +144,7 @@ BEGIN
     LTEXT           "If you have no palettes here, we'll fall back to using the normal palettes.",IDC_STATIC,175,234,131,17,WS_DISABLED
     PUSHBUTTON      "+ Duplicate palette",IDC_PALDLG_DUPE_PALETTE,13,251,70,14
     PUSHBUTTON      "Add bulit-in palette",IDC_PALDLG_INSERT_PREDEFINED,63,15,81,14
-    PUSHBUTTON      "Export to .png",IDC_PALDLG_PNG_EXPORT,245,15,58,14
+    PUSHBUTTON      "Save palette as images",IDC_PALDLG_PNG_EXPORT,214,15,89,14
 END
 
 DLG_NEW_CUSTOM_PALETTE DIALOGEX 0, 0, 141, 72
