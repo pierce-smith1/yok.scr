@@ -201,7 +201,7 @@ BEGIN
     DEFPUSHBUTTON   "Import",IDOK,71,214,50,14,WS_DISABLED
     PUSHBUTTON      "Cancel",IDCANCEL,185,214,50,14
     EDITTEXT        IDC_PALDLG_IMPORT_EXPORT_PALETTES,7,27,293,175,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
-    LTEXT           "Copy to share your palettes or paste to import:",IDC_STATIC,7,15,160,8
+    LTEXT           "Copy to share your palettes or paste to import (existing palettes will not be overwritten):",IDC_STATIC,7,15,292,8
 END
 
 
