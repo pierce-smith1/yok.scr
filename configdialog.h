@@ -39,7 +39,6 @@ public:
 	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
 
 	std::wstring export_palettes();
-	void import_palettes(std::wstring *palettes);
 
 	const static inline size_t MinPaletteNameSize = 2;
 	const static inline size_t MaxPaletteNameSize = 64;
@@ -80,6 +79,41 @@ private:
 	HANDLE m_preview_bitmap;
 	PaletteRepository m_palette_repo;
 	PaletteGroupRepository m_group_repo;
+};
+
+class PalettesImport {
+public:
+	static PalettesImport *parse_palettes_string(const std::wstring &import_string);
+	std::optional<std::wstring> get_error_string(size_t max_errors);
+	size_t get_valid_palettes_amount();
+	std::wstring get_valid_palette_names(size_t max_length);
+	void import_palettes();
+
+private:
+	std::vector<std::wstring> palettes_name;
+	std::vector<std::vector<std::wstring>> palettes_raw_colors;
+	std::vector<unsigned int> palettes_has_errors;
+	bool import_string_had_terminator;
+
+	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";		// Note: Spaces are valid characters but not included in this string
+	const static inline std::wstring valid_hex_chars = L"0123456789abcdefABCDEF";
+	const static inline size_t colors_amount = 7;
+
+	const enum ParserErrors : unsigned int {
+		error_none = 0,
+		error_name_too_short = 1 << 0,
+		error_name_too_long = 1 << 1,
+		error_name_invalid_characters = 1 << 2,
+		error_colors_too_few = 1 << 3,
+		error_colors_incorrect_length = 1 << 4,
+		error_colors_invalid_characters = 1 << 5,
+		error_palette_contains_newlines = 1 << 6,
+	};
+
+	PalettesImport(std::vector<std::wstring> palettes_name,
+				   std::vector<std::vector<std::wstring>> palettes_raw_colors,
+				   std::vector<unsigned int> palettes_has_errors,
+				   bool import_string_had_terminator);
 };
 
 const static std::map<PatternName, std::wstring> pattern_strings = {

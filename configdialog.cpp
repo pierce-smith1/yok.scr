@@ -296,7 +296,7 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 		}
 		case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
 			std::wstring *exported_palettes = new std::wstring(export_palettes());
-			std::wstring *palettes = (std::wstring *) DialogBoxParam(
+			PalettesImport *imported_palettes = (PalettesImport *) DialogBoxParam(
 				NULL,
 				MAKEINTRESOURCE(DLG_IMPORT_EXPORT_PALETTES),
 				m_dialog,
@@ -304,11 +304,11 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				(LPARAM) exported_palettes
 			);
 
-			if (palettes == nullptr) {
+			if (imported_palettes == nullptr) {
 				break;
 			}
 
-			import_palettes(palettes);
+			delete imported_palettes;
 			break;
 		}
 	}
@@ -543,261 +543,239 @@ std::wstring PaletteCustomizeDialog::export_palettes() {
 		auto name = palette.name;
 		auto *data = palette.data;
 
-		palettes_string.append(palette.name + L": ");
-		std::wstring colors = m_palette_repo.serialize(*data) + L";";
-		// Add extra "fake" colors so that a palette definition is guaranteed to be longer than the maximum allowed name length
-		while (colors.length() < PaletteCustomizeDialog::MaxPaletteNameSize) {
-			colors.append(L"#000000;");
-		}
-		palettes_string.append(colors);
-		palettes_string.append(L"\r\n");
+		palettes_string.append(palette.name + L": " + m_palette_repo.serialize(*data) + L";\r\n");
 	}
 	palettes_string.append(L"~");
 
 	return palettes_string;
 }
 
-void PaletteCustomizeDialog::import_palettes(std::wstring *palettes) {
-	using namespace std;
+PalettesImport::PalettesImport(std::vector<std::wstring> palettes_name,
+							   std::vector<std::vector<std::wstring>> palettes_raw_colors,
+							   std::vector<unsigned int> palettes_has_errors,
+							   bool import_string_had_terminator)
+	: palettes_name(palettes_name), palettes_raw_colors(palettes_raw_colors), palettes_has_errors(palettes_has_errors), import_string_had_terminator(import_string_had_terminator) {
+}
 
-	const static wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";
-	const static wstring valid_hex_chars = L"0123456789abcdefABCDEF";
-	const static size_t colors_amount = max(7, (size_t)ceil(PaletteCustomizeDialog::MaxPaletteNameSize / 8.0));
+// Parses an import string and returns a PalettesImport object that can then be converted into palettes
+PalettesImport *PalettesImport::parse_palettes_string(const std::wstring &import_string) {
 
-	size_t palettes_amount = 0;
-	size_t current_index = 0;
-	bool graceful_exit = false;
-	size_t count_invalid = 0;
+	size_t import_string_current_index = 0;
+	bool has_terminator_at_end = false;
 
-	const enum class Errors {
-		none = 0,
-		name_too_short = 1 << 0,
-		name_too_long = 1 << 1,
-		name_invalid_characters = 1 << 2,
-		colors_too_few = 1 << 3,
-		colors_incorrect_length = 1 << 4,
-		colors_invalid_characters = 1 << 5,
-	};
+	std::vector<std::wstring> parsed_palette_names;
+	std::vector<std::vector<std::wstring>> parsed_palette_colors;
+	std::vector<unsigned int> parsed_palette_has_errors;
 
-	vector<wstring> names;
-	vector<vector<wstring>> colors;
-	vector<uint8_t> is_valid;
+	for (; import_string.find_first_of(valid_chars, import_string_current_index) != std::wstring::npos
+		   && import_string.find_first_of(L':', import_string_current_index) != std::wstring::npos; ) {
+		has_terminator_at_end = (import_string.find_first_of(L'~', import_string_current_index) != std::wstring::npos);
 
-	for (; palettes->find_first_of(valid_chars, current_index) != wstring::npos && palettes->find_first_of(L':', current_index) != wstring::npos; palettes_amount++) {
-		graceful_exit = (palettes->find_first_of(L'~', current_index) != wstring::npos);
-
-		wstring current_name = L"";
-		vector<wstring> current_colors;
+		std::wstring current_name = L"";
+		std::vector<std::wstring> current_colors;
 		for (size_t i = 0; i < colors_amount; i++) {
-			current_colors.push_back(L";");
+			current_colors.push_back(L";");		// Used to differentiate between an empty color and a missing color
 		}
-		uint8_t current_is_valid = 0;
+		unsigned int current_has_errors = 0;
 
-		current_index = palettes->find_first_of(valid_chars, current_index);
-		current_name = palettes->substr(current_index, palettes->find_first_of(L':', current_index) - current_index);
+		// Read the palette name (From first valid character (except space) to ':')
+		import_string_current_index = import_string.find_first_of(valid_chars, import_string_current_index);
+		current_name = import_string.substr(import_string_current_index, import_string.find_first_of(L':', import_string_current_index) - import_string_current_index);
 		if (current_name.length() < PaletteCustomizeDialog::MinPaletteNameSize) {
-			current_is_valid |= static_cast<uint8_t>(Errors::name_too_short);
+			current_has_errors |= error_name_too_short;
 		}
 		if (current_name.length() >= PaletteCustomizeDialog::MaxPaletteNameSize) {
-			current_is_valid |= static_cast<uint8_t>(Errors::name_too_long);
+			current_has_errors |= error_name_too_long;
 		}
-		if (current_name.find_first_not_of(valid_chars + L' ') != wstring::npos) {
-			current_is_valid |= static_cast<uint8_t>(Errors::name_invalid_characters);
+		if (current_name.find_first_not_of(valid_chars + L" \r\n") != std::wstring::npos) {
+			current_has_errors |= error_name_invalid_characters;
+		}
+		if (current_name.find_first_of(L"\r\n") != std::wstring::npos) {
+			current_has_errors |= error_palette_contains_newlines;
 		}
 
-		current_index = palettes->find_first_of(L':', current_index) + 1;
+		import_string_current_index = import_string.find_first_of(L':', import_string_current_index) + 1;
+
+		// Looking for exactly 7 colors, each color starts with # and ends with ; and must contain exactly 6 base digits in base 16
 		for (int i = 0; i < colors_amount; i++) {
-			if (palettes->find_first_of(L':', current_index) < palettes->find_first_of(L'#', current_index)) {
-				current_is_valid |= static_cast<uint8_t>(Errors::colors_too_few);
+			if (import_string.find_first_of(L':', import_string_current_index) < import_string.find_first_of(L'#', import_string_current_index)) {
+				current_has_errors |= error_colors_too_few;
 				break;
 			}
 
-			if (palettes->find_first_of(L'#', current_index) == wstring::npos) {
-				current_is_valid |= static_cast<uint8_t>(Errors::colors_too_few);
+			if (import_string.find_first_of(L'#', import_string_current_index) == std::wstring::npos) {
+				current_has_errors |= error_colors_too_few;
 				break;
 			}
-			current_index = palettes->find_first_of(L'#', current_index) + 1;
-			current_colors[i] = palettes->substr(current_index, palettes->find_first_of(L';', current_index) - current_index);
-			if (palettes->find_first_of(L';', current_index) == wstring::npos) {
-				current_is_valid |= static_cast<uint8_t>(Errors::colors_too_few);
+			import_string_current_index = import_string.find_first_of(L'#', import_string_current_index) + 1;
+			current_colors[i] = import_string.substr(import_string_current_index, import_string.find_first_of(L';', import_string_current_index) - import_string_current_index);
+			if (import_string.find_first_of(L';', import_string_current_index) == std::wstring::npos) {
+				current_has_errors |= error_colors_too_few;
 				break;
 			}
-			current_index = palettes->find_first_of(L';', current_index) + 1;
+			import_string_current_index = import_string.find_first_of(L';', import_string_current_index) + 1;
 
 			if (current_colors[i].length() != 6) {
-				current_is_valid |= static_cast<uint8_t>(Errors::colors_incorrect_length);
+				current_has_errors |= error_colors_incorrect_length;
 			}
-			if (current_colors[i].find_first_not_of(valid_hex_chars) != wstring::npos) {
-				current_is_valid |= static_cast<uint8_t>(Errors::colors_invalid_characters);
+			if (current_colors[i].find_first_not_of(valid_hex_chars + L"\r\n") != std::wstring::npos) {
+				current_has_errors |= error_colors_invalid_characters;
+			}
+			if (current_colors[i].find_first_of(L"\r\n") != std::wstring::npos) {
+				current_has_errors |= error_palette_contains_newlines;
 			}
 		}
 
-		if (current_is_valid != static_cast<uint8_t>(Errors::none)) {
-			count_invalid++;
-		}
-
-		names.push_back(current_name);
-		colors.push_back(current_colors);
-		is_valid.push_back(current_is_valid);
-		printf("");
+		parsed_palette_names.push_back(current_name);
+		parsed_palette_colors.push_back(current_colors);
+		parsed_palette_has_errors.push_back(current_has_errors);
 	}
 
-	bool import = true;
-	if (count_invalid <= 1 && !graceful_exit && (count_invalid == 0 || *is_valid.rbegin() != static_cast<uint8_t>(Errors::none))) {
-		wstring error_info = L"No terminating character (~) detected. One or more palettes may be missing.\nLast detected palette: " + *(names.rbegin() + count_invalid);
-		error_info += L"\n\nWould you like to import the palettes anyway?\n\nThe following palettes can be imported:";
-		for (size_t i = 0; i < palettes_amount; i++) {
-			if (is_valid[i] == static_cast<uint8_t>(Errors::none)) {
-				error_info += L" " + names[i] + L",";
-			}
-		}
-		*error_info.rbegin() = L'.';
+	return new PalettesImport(parsed_palette_names, parsed_palette_colors, parsed_palette_has_errors, has_terminator_at_end);
+}
 
-		int num = MessageBox(
-			NULL,
-			error_info.c_str(),
-			L"Palette Customizer",
-			MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2
-		);
-		import = (num == IDYES);
-	}
-	else if (count_invalid > 0) {
-		wstring error_info = L"One or more palettes have errors:\n";
-		for (size_t i = 0, invalid = 0; i < palettes_amount; i++) {
-			if (is_valid[i] != static_cast<uint8_t>(Errors::none)) {
-				invalid++;
-				wstring name = names[i];
-				while (name.find_first_of(L'\r') != wstring::npos) {
-					name.replace(name.find_first_of(L'\r'), 1, L"\\r");
-				}
-				while (name.find_first_of(L'\n') != wstring::npos) {
-					name.replace(name.find_first_of(L'\n'), 1, L"\\n");
-				}
-				error_info += name + L":";
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::name_too_short)) != static_cast<uint8_t>(Errors::none)) {
-					error_info += L" Name is too short,";
-				}
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::name_too_long)) != static_cast<uint8_t>(Errors::none)) {
-					error_info += L" Name is too long,";
-				}
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::name_invalid_characters)) != static_cast<uint8_t>(Errors::none)) {
-					size_t index = 0;
-					wstring invalid_chars = L"";
-					while (names[i].find_first_not_of(valid_chars + L' ', index) != wstring::npos) {
-						index = names[i].find_first_not_of(valid_chars + L' ', index);
-						if (invalid_chars.find_first_of(names[i][index]) == wstring::npos) {
-							if (names[i][index] == L'\r') {
-								invalid_chars += L"\\r";
-							}
-							else if (names[i][index] == L'\n') {
-								invalid_chars += L"\\n";
-							}
-							else {
-								invalid_chars += names[i][index];
-							}
-						}
-						index++;
-					}
-					error_info += L" Name has invalid characters (" + invalid_chars + L"),";
-				}
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::colors_too_few)) != static_cast<uint8_t>(Errors::none)) {
-					int count = 0;
-					for (wstring color : colors[i]) {
-						if (color.find_first_of(L';') == wstring::npos) {
-							count++;
-						}
-					}
-					error_info += L" Too few colors defined (have " + to_wstring(count) + L", need " + to_wstring(colors_amount) + L"),";
-				}
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::colors_incorrect_length)) != static_cast<uint8_t>(Errors::none)) {
-					error_info += L" One or more colors were of incorrect length (found:";
-					for (wstring color : colors[i]) {
-						if (color.find_first_of(';') == wstring::npos) {
-							error_info += L" " + to_wstring(color.length()) + L",";
-						}
-					}
-					*error_info.rbegin() = L';';
-					error_info += L" expected: 6),";
-				}
-				if ((is_valid[i] & static_cast<uint8_t>(Errors::colors_invalid_characters)) != static_cast<uint8_t>(Errors::none)) {
-					wstring invalid_chars = L"";
-					for (wstring color : colors[i]) {
-						size_t index = 0;
-						while (color.find_first_not_of(valid_hex_chars + L';', index) != wstring::npos) {
-							index = color.find_first_not_of(valid_hex_chars + L';', index);
-							if (invalid_chars.find_first_of(color[index]) == wstring::npos) {
-								invalid_chars += color[index];
-							}
-							index++;
-						}
-					}
-					error_info += L" Colors have invalid characters (" + invalid_chars + L"),";
-				}
-
-				if (invalid < count_invalid) {
-					*error_info.rbegin() = L';';
-					error_info += L"\n";
-				}
-				else {
-					error_info.pop_back();
-				}
-
-				if (invalid >= 10 && invalid < count_invalid) {
-					error_info += L"... + " + to_wstring(count_invalid - invalid) + L" more palettes";
-					break;
-				}
-			}
-		}
-		
-
-		if (count_invalid >= palettes_amount) {
-			error_info += L"\n\nNo palettes can be imported.";
-			MessageBox(
-				NULL,
-				error_info.c_str(),
-				L"Palette Customizer",
-				MB_OK | MB_ICONERROR
-			);
-			import = false;
-		}
-		else {
-			error_info += L"\n\nWould you like to import the remaining palettes anyway?\n\nThe following palettes can be imported:";
-			for (size_t i = 0; i < palettes_amount; i++) {
-				if (is_valid[i] == static_cast<uint8_t>(Errors::none)) {
-					error_info += L" " + names[i] + L",";
-				}
-			}
-			*error_info.rbegin() = L'.';
-			int num = MessageBox(
-				NULL,
-				error_info.c_str(),
-				L"Palette Customizer",
-				MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2
-			);
-			import = (num == IDYES);
-		}
-	}
-	else {
-		wstring import_confirmation = L"The following palettes will be imported:";
-		for (size_t i = 0; i < palettes_amount; i++) {
-			if (is_valid[i] == static_cast<uint8_t>(Errors::none)) {
-				import_confirmation += L" " + names[i] + L",";
-			}
-		}
-		*import_confirmation.rbegin() = L'.';
-		import_confirmation += L"\n\nConfirm palette import?";
-		int num = MessageBox(
-			NULL,
-			import_confirmation.c_str(),
-			L"Palette Customizer",
-			MB_YESNO | MB_ICONINFORMATION
-		);
-		import = (num == IDYES);
+std::optional<std::wstring> PalettesImport::get_error_string(size_t max_errors) {
+	if (palettes_name.size() == 0) {
+		return std::nullopt;
 	}
 
-	if (import) {
-		// TODO: Actually add import code
+	size_t palette_count = palettes_name.size();
+	size_t invalid_palette_count = 0;
+	for (unsigned int has_errors : palettes_has_errors) {
+		if (has_errors != error_none) {
+			invalid_palette_count++;
+		}
 	}
+
+	if (!import_string_had_terminator && invalid_palette_count <= 1 && (invalid_palette_count == 0 || *palettes_has_errors.rbegin() != error_none)) {
+		std::wstring error_string = L"No terminator character (~) found at the end of the input. This may be caused by the inputted text being too long.";
+		auto palette_name = palettes_name.rbegin();
+		if (*palettes_has_errors.rbegin() != error_none) {
+			palette_name++;
+		}
+		error_string.append(L"\nLast valid palette found: " + *palette_name);
+		return error_string;
+	} else if (invalid_palette_count == 0) {
+		return std::nullopt;
+	}
+
+	std::wstring error_string = L"";
+	for (int i = 0, invalid_count = 0; i < palette_count; i++) {
+		std::wstring palette_name = palettes_name[i];
+		std::vector<std::wstring> palette_raw_colors = palettes_raw_colors[i];
+		unsigned int palette_has_errors = palettes_has_errors[i];
+
+		if (palette_has_errors == error_none) {
+			continue;
+		}
+
+		invalid_count++;
+		if (palette_name.find_first_of(L"\r\n") != std::wstring::npos) {
+			std::wstring formatted_name = palette_name;
+			while (formatted_name.find_first_of(L'\r') != std::wstring::npos) {
+				formatted_name.replace(formatted_name.find_first_of(L'\r'), 1, L"\\r");
+			}
+			while (formatted_name.find_first_of(L'\n') != std::wstring::npos) {
+				formatted_name.replace(formatted_name.find_first_of(L'\n'), 1, L"\\n");
+			}
+			error_string.append(formatted_name + L":");
+		} else {
+			error_string.append(palette_name + L":");
+		}
+
+		if ((palette_has_errors & error_name_too_short) != error_none) {
+			error_string.append(L" Name is too short,");
+		}
+		if ((palette_has_errors & error_name_too_long) != error_none) {
+			error_string.append(L" Name is too long,");
+		}
+		if ((palette_has_errors & error_name_invalid_characters) != error_none) {
+			std::wstring invalid_chars = L"";
+			while (palette_name.find_first_not_of(valid_chars + L" \r\n" + invalid_chars) != std::wstring::npos) {
+				invalid_chars += palette_name[palette_name.find_first_not_of(valid_chars + L" \r\n" + invalid_chars)];
+			}
+			error_string.append(L" Name has invalid characters (" + invalid_chars + L"),");
+		}
+		if ((palette_has_errors & error_colors_too_few) != error_none) {
+			int count = 0;
+			for (std::wstring color : palette_raw_colors) {
+				if (color.find_first_of(L';') == std::wstring::npos) {
+					count++;
+				}
+			}
+			error_string.append(L" Too few colors defined (have " + std::to_wstring(count) + L", need " + std::to_wstring(colors_amount) + L"),");
+		}
+		if ((palette_has_errors & error_colors_incorrect_length) != error_none) {
+			error_string.append(L" One or more colors were of incorrect length (found:");
+			for (std::wstring color : palette_raw_colors) {
+				if (color.find_first_of(';') == std::wstring::npos) {
+					error_string += L" " + std::to_wstring(color.length()) + L",";
+				}
+			}
+			*error_string.rbegin() = L';';
+			error_string.append(L" expected: 6),");
+		}
+		if ((palette_has_errors & error_colors_invalid_characters) != error_none) {
+			std::wstring invalid_chars = L"";
+			for (std::wstring color : palette_raw_colors) {
+				while (color.find_first_not_of(valid_hex_chars + L";\r\n" + invalid_chars) != std::wstring::npos) {
+					invalid_chars += color[color.find_first_not_of(valid_hex_chars + L";\r\n" + invalid_chars)];
+				}
+			}
+			error_string.append(L" Colors have invalid characters (" + invalid_chars + L"),");
+		}
+		if ((palette_has_errors & error_palette_contains_newlines) != error_none) {
+			error_string.append(L" Palette name or colors contain a newline,");
+		}
+
+		if (invalid_count < invalid_palette_count) {
+			*error_string.rbegin() = L';';
+			error_string.append(L"\n");
+			if (invalid_count >= max_errors) {
+				error_string.append(L"( + " + std::to_wstring(invalid_palette_count - invalid_count) + L" more)");
+				break;
+			}
+		} else {
+			error_string.pop_back();
+		}
+	}
+
+	return error_string;
+}
+
+size_t PalettesImport::get_valid_palettes_amount() {
+	size_t count = 0;
+	for (unsigned int has_errors : palettes_has_errors) {
+		if (has_errors == error_none) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+std::wstring PalettesImport::get_valid_palette_names(size_t max_length) {
+	std::wstring palette_names = L"";
+	size_t count = 0;
+
+	for (std::wstring name : palettes_name) {
+		if (palette_names.length() + name.length() > max_length) {
+			palette_names.append(L"\n( + " + std::to_wstring(get_valid_palettes_amount() - count) + L" more)  ");
+			return palette_names;
+		}
+
+		palette_names.append(name + L", ");
+		count++;
+	}
+
+	palette_names.pop_back();
+	palette_names.pop_back();
+
+	return palette_names;
+}
+
+void PalettesImport::import_palettes() {
+	// TODO: actually fkn implement this
 }
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -993,53 +971,85 @@ LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message
 			std::wstring *exported_palettes = (std::wstring *) lparam;
 			Edit_SetText(
 				palettes_input,
-				(wchar_t *) exported_palettes->c_str()
+				exported_palettes->c_str()
 			);
 			delete exported_palettes;
 			return TRUE;
 		} case WM_COMMAND: {
-			std::unique_ptr<wchar_t> palettes_buffer(new wchar_t[1 << 16](L'\0'));
+			wchar_t *palettes_buffer = new wchar_t[1 << 16](L'\0');
 			Edit_GetText(
 				palettes_input,
-				palettes_buffer.get(),
+				palettes_buffer,
 				1 << 16
 			);
-			(palettes_buffer.get())[(1 << 16) - 1] = L'\0';
+			palettes_buffer[(1 << 16) - 1] = L'\0';
 
 			switch (LOWORD(wparam)) {
 				case IDOK: {
-					auto *palettes = new std::wstring(palettes_buffer.get());
-					EndDialog(dialog, (INT_PTR) palettes);
+					std::wstring palettes = palettes_buffer;
+					PalettesImport *imported_palettes = PalettesImport::parse_palettes_string(palettes);
+					delete[] palettes_buffer;
+
+					if (imported_palettes->get_error_string(1).has_value()) {
+						int import_anyway = MessageBox(
+							NULL,
+							(L"The inputted text contains one or more problems. Are you sure you want to import anyway?\n\nThe following "
+								+ std::to_wstring(imported_palettes->get_valid_palettes_amount())
+								+ L" palettes will be imported: "
+								+ imported_palettes->get_valid_palette_names(1000)).c_str(),
+							L"Palette Customizer",
+							MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2
+						);
+						if (import_anyway == IDNO) {
+							delete imported_palettes;
+							return TRUE;
+						}
+					}
+					EndDialog(dialog, (INT_PTR) imported_palettes);
 					return TRUE;
 				} case IDCANCEL: {
 					EndDialog(dialog, 0);
-					return TRUE;
-				} case IDRETRY: {
-					Edit_SetText(
-						palettes_input,
-						(wchar_t *) lparam
-					);
+					delete[] palettes_buffer;
 					return TRUE;
 				} case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
-							// Various special characters might break the registry parsing if they are saved.
-							// The only catastrophe I can directly forsee is commas, but may as well just only allow
-							// alphanumerics and a few special characters to be extra safe.
-							static std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789 -_!?:#;~\r\n";
-							std::wstring palettes = palettes_buffer.get();
-
-							bool palettes_too_short = palettes.size() < PaletteCustomizeDialog::MinPaletteNameSize + 65;
-							bool palettes_has_invalid_chars = palettes.find_first_not_of(valid_chars) != std::wstring::npos;
+							std::wstring palettes = palettes_buffer;
+							PalettesImport *imported_palettes = PalettesImport::parse_palettes_string(palettes);
 
 							HWND ok_button = GetDlgItem(dialog, IDOK);
-							EnableWindow(ok_button, !palettes_too_short && !palettes_has_invalid_chars);
+							EnableWindow(ok_button, (imported_palettes->get_valid_palettes_amount() > 0));
+
+							HWND dialog_error_text = GetDlgItem(dialog, IDC_IMPORT_ERROR_TEXT);
+							EnableWindow(dialog_error_text, false);
+							std::optional<std::wstring> imported_palettes_error_text = imported_palettes->get_error_string(1);
+							if (imported_palettes_error_text.has_value()) {
+								Edit_SetText(
+									dialog_error_text,
+									(L"One or more problems were detected:\n" + imported_palettes_error_text.value()).c_str()
+								);
+								EnableWindow(dialog_error_text, true);
+							}
+							else if (imported_palettes->get_valid_palettes_amount() > 0) {
+								Edit_SetText(
+									dialog_error_text,
+									(std::to_wstring(imported_palettes->get_valid_palettes_amount()) + L" palettes will be imported:\n" + imported_palettes->get_valid_palette_names(250)).c_str()
+								);
+							}
+							else {
+								Edit_SetText(
+									dialog_error_text,
+									L"Paste text to import palettes."
+								);
+							}
+							delete imported_palettes;
 							break;
 						}
 					}
 					break;
 				}
 			}
+			delete[] palettes_buffer; 
 			break;
 		}
 	}

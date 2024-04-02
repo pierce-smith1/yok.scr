@@ -97,6 +97,7 @@
 #define IDC_COLORDLG_HEX_CODE           1056
 #define IDC_BUTTON1                     1057
 #define IDC_PALDLG_DUPE_PALETTE         1057
+#define IDC_IMPORT_ERROR_TEXT           1058
 #define DLG_SCREENSAVERCONFIGURE        2003
 #define DLG_IMPORT_EXPORT_PALETTES      2004
 
@@ -104,9 +105,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1058
+#define _APS_NEXT_CONTROL_VALUE         1059
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
