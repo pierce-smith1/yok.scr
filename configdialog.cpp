@@ -308,6 +308,9 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				break;
 			}
 
+			imported_palettes->import_palettes();
+			refresh_palette_list();
+
 			delete imported_palettes;
 			break;
 		}
@@ -775,7 +778,54 @@ std::wstring PalettesImport::get_valid_palette_names(size_t max_length) {
 }
 
 void PalettesImport::import_palettes() {
-	// TODO: actually fkn implement this
+	size_t palette_count = palettes_name.size();
+	PaletteRepository palette_repo = PaletteRepository();
+
+	for (int i = 0; i < palette_count; i++) {
+		if (palettes_has_errors[i] != error_none) {
+			continue;
+		}
+
+		std::wstring name = palettes_name[i];
+		std::vector<Palettes::Definition> existing_palettes = palette_repo.get_all_custom_palettes();
+		bool is_name_taken = false;
+		for (Palettes::Definition palette : existing_palettes) {
+			if (palette.name == name) {
+				is_name_taken = true;
+				break;
+			}
+		}
+		if (is_name_taken) {
+			for (size_t num_add = 2; true; num_add++) {
+				is_name_taken = false;
+				std::wstring name_append = L" (" + std::to_wstring(num_add) + L")";
+
+				while (name.length() + name_append.length() >= PaletteCustomizeDialog::MaxPaletteNameSize) {
+					name.pop_back();
+				}
+
+				for (Palettes::Definition palette : existing_palettes) {
+					if (palette.name == name + name_append) {
+						is_name_taken = true;
+						break;
+					}
+				}
+
+				if (!is_name_taken) {
+					name.append(name_append);
+					break;
+				}
+			}
+		}
+
+		std::wstring colors = L"";
+		for (std::wstring color : palettes_raw_colors[i]) {
+			colors.append(L"#" + color + L";");
+		}
+		colors.pop_back();
+
+		palette_repo.set_palette(name, palette_repo.deserialize(colors));
+	}
 }
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {

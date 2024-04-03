@@ -95,7 +95,7 @@ private:
 	std::vector<unsigned int> palettes_has_errors;
 	bool import_string_had_terminator;
 
-	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";		// Note: Spaces are valid characters but not included in this string
+	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";	// Note: Spaces are valid characters but not included in this string
 	const static inline std::wstring valid_hex_chars = L"0123456789abcdefABCDEF";
 	const static inline size_t colors_amount = 7;
 

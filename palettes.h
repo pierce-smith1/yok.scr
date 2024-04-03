@@ -830,10 +830,9 @@ public:
 	std::vector<Palettes::Definition> get_all_custom_palettes();
 
 	std::wstring serialize(const PaletteData &palette);
-
-private:
 	PaletteData deserialize(const std::wstring &serialized);
 
+private:
 	RegistryBackedMap m_map;
 };
 
