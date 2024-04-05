@@ -58,6 +58,11 @@ public:
 		}},
 	};
 
+	struct CurrentPalette {
+		PaletteData data;
+		std::wstring name;
+	};
+
 private:
 	void refresh();
 	void refresh_palette_list();
@@ -69,11 +74,6 @@ private:
 
 	int palette_index_for_control(int color_button_control_id);
 	void get_and_save_color(int palette_index);
-
-	struct CurrentPalette {
-		PaletteData data;
-		std::wstring name;
-	};
 
 	std::optional<CurrentPalette> m_current_palette;
 
@@ -89,7 +89,7 @@ public:
 	std::optional<std::wstring> get_error_string(size_t max_errors);
 	size_t get_valid_palettes_amount();
 	std::wstring get_valid_palette_names(size_t max_length);
-	std::vector<Palettes::Definition> import_palettes();
+	PaletteCustomizeDialog::CurrentPalette import_palettes();
 
 	const static inline std::wstring palette_name_end = L"=";	// There is no name_start because that's a valid character from below
 	const static inline std::wstring palette_color_start = L"#";

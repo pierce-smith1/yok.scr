@@ -334,16 +334,10 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				break;
 			}
 
-			std::vector<Palettes::Definition> palettes = imported_palettes->import_palettes();
-			m_current_palette = {
-				.data = *palettes.rbegin()->data,
-				.name = palettes.rbegin()->name
-			};
+			m_current_palette = imported_palettes->import_palettes();
+			
 			refresh_palette_list();
 
-			for (Palettes::Definition palette : palettes) {
-				delete palette.data;
-			}
 			delete imported_palettes;
 			break;
 		}
@@ -613,7 +607,7 @@ std::wstring PaletteCustomizeDialog::export_palettes() {
 		auto name = palette.name;
 		auto *data = palette.data;
 
-		palettes_string.append(palette.name + PalettesImport::palette_name_end + L" " + m_palette_repo.serialize(*data) + PalettesImport::palette_color_end + L"\r\n");
+		palettes_string.append(palette.name + L" " + PalettesImport::palette_name_end + L" " + m_palette_repo.serialize(*data) + PalettesImport::palette_color_end + L"\r\n");
 	}
 	palettes_string.append(PalettesImport::input_terminator);
 
@@ -638,8 +632,7 @@ PalettesImport *PalettesImport::parse_palettes_string(const std::wstring &import
 	std::vector<unsigned int> parsed_palette_has_errors;
 
 	while (import_string.find_first_of(valid_chars, import_string_current_index) != std::wstring::npos
-		   && import_string.find_first_of(palette_name_end, import_string_current_index) != std::wstring::npos
-		   && import_string.find_first_of(valid_chars, import_string_current_index) < import_string.find_first_of(palette_name_end, import_string_current_index)) {
+		   && import_string.find_first_of(palette_name_end, import_string_current_index) != std::wstring::npos) {
 		has_terminator_at_end = (import_string.find_first_of(input_terminator, import_string_current_index) != std::wstring::npos);
 
 		std::wstring current_name = L"";
@@ -652,6 +645,7 @@ PalettesImport *PalettesImport::parse_palettes_string(const std::wstring &import
 		// Read the palette name (From first valid character (except space) to ':')
 		import_string_current_index = import_string.find_first_of(valid_chars, import_string_current_index);
 		current_name = import_string.substr(import_string_current_index, import_string.find_first_of(palette_name_end, import_string_current_index) - import_string_current_index);
+		current_name = current_name.substr(0, current_name.find_last_not_of(L" ") + 1);
 		if (current_name.length() < PaletteCustomizeDialog::MinPaletteNameSize) {
 			current_has_errors |= error_name_too_short;
 		}
@@ -856,10 +850,10 @@ std::wstring PalettesImport::get_valid_palette_names(size_t max_length) {
 	return palette_names;
 }
 
-std::vector<Palettes::Definition> PalettesImport::import_palettes() {
+PaletteCustomizeDialog::CurrentPalette PalettesImport::import_palettes() {
 	size_t palette_count = palettes_name.size();
 	PaletteRepository palette_repo = PaletteRepository();
-	std::vector<Palettes::Definition> imported_palettes;
+	PaletteCustomizeDialog::CurrentPalette last_palette = {};
 
 	for (int i = 0; i < palette_count; i++) {
 		if (palettes_has_errors[i] != error_none) {
@@ -903,15 +897,18 @@ std::vector<Palettes::Definition> PalettesImport::import_palettes() {
 			colors.append(palette_color_start + color + palette_color_end);
 		}
 		colors.pop_back();
+
 		PaletteData data = palette_repo.deserialize(colors);
 
-		imported_palettes.push_back(Palettes::Definition());
-		imported_palettes.rbegin()->name = name;
-		imported_palettes.rbegin()->data = new PaletteData(data);
+		last_palette = {
+			.data = data,
+			.name = name
+		};
+
 		palette_repo.set_palette(name, data);
 	}
 
-	return imported_palettes;
+	return last_palette;
 }
 
 BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -970,6 +967,15 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 				);
 			});
 
+			// Trim any leading or trailing whitespace
+			if (name.find_first_not_of(L" ") != std::wstring::npos) {
+				name = name.substr(name.find_first_not_of(L" "));
+				name = name.substr(0, name.find_last_not_of(L" ") + 1);
+			}
+			else {
+				name = L"";
+			}
+
 			switch (LOWORD(wparam)) {
 				case IDOK: {
 					auto *returned_name = new std::wstring(name);
@@ -988,7 +994,7 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 
 							bool name_too_short = name.size() < PaletteCustomizeDialog::MinPaletteNameSize;
 							bool name_has_invalid_chars = name.find_first_not_of(valid_chars) != std::wstring::npos;
-							// There is no "name_too_long" check because names are 
+							// There is no "name_too_long" check because names are
 							// automatically truncated due to the buffer size.
 
 							HWND ok_button = GetDlgItem(dialog, IDOK);
