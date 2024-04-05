@@ -351,8 +351,10 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				selected_folder->GetDisplayName(SIGDN_FILESYSPATH, &folder_name);
 				
 				if (folder_name != nullptr) {
-					do_png_export(folder_name, *m_current_palette);
-					ShellExecute(NULL, L"explore", folder_name, NULL, NULL, SW_SHOWDEFAULT);
+					auto export_path = get_png_export_path(folder_name, m_current_palette->name);
+					do_png_export(export_path, *m_current_palette);
+
+					ShellExecute(NULL, L"explore", export_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 					CoTaskMemFree(folder_name);
 				}
 
@@ -529,11 +531,16 @@ void PaletteCustomizeDialog::delete_current_palette() {
 	}
 }
 
+std::wstring PaletteCustomizeDialog::get_png_export_path(const std::wstring &base_path, const std::wstring &palette_name) {
+	return std::format(L"{}\\yokins-{}-{}", base_path, palette_name, rand());
+}
 
-void PaletteCustomizeDialog::do_png_export(const std::wstring &base_path, const CurrentPalette &palette) {
+void PaletteCustomizeDialog::do_png_export(const std::wstring &path, const CurrentPalette &palette) {
 	Gdiplus::GdiplusStartupInput gdiStartup;
 	ULONG_PTR gdiplus_token;
 	Gdiplus::GdiplusStartup(&gdiplus_token, &gdiStartup, NULL);
+
+	CreateDirectory(path.c_str(), NULL);
 
 	for (const auto &bitmap_def : Bitmaps::All) {
 		// The most reliable way to get the data for the bitmap to GDI+ is to
@@ -545,9 +552,7 @@ void PaletteCustomizeDialog::do_png_export(const std::wstring &base_path, const 
 		// We store texture data as RGBA, but GDI+ wants them as BGRA.
 		// So, swap the texture's red and blue channels.
 		for (int i = 0; i < BITMAP_WH * BITMAP_WH; i++) {
-			auto red = texture_data[i * 4 + RED];
-			texture_data[i * 4 + RED] = texture_data[i * 4 + BLUE];
-			texture_data[i * 4 + BLUE] = red;
+			std::swap(texture_data[i * 4 + BLUE], texture_data[i * 4 + RED]);
 		}
 
 		// Almost there, but GDI+'s coordinate system is also upside down 
@@ -560,20 +565,10 @@ void PaletteCustomizeDialog::do_png_export(const std::wstring &base_path, const 
 				int i = x + y * BITMAP_WH;
 				int i_prime = x + y_prime * BITMAP_WH;
 
-				auto red = texture_data[i * 4 + RED];
-				auto green = texture_data[i * 4 + GREEN];
-				auto blue = texture_data[i * 4 + BLUE];
-				auto alpha = texture_data[i * 4 + ALPHA];
-
-				texture_data[i * 4 + RED] = texture_data[i_prime * 4 + RED];
-				texture_data[i * 4 + GREEN] = texture_data[i_prime * 4 + GREEN];
-				texture_data[i * 4 + BLUE] = texture_data[i_prime * 4 + BLUE];
-				texture_data[i * 4 + ALPHA] = texture_data[i_prime * 4 + ALPHA];
-
-				texture_data[i_prime * 4 + RED] = red;
-				texture_data[i_prime * 4 + GREEN] = green;
-				texture_data[i_prime * 4 + BLUE] = blue;
-				texture_data[i_prime * 4 + ALPHA] = alpha;
+				std::swap(texture_data[i * 4 + RED], texture_data[i_prime * 4 + RED]);
+				std::swap(texture_data[i * 4 + GREEN], texture_data[i_prime * 4 + GREEN]);
+				std::swap(texture_data[i * 4 + BLUE], texture_data[i_prime * 4 + BLUE]);
+				std::swap(texture_data[i * 4 + ALPHA], texture_data[i_prime * 4 + ALPHA]);
 			}
 		}
 
@@ -593,7 +588,7 @@ void PaletteCustomizeDialog::do_png_export(const std::wstring &base_path, const 
 		struct __declspec(uuid("{557cf406-1a04-11d3-9a73-0000f81ef32e}")) PngEncoder;
 		auto png_encoder_sclid = __uuidof(PngEncoder);
 
-		const auto save_path = std::format(L"{}\\{}.png", base_path, bitmap_def.name);
+		const auto save_path = std::format(L"{}\\{}.png", path, bitmap_def.name);
 		bitmap.Save(save_path.c_str(), &png_encoder_sclid, NULL);
 
 		delete[] texture_data;
