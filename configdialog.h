@@ -46,13 +46,13 @@ public:
 	const static inline Palettes::Definition DisabledPalette = {
 		.name = L"disabled",
 		.data = new PaletteData {{
-			"#aaaaaa",
-			"#aaaaaa",
-			"#aaaaaa",
-			"#aaaaaa",
-			"#aaaaaa",
-			"#aaaaaa",
-			"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
+			L"#aaaaaa",
 		}},
 	};
 
