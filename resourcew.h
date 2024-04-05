@@ -90,20 +90,18 @@
 #define IDC_PALDLG_HORN_COLOR           1049
 #define IDC_PALDLG_PREVIEW              1050
 #define IDC_PALDLG_EYE_COLOR            1052
-#define IDC_CUSTOM_PALETTES_CHECK       1052
 #define IDC_PALDLG_WHITES_COLOR         1053
 #define IDC_PALDLG_NEW_PALETTE_NAME     1055
-#define IDC_EDIT1                       1056
 #define IDC_COLORDLG_HEX_CODE           1056
 #define IDC_PALDLG_DUPE_PALETTE         1057
 #define IDC_IMPORT_ERROR_TEXT           1058
 #define IDC_PALDLG_INSERT_PREDEFINED    1060
 #define IDC_PALDLG_CHOOSE_PREDEFINED    1061
 #define IDC_PALDLG_PREDEFINED_PREVIEW   1062
+#define IDC_CUSTOM_PALETTES_CHECK       1063
 #define DLG_SCREENSAVERCONFIGURE        2003
 #define DLG_IMPORT_EXPORT_PALETTES      2004
-#define DLG_SCREENSAVERCONFIGURE        2003
-#define DLG_INSERT_PREDEFINED           2004
+#define DLG_INSERT_PREDEFINED           2005
 
 // Next default values for new objects
 // 

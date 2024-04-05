@@ -1166,9 +1166,6 @@ LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message
 	return FALSE;
 }
 
-             
-              
-=======
 LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
 	const static HANDLE preview_bitmap = Bitmaps::load_raw_resource(Bitmaps::Lk.resource_id);
 
