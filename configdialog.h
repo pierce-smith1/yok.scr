@@ -89,7 +89,12 @@ public:
 	std::optional<std::wstring> get_error_string(size_t max_errors);
 	size_t get_valid_palettes_amount();
 	std::wstring get_valid_palette_names(size_t max_length);
-	void import_palettes();
+	std::vector<Palettes::Definition> import_palettes();
+
+	const static inline std::wstring palette_name_end = L"=";	// There is no name_start because that's a valid character from below
+	const static inline std::wstring palette_color_start = L"#";
+	const static inline std::wstring palette_color_end = L";";
+	const static inline std::wstring input_terminator = L"+";
 
 private:
 	std::vector<std::wstring> palettes_name;
@@ -97,7 +102,7 @@ private:
 	std::vector<unsigned int> palettes_has_errors;
 	bool import_string_had_terminator;
 
-	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:";	// Note: Spaces are valid characters but not included in this string
+	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:()";	// Note: Spaces are valid characters but not included in this string
 	const static inline std::wstring valid_hex_chars = L"0123456789abcdefABCDEF";
 	const static inline size_t colors_amount = 7;
 
