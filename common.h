@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 using Id = unsigned int;
 static Id running_id = 0;
 
@@ -56,4 +58,18 @@ template <typename String, typename Container> String join(const Container &stri
   
 template <typename To, typename From> To cast(From value) {
 	return static_cast<To>(value);
+}
+
+template <typename Char, size_t Size = 1 << 20> std::basic_string<Char> string_from_buffer(std::function<void(Char *, size_t)> fill_buffer_action) {
+	// The default size of 1 << 20 should be more than enough for all purposes.
+	// It's not efficient, but it won't matter when outside a hot path.
+	Char *buffer = new Char[Size + 1] { 0 }; // + 1 for the null terminator
+
+	fill_buffer_action(buffer, Size);
+	buffer[Size] = 0;
+
+	std::basic_string<Char> string = buffer;
+	delete[] buffer;
+
+	return string;
 }

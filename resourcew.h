@@ -95,16 +95,21 @@
 #define IDC_PALDLG_NEW_PALETTE_NAME     1055
 #define IDC_EDIT1                       1056
 #define IDC_COLORDLG_HEX_CODE           1056
-#define IDC_BUTTON1                     1057
 #define IDC_PALDLG_DUPE_PALETTE         1057
 #define IDC_IMPORT_ERROR_TEXT           1058
+#define IDC_PALDLG_INSERT_PREDEFINED    1060
+#define IDC_PALDLG_CHOOSE_PREDEFINED    1061
+#define IDC_PALDLG_PREDEFINED_PREVIEW   1062
 #define DLG_SCREENSAVERCONFIGURE        2003
 #define DLG_IMPORT_EXPORT_PALETTES      2004
+#define DLG_SCREENSAVERCONFIGURE        2003
+#define DLG_INSERT_PREDEFINED           2004
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
+
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1059
