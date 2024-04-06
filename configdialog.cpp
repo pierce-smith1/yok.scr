@@ -381,6 +381,19 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 }
 
 void PaletteCustomizeDialog::refresh() {
+	HWND not_all_colors_warning = GetDlgItem(m_dialog, IDC_PALDLG_NOT_ALL_COLORS_WARNING);
+	const static std::set<Bitmaps::Definition> bitmaps_with_all_colors = {
+		Bitmaps::Lksix,
+		Bitmaps::Lkhusk,
+		Bitmaps::Lkconcern,
+	};
+
+	if (bitmaps_with_all_colors.find(m_current_preview_bitmap) == bitmaps_with_all_colors.end()) {
+		ShowWindow(not_all_colors_warning, SW_SHOW);
+	} else {
+		ShowWindow(not_all_colors_warning, SW_HIDE);
+	}
+
 	std::vector<HWND> controls_to_disable = {
 		GetDlgItem(m_dialog, IDC_PALDLG_DELETE_PALETTE),
 		GetDlgItem(m_dialog, IDC_PALDLG_SCALE_COLOR),
@@ -391,30 +404,26 @@ void PaletteCustomizeDialog::refresh() {
 		GetDlgItem(m_dialog, IDC_PALDLG_EYE_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_WHITES_COLOR),
 		GetDlgItem(m_dialog, IDC_PALDLG_DUPE_PALETTE),
+		GetDlgItem(m_dialog, IDC_PALDLG_NEXT_BITMAP),
+		GetDlgItem(m_dialog, IDC_PALDLG_PREV_BITMAP),
 	};
 
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
-	for (HWND control : controls_to_disable) {
-		EnableWindow(control, !all_palettes.empty());
+	if (all_palettes.empty()) {
+		for (HWND control : controls_to_disable) {
+			ShowWindow(not_all_colors_warning, SW_HIDE);
+			EnableWindow(control, false);
+		}
+	} else {
+		for (HWND control : controls_to_disable) {
+			EnableWindow(control, true);
+		}
 	}
 
 	if (m_current_palette) {
 		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, m_current_palette->data);
 	} else {
 		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, *DisabledPalette.data);
-	}
-
-	const static std::set<Bitmaps::Definition> bitmaps_with_all_colors = {
-		Bitmaps::Lksix,
-		Bitmaps::Lkhusk,
-		Bitmaps::Lkconcern,
-	};
-
-	HWND not_all_colors_warning = GetDlgItem(m_dialog, IDC_PALDLG_NOT_ALL_COLORS_WARNING);
-	if (bitmaps_with_all_colors.find(m_current_preview_bitmap) == bitmaps_with_all_colors.end()) {
-		ShowWindow(not_all_colors_warning, SW_SHOW);
-	} else {
-		ShowWindow(not_all_colors_warning, SW_HIDE);
 	}
 
 	// Force the color buttons to re-paint, they won't on their own
