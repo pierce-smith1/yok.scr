@@ -384,7 +384,6 @@ void PaletteCustomizeDialog::refresh() {
 	HWND not_all_colors_warning = GetDlgItem(m_dialog, IDC_PALDLG_NOT_ALL_COLORS_WARNING);
 	const static std::set<Bitmaps::Definition> bitmaps_with_all_colors = {
 		Bitmaps::Lksix,
-		Bitmaps::Lkhusk,
 		Bitmaps::Lkconcern,
 	};
 
