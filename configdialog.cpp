@@ -586,7 +586,7 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 		.hInstance = NULL,
 		.rgbResult = RGB(std::get<RED>(current_color), std::get<GREEN>(current_color), std::get<BLUE>(current_color)),
 		.lpCustColors = custom_colors,
-		.Flags = CC_FULLOPEN | CC_ENABLETEMPLATE | CC_ENABLEHOOK,
+		.Flags = CC_FULLOPEN | CC_ENABLETEMPLATE | CC_ENABLEHOOK | CC_RGBINIT,
 		.lCustData = 0,
 		.lpfnHook = (LPCCHOOKPROC) CustomColorDialog,
 		.lpTemplateName = MAKEINTRESOURCE(DLG_CUSTOM_CHOOSECOLOR),
@@ -763,7 +763,7 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
 							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
-							std::wstring hex_code = string_from_buffer<wchar_t, max_hex_code_length>([&](wchar_t *buffer, size_t size) {
+							std::wstring hex_code = string_from_buffer<wchar_t, max_hex_code_length + 1>([&](wchar_t *buffer, size_t size) {
 								Edit_GetText(
 									hex_input,
 									buffer,
