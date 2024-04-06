@@ -23,12 +23,13 @@ public:
 
 	void apply() const;
 
+	GLubyte *data() const;
+
 private:
 	Texture(const PaletteData &palette, const BitmapData &bitmap);
 	Texture(const Texture &texture) = delete;
 	Texture &operator=(const Texture &texture) = delete;
 
-	GLubyte *data();
 
 	static std::map<std::pair<Id, Id>, Texture *> texture_cache;
 

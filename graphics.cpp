@@ -55,7 +55,7 @@ Texture::Texture(const PaletteData &palette, const BitmapData &bitmap)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, BITMAP_WH, BITMAP_WH, 0, GL_RGBA, GL_UNSIGNED_BYTE, data());
 }
 
-GLubyte *Texture::data() {
+GLubyte *Texture::data() const {
 	GLubyte *texture_data = new GLubyte[m_bitmap.size() * 4];
 
 	// The bitmap and palette are fused into one!

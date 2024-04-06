@@ -72,6 +72,9 @@ private:
 	void save_current_palette_as_new();
 	void delete_current_palette();
 
+	std::wstring get_png_export_path(const std::wstring &base_path, const std::wstring &palette_name);
+	void do_png_export(const std::wstring &path, const CurrentPalette &palette);
+
 	int palette_index_for_control(int color_button_control_id);
 	void get_and_save_color(int palette_index);
 
