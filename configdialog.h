@@ -38,6 +38,8 @@ public:
 	BOOL command(WPARAM wparam, LPARAM lparam);
 	HBRUSH handle_color_button_message(WPARAM wparam, LPARAM lparam);
 
+	std::wstring export_palettes();
+  
 	static void apply_palette_to_preview(HWND dialog, HANDLE preview_bitmap, int preview_control_id, const PaletteData &palette);
 
 	const static inline size_t MinPaletteNameSize = 2;
@@ -56,6 +58,11 @@ public:
 		}},
 	};
 
+	struct CurrentPalette {
+		PaletteData data;
+		std::wstring name;
+	};
+
 private:
 	void refresh();
 	void refresh_palette_list();
@@ -68,11 +75,6 @@ private:
 	int palette_index_for_control(int color_button_control_id);
 	void get_and_save_color(int palette_index);
 
-	struct CurrentPalette {
-		PaletteData data;
-		std::wstring name;
-	};
-
 	std::optional<CurrentPalette> m_current_palette;
 	Bitmaps::Definition m_current_preview_bitmap;
 
@@ -80,6 +82,46 @@ private:
 	HANDLE m_preview_bitmap;
 	PaletteRepository m_palette_repo;
 	PaletteGroupRepository m_group_repo;
+};
+
+class PalettesImport {
+public:
+	static PalettesImport *parse_palettes_string(const std::wstring &import_string);
+	std::optional<std::wstring> get_error_string(size_t max_errors);
+	size_t get_valid_palettes_amount();
+	std::wstring get_valid_palette_names(size_t max_length);
+	PaletteCustomizeDialog::CurrentPalette import_palettes();
+
+	const static inline std::wstring palette_name_end = L"=";	// There is no name_start because that's a valid character from below
+	const static inline std::wstring palette_color_start = L"#";
+	const static inline std::wstring palette_color_end = L";";
+	const static inline std::wstring input_terminator = L"+";
+
+private:
+	std::vector<std::wstring> palettes_name;
+	std::vector<std::vector<std::wstring>> palettes_raw_colors;
+	std::vector<unsigned int> palettes_has_errors;
+	bool import_string_had_terminator;
+
+	const static inline std::wstring valid_chars = L"qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789-_!?:()";	// Note: Spaces are valid characters but not included in this string
+	const static inline std::wstring valid_hex_chars = L"0123456789abcdefABCDEF";
+	const static inline size_t colors_amount = 7;
+
+	const enum ParserErrors : unsigned int {
+		error_none = 0,
+		error_name_too_short = 1 << 0,
+		error_name_too_long = 1 << 1,
+		error_name_invalid_characters = 1 << 2,
+		error_colors_too_few = 1 << 3,
+		error_colors_incorrect_length = 1 << 4,
+		error_colors_invalid_characters = 1 << 5,
+		error_palette_contains_newlines = 1 << 6,
+	};
+
+	PalettesImport(std::vector<std::wstring> palettes_name,
+				   std::vector<std::vector<std::wstring>> palettes_raw_colors,
+				   std::vector<unsigned int> palettes_has_errors,
+				   bool import_string_had_terminator);
 };
 
 const static std::map<PatternName, std::wstring> pattern_strings = {
@@ -103,4 +145,6 @@ const static std::map<PaletteGroup, std::wstring> palette_strings = {
 LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+
