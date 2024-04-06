@@ -22,9 +22,9 @@ PaletteData::PaletteData(const std::initializer_list<Color> &i_list) {
 // The hex strings provided must be of the form #RRGGBB, where XX are hex numbers.
 // The alpha is always assumed to be 255.
 // The resulting palette will always start with { 0, 0, 0, 0 }.
-PaletteData::PaletteData(const std::array<std::string, _PALETTE_SIZE - 1> &hex_strings) {
+PaletteData::PaletteData(const std::vector<std::wstring> &hex_strings) {
 	*begin() = { 0, 0, 0, 0 };
-	std::transform(hex_strings.begin(), hex_strings.end(), begin() + 1, [](const std::string &hex_string) -> Color {
+	std::transform(hex_strings.begin(), hex_strings.end(), begin() + 1, [](const std::wstring &hex_string) -> Color {
 		auto red = std::stoi(hex_string.substr(1, 2), nullptr, 16);
 		auto green = std::stoi(hex_string.substr(3, 2), nullptr, 16);
 		auto blue = std::stoi(hex_string.substr(5, 2), nullptr, 16);
@@ -268,25 +268,7 @@ std::wstring PaletteRepository::serialize(const PaletteData &palette) {
 
 PaletteData PaletteRepository::deserialize(const std::wstring &serialized) {
 	auto colors = split<std::wstring>(serialized, L";");
-
-	std::array<std::string, _PALETTE_SIZE - 1> raw_color_strings;
-	std::transform(colors.begin(), colors.end(), raw_color_strings.begin(), [](const std::wstring &color_string) {
-		std::string ansi_string = string_from_buffer<char>([&](char *buffer, size_t size) {
-			WideCharToMultiByte(
-				CP_UTF8,
-				0,
-				color_string.c_str(),
-				-1,
-				buffer,
-				cast<int>(size),
-				NULL,
-				NULL
-			);
-		});
-		return ansi_string;
-	});
-
-	PaletteData palette_data = raw_color_strings;
+	PaletteData palette_data = colors;
 	return palette_data;
 }
 

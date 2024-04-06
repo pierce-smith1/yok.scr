@@ -144,6 +144,7 @@ BEGIN
     LTEXT           "If you have no palettes here, we'll fall back to using the normal palettes.",IDC_STATIC,175,217,131,17,WS_DISABLED
     PUSHBUTTON      "+ Duplicate palette",IDC_PALDLG_DUPE_PALETTE,13,231,70,14
     PUSHBUTTON      "Add bulit-in palette",IDC_PALDLG_INSERT_PREDEFINED,63,15,81,14
+    GROUPBOX        "",IDC_PALDLG_COLOR_BUTTONS_REGION,175,108,131,105,NOT WS_VISIBLE
 END
 
 DLG_NEW_CUSTOM_PALETTE DIALOGEX 0, 0, 141, 72
