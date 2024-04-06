@@ -67,11 +67,6 @@ private:
 	void refresh();
 	void refresh_palette_list();
 
-	struct CurrentPalette {
-		PaletteData data;
-		std::wstring name;
-	};
-
 	void update_current_palette();
 	void save_current_palette();
 	void save_current_palette_as_new();
