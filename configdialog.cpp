@@ -425,7 +425,36 @@ void PaletteCustomizeDialog::refresh() {
 	}
 
 	// Force the color buttons to re-paint, they won't on their own
-	InvalidateRect(m_dialog, NULL, TRUE);
+	RECT dialog_rect = { 0 };
+	GetWindowRect(m_dialog, &dialog_rect);
+
+	// In Windows Vista+, calling GetWindowRect on a dialog does not 
+	// just return the bounds of the dialog;
+	// it gives the bounds of the dialog _including the drop shadow!_
+	// There is a function for getting the size without the drop shadow,
+	// but it does NOT respect DPI settings, so it's effectively useless.
+	// (and it requires linking against dwmapi... a whole dependency just for this!?)
+	// Fuck it! I measured roughly how big the drop shadow is on my
+	// machine and offset the rectangle by that.
+	// Why do you hate me, billy?
+	const static int drop_shadow_size = 12;
+	dialog_rect.left += drop_shadow_size;
+	dialog_rect.right -= drop_shadow_size;
+	dialog_rect.top += drop_shadow_size;
+	dialog_rect.bottom -= drop_shadow_size;
+
+	HWND color_buttons_region = GetDlgItem(m_dialog, IDC_PALDLG_COLOR_BUTTONS_REGION);
+	RECT colors_rect = { 0 };
+	GetWindowRect(color_buttons_region, &colors_rect);
+
+	RECT colors_client_rect = {
+		.left = colors_rect.left - dialog_rect.left,
+		.top = colors_rect.top - dialog_rect.top,
+		.right = colors_rect.right - dialog_rect.left,
+		.bottom = colors_rect.bottom - dialog_rect.top,
+	};
+
+	InvalidateRect(m_dialog, &colors_client_rect, TRUE);
 }
 
 void PaletteCustomizeDialog::refresh_palette_list() {
