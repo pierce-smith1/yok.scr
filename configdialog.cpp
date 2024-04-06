@@ -10,6 +10,7 @@
 #include "yokscr.h"
 #include "resourcew.h"
 #include "graphics.h"
+#include "noise.h"
 
 ConfigDialog::ConfigDialog(HWND dialog)
 	: m_dialog(dialog), m_current_config(Registry::get_config()) {
@@ -532,7 +533,7 @@ void PaletteCustomizeDialog::delete_current_palette() {
 }
 
 std::wstring PaletteCustomizeDialog::get_png_export_path(const std::wstring &base_path, const std::wstring &palette_name) {
-	return std::format(L"{}\\yokins-{}-{}", base_path, palette_name, rand());
+	return std::format(L"{}\\yokins-{}-{}", base_path, palette_name, cast<int>(Noise::random() * 10000.0));
 }
 
 void PaletteCustomizeDialog::do_png_export(const std::wstring &path, const CurrentPalette &palette) {
