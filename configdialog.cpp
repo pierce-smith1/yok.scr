@@ -586,7 +586,7 @@ void PaletteCustomizeDialog::get_and_save_color(int palette_index) {
 		.hInstance = NULL,
 		.rgbResult = RGB(std::get<RED>(current_color), std::get<GREEN>(current_color), std::get<BLUE>(current_color)),
 		.lpCustColors = custom_colors,
-		.Flags = CC_FULLOPEN | CC_ENABLETEMPLATE | CC_ENABLEHOOK,
+		.Flags = CC_FULLOPEN | CC_ENABLETEMPLATE | CC_ENABLEHOOK | CC_RGBINIT,
 		.lCustData = 0,
 		.lpfnHook = (LPCCHOOKPROC) CustomColorDialog,
 		.lpTemplateName = MAKEINTRESOURCE(DLG_CUSTOM_CHOOSECOLOR),
