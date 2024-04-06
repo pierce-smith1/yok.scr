@@ -208,11 +208,12 @@ void ConfigDialog::refresh() {
 }
 
 PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
-	: m_dialog(dialog),
+	: m_current_preview_bitmap(Bitmaps::Lksix),
+	m_dialog(dialog),
 	// We use lksix because it shows off every color in the palette.
-	m_preview_bitmap(Bitmaps::load_raw_resource(Bitmaps::Lksix.resource_id)),
+	m_preview_bitmap(Bitmaps::load_raw_resource(m_current_preview_bitmap.resource_id)),
 	// The "Friend" palette makes a good, netural-toned default.
-	m_current_palette(*Palettes::Friend.data) 
+	m_current_palette(*Palettes::Friend.data)
 {
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
 	if (!all_palettes.empty()) {
@@ -229,7 +230,8 @@ PaletteCustomizeDialog::PaletteCustomizeDialog(HWND dialog)
 }
 
 BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
-	switch (LOWORD(wparam)) {
+	auto control_id = LOWORD(wparam);
+	switch (control_id) {
 		case IDOK: {
 			save_current_palette();
 			EndDialog(m_dialog, true);
@@ -238,6 +240,28 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 		case IDCANCEL: {
 			EndDialog(m_dialog, true);
 			return TRUE;
+		}
+		case IDC_PALDLG_PREV_BITMAP:
+		case IDC_PALDLG_NEXT_BITMAP: {
+			auto current_bitmap_position = Bitmaps::All.find(m_current_preview_bitmap);
+
+			auto bitmaps_start = Bitmaps::All.begin();
+			auto bitmaps_last = --Bitmaps::All.end();
+
+			if (control_id == IDC_PALDLG_PREV_BITMAP && current_bitmap_position == bitmaps_start) {
+				m_current_preview_bitmap = *bitmaps_last;
+			} else if (control_id == IDC_PALDLG_NEXT_BITMAP && current_bitmap_position == bitmaps_last) {
+				m_current_preview_bitmap = *bitmaps_start;
+			} else if (control_id == IDC_PALDLG_PREV_BITMAP) {
+				m_current_preview_bitmap = *--current_bitmap_position;
+			} else {
+				m_current_preview_bitmap = *++current_bitmap_position;
+			}
+
+			m_preview_bitmap = Bitmaps::load_raw_resource(m_current_preview_bitmap.resource_id);
+			refresh();
+
+			break;
 		}
 		case IDC_PALDLG_SCALE_COLOR:
 		case IDC_PALDLG_SCALE_HIGHLIGHT_COLOR:
@@ -378,6 +402,19 @@ void PaletteCustomizeDialog::refresh() {
 		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, m_current_palette->data);
 	} else {
 		apply_palette_to_preview(m_dialog, m_preview_bitmap, IDC_PALDLG_PREVIEW, *DisabledPalette.data);
+	}
+
+	const static std::set<Bitmaps::Definition> bitmaps_with_all_colors = {
+		Bitmaps::Lksix,
+		Bitmaps::Lkhusk,
+		Bitmaps::Lkconcern,
+	};
+
+	HWND not_all_colors_warning = GetDlgItem(m_dialog, IDC_PALDLG_NOT_ALL_COLORS_WARNING);
+	if (bitmaps_with_all_colors.find(m_current_preview_bitmap) == bitmaps_with_all_colors.end()) {
+		ShowWindow(not_all_colors_warning, SW_SHOW);
+	} else {
+		ShowWindow(not_all_colors_warning, SW_HIDE);
 	}
 
 	// Force the color buttons to re-paint, they won't on their own

@@ -74,6 +74,7 @@ private:
 	};
 
 	std::optional<CurrentPalette> m_current_palette;
+	Bitmaps::Definition m_current_preview_bitmap;
 
 	HWND m_dialog;
 	HANDLE m_preview_bitmap;
