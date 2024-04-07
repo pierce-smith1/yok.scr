@@ -614,13 +614,23 @@ void PaletteCustomizeDialog::delete_current_palette() {
 		return;
 	}
 
+	auto all_palettes = m_palette_repo.get_all_custom_palettes();
+	size_t index = 0;
+	if (all_palettes.size() > 1) {
+		for (size_t i = 0; i < all_palettes.size(); i++) {
+			if (all_palettes[i].name == m_current_palette->name) {
+				index = (i > 0 ? i - 1 : i + 1);
+				break;
+			}
+		}
+	}
+
 	m_palette_repo.remove_palette(m_current_palette->name);
 
-	auto all_palettes = m_palette_repo.get_all_custom_palettes();
-	if (!all_palettes.empty()) {
+	if (all_palettes.size() > 1) {
 		m_current_palette = {
-			.data = *all_palettes[0].data,
-			.name = all_palettes[0].name,
+			.data = *all_palettes[index].data,
+			.name = all_palettes[index].name,
 		};
 	} else {
 		m_current_palette = {};
@@ -1048,7 +1058,7 @@ PaletteCustomizeDialog::CurrentPalette PalettesImport::import_palettes() {
 		std::vector<Palettes::Definition> existing_palettes = palette_repo.get_all_custom_palettes();
 		bool is_name_taken = false;
 		for (Palettes::Definition palette : existing_palettes) {
-			if (palette.name == name) {
+			if (_wcsicmp(palette.name.c_str(), name.c_str()) == 0) {
 				is_name_taken = true;
 				break;
 			}
@@ -1063,7 +1073,7 @@ PaletteCustomizeDialog::CurrentPalette PalettesImport::import_palettes() {
 				}
 
 				for (Palettes::Definition palette : existing_palettes) {
-					if (palette.name == name + name_append) {
+					if (_wcsicmp(palette.name.c_str(), (name + name_append).c_str()) == 0) {
 						is_name_taken = true;
 						break;
 					}
@@ -1235,6 +1245,8 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 	};
 
 	static UINT set_rgb_message_code = RegisterWindowMessage(SETRGBSTRING);
+	static int ignore_rgb_change = 0;
+	static int ignore_hex_change = 0;
 
 	switch (message) {
 		case WM_INITDIALOG: {
@@ -1256,9 +1268,66 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 		}
 		case WM_COMMAND: {
 			switch (LOWORD(wparam)) {
+				case COLOR_RED:
+				case COLOR_GREEN:
+				case COLOR_BLUE: {
+					switch (HIWORD(wparam)) {
+						case EN_CHANGE: {
+							if (ignore_hex_change > 0) {
+								ignore_hex_change--;
+								return FALSE;
+							}
+							ignore_rgb_change = 1;
+
+							HWND red_input = GetDlgItem(dialog, COLOR_RED);
+							HWND green_input = GetDlgItem(dialog, COLOR_GREEN);
+							HWND blue_input = GetDlgItem(dialog, COLOR_BLUE);
+
+							std::wstring red = string_from_buffer<wchar_t, 4>([&](wchar_t *buffer, size_t size) {
+								Edit_GetText(
+									red_input,
+									buffer,
+									cast<int>(size)
+								);
+							});
+							std::wstring green = string_from_buffer<wchar_t, 4>([&](wchar_t *buffer, size_t size) {
+								Edit_GetText(
+									green_input,
+									buffer,
+									cast<int>(size)
+								);
+							});
+							std::wstring blue = string_from_buffer<wchar_t, 4>([&](wchar_t *buffer, size_t size) {
+								Edit_GetText(
+									blue_input,
+									buffer,
+									cast<int>(size)
+								);
+							});
+
+							if (red.empty() || green.empty() || blue.empty()) {
+								return FALSE;
+							}
+
+							std::wstring hex_code = std::format(L"#{:02x}{:02x}{:02x}", std::stoi(red), std::stoi(green), std::stoi(blue));
+							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
+							Edit_SetText(
+								hex_input,
+								hex_code.c_str()
+							);
+						}
+					}
+					break;
+				}
 				case IDC_COLORDLG_HEX_CODE: {
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
+							if (ignore_rgb_change > 0) {
+								ignore_rgb_change--;
+								return FALSE;
+							}
+							ignore_hex_change = 3;
+
 							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
 							std::wstring hex_code = string_from_buffer<wchar_t, max_hex_code_length + 1>([&](wchar_t *buffer, size_t size) {
 								Edit_GetText(
