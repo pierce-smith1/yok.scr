@@ -247,6 +247,14 @@ std::optional<Palettes::Definition> PaletteRepository::get_palette(const std::ws
 std::vector<Palettes::Definition> PaletteRepository::get_all_custom_palettes() {
 	auto items = m_map.items();
 
+	// Remove any undefined palette indices
+	for (auto item = items.begin(); item != items.end(); item++) {
+		if (!get_palette(item->first).has_value()) {
+			remove_palette(item->first);
+			item = items.erase(item) - 1;
+		}
+	}
+
 	std::vector<Palettes::Definition> palettes;
 	std::transform(items.begin(), items.end(), std::back_inserter(palettes), [&](const RegistryBackedMap::Item &item) {
 		return *get_palette(item.first);

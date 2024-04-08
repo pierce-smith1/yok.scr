@@ -615,11 +615,11 @@ void PaletteCustomizeDialog::delete_current_palette() {
 	}
 
 	auto all_palettes = m_palette_repo.get_all_custom_palettes();
-	size_t index = 0;
+	size_t next_index_to_select = 0;
 	if (all_palettes.size() > 1) {
 		for (size_t i = 0; i < all_palettes.size(); i++) {
 			if (all_palettes[i].name == m_current_palette->name) {
-				index = (i > 0 ? i - 1 : i + 1);
+				next_index_to_select = (i > 0 ? i - 1 : i + 1);
 				break;
 			}
 		}
@@ -629,8 +629,8 @@ void PaletteCustomizeDialog::delete_current_palette() {
 
 	if (all_palettes.size() > 1) {
 		m_current_palette = {
-			.data = *all_palettes[index].data,
-			.name = all_palettes[index].name,
+			.data = *all_palettes[next_index_to_select].data,
+			.name = all_palettes[next_index_to_select].name,
 		};
 	} else {
 		m_current_palette = {};
@@ -1245,8 +1245,14 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 	};
 
 	static UINT set_rgb_message_code = RegisterWindowMessage(SETRGBSTRING);
-	static int ignore_rgb_change = 0;
-	static int ignore_hex_change = 0;
+
+	// As it turns out, changing the text of a text box causes an immediate(?)
+	// and unavoidable EN_CHANGE notification for the text box being edited.
+	// Since our handling of EN_CHANGE for both the RGB and hex code text boxes
+	// changes the other's text, these are needed to prevent a stack overflow.
+	// :fnyoy:
+	static int rgb_changes_to_ignore = 0;
+	static int hex_changes_to_ignore = 0;
 
 	switch (message) {
 		case WM_INITDIALOG: {
@@ -1273,11 +1279,11 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 				case COLOR_BLUE: {
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
-							if (ignore_hex_change > 0) {
-								ignore_hex_change--;
+							if (hex_changes_to_ignore > 0) {
+								hex_changes_to_ignore--;
 								return FALSE;
 							}
-							ignore_rgb_change = 1;
+							rgb_changes_to_ignore = 1;
 
 							HWND red_input = GetDlgItem(dialog, COLOR_RED);
 							HWND green_input = GetDlgItem(dialog, COLOR_GREEN);
@@ -1322,11 +1328,11 @@ LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPA
 				case IDC_COLORDLG_HEX_CODE: {
 					switch (HIWORD(wparam)) {
 						case EN_CHANGE: {
-							if (ignore_rgb_change > 0) {
-								ignore_rgb_change--;
+							if (rgb_changes_to_ignore > 0) {
+								rgb_changes_to_ignore--;
 								return FALSE;
 							}
-							ignore_hex_change = 3;
+							hex_changes_to_ignore = 3;
 
 							HWND hex_input = GetDlgItem(dialog, IDC_COLORDLG_HEX_CODE);
 							std::wstring hex_code = string_from_buffer<wchar_t, max_hex_code_length + 1>([&](wchar_t *buffer, size_t size) {
