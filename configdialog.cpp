@@ -806,6 +806,8 @@ std::wstring PaletteCustomizeDialog::get_unique_suffixed_name(const std::wstring
 	auto new_name = base;
 	for (int is_nth_copy = 2; true; is_nth_copy++) {
 		auto duplicate_name = std::find_if(palette_names.begin(), palette_names.end(), [&](const std::wstring &name) {
+			// This is a case-insensitive comparison because, being stored as 
+			// keys of the Windows registry, palette names are effectively case-insensitive.
 			return _wcsicmp(name.c_str(), new_name.c_str()) == 0;
 		});
 
