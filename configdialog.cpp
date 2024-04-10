@@ -854,7 +854,7 @@ PalettesImport *PalettesImport::parse_palettes_string(const std::wstring &import
 		if (current_name.length() < PaletteCustomizeDialog::MinPaletteNameSize) {
 			current_has_errors |= error_name_too_short;
 		}
-		if (current_name.length() > PaletteCustomizeDialog::MaxPaletteNameSize) {
+		if (current_name.length() >= PaletteCustomizeDialog::MaxPaletteNameSize) {
 			current_has_errors |= error_name_too_long;
 		}
 		if (current_name.find_first_not_of(valid_chars + L" \r\n") != std::wstring::npos) {
