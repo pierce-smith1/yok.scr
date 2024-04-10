@@ -73,3 +73,4 @@ template <typename Char, size_t Size = 1 << 20> std::basic_string<Char> string_f
 
 	return string;
 }
+
