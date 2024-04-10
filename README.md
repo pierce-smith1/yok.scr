@@ -16,7 +16,6 @@ There are two steps to building:
 
 ## Contributing
 
-I certainly don't expect anyone to, but I encourage you to! :)
-I won't be adding anything more to this project, but that doesn't mean you can't. You don't need to be familiar with Win32 or OpenGL, since they make up relatively little of the project and they're well isolated from the core logic, which is all good old fashioned C++ (14).
+I certainly don't expect anyone to, but I encourage you to! :) You don't need to be familiar with Win32 or OpenGL, since they make up relatively little of the project and they're well isolated from the core logic, which is all good old fashioned C++ (20).
 
-Just don't commit to master - be nice and make a PR.
+There are no hard rules for contributing - just open a PR. I'll be nice, I promise.
