@@ -576,37 +576,14 @@ void PaletteCustomizeDialog::save_current_palette() {
 }
 
 void PaletteCustomizeDialog::save_current_palette_as_new() {
-	static auto get_copy_name = [](const std::wstring &name, int i) -> std::wstring {
-		return std::format(L"{} {}", name, i);
-	};
-
-	if (m_current_palette) {
-		// If we try to save a palette whose name is already taken, we want to
-		// instead save it with the name "palette 2", then "palette 3", and so on.
-		// (like Windows's own "Copy Of Copy Of New Folder (2) (3)", but fewer words)
-		// This "is_nth_copy" variable gets set to 1 if it is the first copy and needs
-		// no name change, and anything > 1 if it is a copy and does need a name change.
-		int is_nth_copy = [&]() -> int {
-			if (!m_palette_repo.get_palette(m_current_palette->name)) {
-				return 1;
-			}
-
-			for (int i = 2; true; i++) {
-				std::wstring copy_name = get_copy_name(m_current_palette->name, i);
-				if (!m_palette_repo.get_palette(copy_name)) {
-					return i;
-				}
-			}
-		}();
-
-		if (is_nth_copy == 1) {
-			m_palette_repo.set_palette(m_current_palette->name, m_current_palette->data);
-		} else {
-			auto copy_name = get_copy_name(m_current_palette->name, is_nth_copy);
-			m_palette_repo.set_palette(copy_name, m_current_palette->data);
-			m_current_palette->name = copy_name;
-		}
+	if (!m_current_palette) {
+		return;
 	}
+
+	auto deduped_name = get_unique_suffixed_name(m_current_palette->name);
+
+	m_palette_repo.set_palette(deduped_name, m_current_palette->data);
+	m_current_palette->name = deduped_name;
 }
 
 void PaletteCustomizeDialog::delete_current_palette() {
@@ -806,6 +783,40 @@ std::wstring PaletteCustomizeDialog::export_palettes() {
 	palettes_string.append(PalettesImport::input_terminator);
 
 	return palettes_string;
+}
+
+std::wstring PaletteCustomizeDialog::get_name_with_suffix(const std::wstring &base, const std::wstring &suffix) {
+	auto spaced_suffix = std::format(L" {}", suffix);
+	auto num_chars_to_truncate = -(cast<int>(MaxPaletteNameSize) - cast<int>((base.length() + spaced_suffix.length())));
+	auto truncated_base = (num_chars_to_truncate > 0)
+		? base.substr(0, base.length() - num_chars_to_truncate)
+		: base;
+
+	return std::format(L"{}{}", truncated_base, spaced_suffix);
+}
+
+std::wstring PaletteCustomizeDialog::get_unique_suffixed_name(const std::wstring &base) {
+	auto all_palettes = PaletteRepository().get_all_custom_palettes();
+
+	std::vector<std::wstring> palette_names;
+	std::transform(all_palettes.begin(), all_palettes.end(), std::back_inserter(palette_names), [&](const Palettes::Definition palette) -> std::wstring {
+		return palette.name;
+	});
+
+	auto new_name = base;
+	for (int is_nth_copy = 2; true; is_nth_copy++) {
+		auto duplicate_name = std::find_if(palette_names.begin(), palette_names.end(), [&](const std::wstring &name) {
+			return _wcsicmp(name.c_str(), new_name.c_str()) == 0;
+		});
+
+		if (duplicate_name != palette_names.end()) {
+			new_name = get_name_with_suffix(base, std::to_wstring(is_nth_copy));
+		} else {
+			break;
+		}
+	}
+
+	return new_name;
 }
 
 PalettesImport::PalettesImport(std::vector<std::wstring> palettes_name,
@@ -1054,37 +1065,7 @@ PaletteCustomizeDialog::CurrentPalette PalettesImport::import_palettes() {
 			continue;
 		}
 
-		std::wstring name = palettes_name[i];
-		std::vector<Palettes::Definition> existing_palettes = palette_repo.get_all_custom_palettes();
-		bool is_name_taken = false;
-		for (Palettes::Definition palette : existing_palettes) {
-			if (_wcsicmp(palette.name.c_str(), name.c_str()) == 0) {
-				is_name_taken = true;
-				break;
-			}
-		}
-		if (is_name_taken) {
-			for (size_t num_add = 2; true; num_add++) {
-				is_name_taken = false;
-				std::wstring name_append = L" (" + std::to_wstring(num_add) + L")";
-
-				while (name.length() + name_append.length() >= PaletteCustomizeDialog::MaxPaletteNameSize) {
-					name.pop_back();
-				}
-
-				for (Palettes::Definition palette : existing_palettes) {
-					if (_wcsicmp(palette.name.c_str(), (name + name_append).c_str()) == 0) {
-						is_name_taken = true;
-						break;
-					}
-				}
-
-				if (!is_name_taken) {
-					name.append(name_append);
-					break;
-				}
-			}
-		}
+		std::wstring name = PaletteCustomizeDialog::get_unique_suffixed_name(palettes_name[i]);
 
 		std::wstring colors = L"";
 		for (std::wstring color : palettes_raw_colors[i]) {
@@ -1148,12 +1129,20 @@ LRESULT CALLBACK ScreenSaverPaletteCustomizeDialog(HWND dialog, UINT message, WP
 LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
 	switch (message) {
 		case WM_INITDIALOG: {
+			SendDlgItemMessage(
+				dialog,
+				IDC_PALDLG_NEW_PALETTE_NAME,
+				EM_SETLIMITTEXT,
+				PaletteCustomizeDialog::MaxPaletteNameSize,
+				0
+			);
+
 			return TRUE;
 		} case WM_COMMAND: {
 			HWND name_input = GetDlgItem(dialog, IDC_PALDLG_NEW_PALETTE_NAME);
 
 			const static size_t max_size = PaletteCustomizeDialog::MaxPaletteNameSize;
-			std::wstring name = string_from_buffer<wchar_t, max_size>([&](wchar_t *buffer, size_t size) {
+			std::wstring name = string_from_buffer<wchar_t, max_size + 1>([&](wchar_t *buffer, size_t size) {
 				Edit_GetText(
 					name_input,
 					buffer,
