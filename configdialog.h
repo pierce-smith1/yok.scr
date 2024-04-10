@@ -42,9 +42,6 @@ public:
   
 	static void apply_palette_to_preview(HWND dialog, HANDLE preview_bitmap, int preview_control_id, const PaletteData &palette);
 
-	static std::wstring get_name_with_suffix(const std::wstring &base, const std::wstring &suffix);
-	static std::wstring get_unique_suffixed_name(const std::wstring &base);
-
 	const static inline size_t MinPaletteNameSize = 2;
 	const static inline size_t MaxPaletteNameSize = 64;
 	const static inline Palettes::Definition DefaultPalette = Palettes::Friend;
