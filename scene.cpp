@@ -7,20 +7,25 @@ Scene::Scene(HWND window)
 	// It's of utmost importance the context comes first!
 	// Else reality cursed, at the seams it will burst!!!
 	: m_ctx(window),
-	  m_sprites(SpriteGenerator().make(cfg.at(SpriteCount))),
-	  m_choreographer((SpritePattern) cfg.at(YonkPattern), m_sprites, &m_ctx) { }
+	  m_sprites(SpriteGenerator().make(cfg[SpriteCount])),
+	  m_choreographer((SpritePattern) (int) cfg[YonkPattern], m_sprites, &m_ctx) { }
 
 void Scene::draw() {
-	glViewport(0, 0, m_ctx.rect().right, m_ctx.rect().bottom);
-	gluPerspective(45, 1.0 * m_ctx.rect().right / m_ctx.rect().bottom, 1.0, 1000);
+	// GLsizei view_width = m_ctx.rect().right;
+	// GLsizei view_height = m_ctx.rect().bottom;
+	GLsizei view_width = ANIMATION_WIDTH;
+	GLsizei view_height = ANIMATION_HEIGHT;
+
+	glViewport(0, 0, view_width, view_height);
+	gluPerspective(45, 1.0 * view_width / view_height, 1.0, 1000);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	m_choreographer.update();
-	for (Sprite *sprite : m_sprites) {
-		sprite->draw(m_ctx);
+	for (Sprites::iterator it = m_sprites.begin(); it != m_sprites.end(); ++it) {
+		(*it)->draw(m_ctx);
 	}
 
 	glFlush();

@@ -1,13 +1,12 @@
 #pragma once
 
+#include <stdlib.h>
+#include <time.h>
+
 #include "yokscr.h"
 #include "scene.h"
 #include "noise.h"
 #include "configdialog.h"
-
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 LRESULT WINAPI ScreenSaverProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
 	static Scene *scene;
@@ -19,6 +18,7 @@ LRESULT WINAPI ScreenSaverProc(HWND window, UINT message, WPARAM wparam, LPARAM 
 	// And the _minimum_ code by these walls will be closed.
 	switch (message) {
 		case WM_CREATE: {
+			srand(time(NULL));
 			scene = new Scene(window);
 			return 0;
 		}
@@ -40,6 +40,12 @@ BOOL WINAPI ScreenSaverConfigureDialog(HWND dialog, UINT message, WPARAM wparam,
 
 	switch (message) {
 		case WM_INITDIALOG: {
+			INITCOMMONCONTROLSEX comctrl_init_payload;
+			comctrl_init_payload.dwSize = sizeof(INITCOMMONCONTROLSEX);
+			comctrl_init_payload.dwICC = ICC_WIN95_CLASSES;
+
+			bool result = InitCommonControlsEx(&comctrl_init_payload);
+
 			cfg_dialog = new ConfigDialog(dialog);
 			return TRUE;
 		} 

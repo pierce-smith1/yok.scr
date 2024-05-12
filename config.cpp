@@ -1,7 +1,9 @@
 #include <Windows.h>
+#include <winreg.h>
 
 #include <vector>
 #include <utility>
+#include <stdio.h>
 
 #include "config.h"
 
@@ -14,7 +16,7 @@ Registry::Registry()
 	//  neglect all of your fears."
 	RegCreateKeyEx(
 		HKEY_CURRENT_USER, 
-		L"Software\\doughbyte\\yokscr", 
+		"Software\\doughbyte\\yokscr", 
 		0, 
 		NULL,
 		REG_OPTION_NON_VOLATILE, 
@@ -25,29 +27,47 @@ Registry::Registry()
 	);
 }
 
-Config Registry::get_config() {
-	std::vector<std::pair<ConfigOption, float>> keys;
+Config Registry::get_default_config() {
+	Config cfg = new float[_CONFIG_OPTIONS_SIZE];
+	
+	cfg[YonkStepSize] = 0.005f;
+	cfg[YonkHomeDrift] = 0.3f;
+	cfg[YonkEmotionScale] = 5.0f;
+	cfg[TimeDivisor] = 100.0f;
+	cfg[MaxColors] = 5.0f;
+	cfg[SpriteCount] = 22.0f;
+	cfg[SpriteSize] = 70.0f;
+	cfg[YonkShakeFactor] = 2.0f;
+	cfg[YonkPattern] = 0.0f;
+	cfg[PatternChangeInterval] = 60.0f * 7.0f;
 
-	for (int i = _CONFIG_OPTIONS_START + 1; i < _CONFIG_OPTIONS_END; i++) {
+	return cfg;
+}
+
+Config Registry::get_config() {
+	Config cfg = new float[_CONFIG_OPTIONS_SIZE];
+
+	for (int i = _CONFIG_OPTIONS_START + 1; i < _CONFIG_OPTIONS_SIZE; i++) {
 		ConfigOption opt = (ConfigOption) i;
-		keys.push_back(std::make_pair(opt, get(opt, cfg_defaults.at(opt))));
+		float default_ = cfg_defaults[opt];
+		cfg[opt] = get(opt, default_);
 	}
 
-	return Config(keys.begin(), keys.end());
+	return cfg;
 }
 
 float Registry::get(ConfigOption opt, float default_) {
-	std::wstring option_name = std::to_wstring(opt);
+	char option_name[1 << 10] = {0};
+	sprintf(option_name, "%d", opt);
 
-	wchar_t result[1 << 6] {};
-	DWORD result_type;
-	DWORD result_size = 1 << 6;
+	unsigned char result[1 << 10] = {0};
+	DWORD result_type = REG_SZ;
+	DWORD result_size = 1 << 10;
 
-	LSTATUS status = RegGetValue(
+	LONG status = RegQueryValueEx(
 		m_reg_key,
+		option_name,
 		NULL,
-		std::to_wstring(opt).c_str(),
-		RRF_RT_REG_SZ,
 		&result_type,
 		result,
 		&result_size
@@ -57,16 +77,24 @@ float Registry::get(ConfigOption opt, float default_) {
 		return default_;
 	}
 
-	return std::stof(result);
+	return atof((const char *) result);
 }
 
 void Registry::write(ConfigOption opt, float value) {
+	char value_name[1 << 10] = {0};
+	sprintf(value_name, "%d", value);
+
+	size_t value_size = strlen(value_name) + 1;
+
+	char option_name[1 << 10] = {0};
+	sprintf(option_name, "%d", opt);
+
 	RegSetValueEx(
 		m_reg_key,
-		std::to_wstring(opt).c_str(),
+		option_name,
 		0,
 		REG_SZ,
-		(BYTE *) std::to_wstring(value).c_str(),
-		(std::to_wstring(value).size() + 1) * 2
+		(const unsigned char *) value_name,
+		value_size
 	);
 }

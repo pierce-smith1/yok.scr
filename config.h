@@ -6,7 +6,7 @@
 #include <string>
 
 enum ConfigOption {
-	_CONFIG_OPTIONS_START = 1000,
+	_CONFIG_OPTIONS_START = 0,
 	YonkStepSize,
 	YonkHomeDrift,
 	YonkEmotionScale,
@@ -17,15 +17,17 @@ enum ConfigOption {
 	YonkShakeFactor,
 	YonkPattern,
 	PatternChangeInterval,
-	_CONFIG_OPTIONS_END
+	_CONFIG_OPTIONS_SIZE
 };
 
-using Config = std::map<ConfigOption, float>;
+//using Config = std::map<ConfigOption, float>;
+typedef float *Config;
 
 class Registry {
 public:
 	Registry();
 
+	static Config get_default_config();
 	Config get_config();
 	float get(ConfigOption opt, float default_);
 	void write(ConfigOption opt, float value);
@@ -34,16 +36,6 @@ private:
 	HKEY m_reg_key;
 };
 
-const static Config cfg_defaults = {
-	{ YonkStepSize, 0.005f },
-	{ YonkHomeDrift, 0.3f },
-	{ YonkEmotionScale, 5.0f },
-	{ TimeDivisor, 180.0f },
-	{ MaxColors, 5.0f },
-	{ SpriteCount, 80.0f },
-	{ SpriteSize, 50.0f },
-	{ YonkShakeFactor, 2.0f },
-	{ YonkPattern, 0.0f },
-	{ PatternChangeInterval, 60.0f * 15.0f }
-};
-const static Config cfg = Registry().get_config();
+
+static Config cfg_defaults = Registry::get_default_config();
+static Config cfg = Registry().get_config();

@@ -21,9 +21,13 @@ private:
 	void refresh();
 	
 	template <typename K, typename V> K reverse_lookup(const std::map<K, V> &map, V value) {
-		return std::find_if(map.begin(), map.end(), [=](const auto &entry) {
-			return entry.second == value;
-		})->first;
+		for (std::map<K, V>::iterator it = map.begin(); it != map.end(); ++it) {
+			if (it->second == value) {
+				return it->first;
+			}
+		}
+
+		return K();
 	}
 
 	Registry m_registry;
@@ -31,36 +35,12 @@ private:
 	Config m_current_config;
 };
 
-const static std::map<ConfigOption, std::pair<float, float>> config_ranges = {
-	{ YonkHomeDrift, { 0.0f, 5.0f }},
-	{ YonkEmotionScale, { 0.0f, 10.0f }},
-	{ TimeDivisor, { 10.0f, 300.0f }},
-	{ MaxColors, { 2.0f, 47.0f }},
-	{ SpriteCount, { 10.f, 200.0f }},
-	{ SpriteSize, { 10.0f, 200.0f }},
-	{ YonkShakeFactor, { 0.0f, 5.0f }},
-	{ PatternChangeInterval, { 30.0f, 60.0f * 30.0f }},
-};
+typedef std::map<ConfigOption, std::pair<float, float> > ConfigRanges;
 
-const static std::map<ConfigOption, int> slider_ids = {
-	{ YonkStepSize, 0 },
-	{ YonkHomeDrift, IDC_YONK_HOME_DRIFT },
-	{ YonkEmotionScale, IDC_YONK_EMOTION_SCALE },
-	{ TimeDivisor, IDC_TIME_DIVISOR },
-	{ MaxColors, IDC_MAX_COLORS },
-	{ SpriteCount, IDC_SPRITE_COUNT },
-	{ SpriteSize, IDC_SPRITE_SIZE },
-	{ YonkShakeFactor, IDC_YONK_SHAKE_FACTOR },
-	{ YonkPattern, IDC_YONK_PATTERN },
-	{ PatternChangeInterval, IDC_PATTERN_CHANGE_INTERVAL },
-};
+ConfigRanges get_config_ranges();
+std::map<ConfigOption, int> get_slider_ids();
+std::map<SpritePattern, std::string> get_pattern_strings();
 
-const static std::map<SpritePattern, std::wstring> pattern_strings = {
-	{ Roamers, L"In the Wind" },
-	{ Waves, L"Waves" },
-	{ Square, L"Right Angles" },
-	{ Bouncy, L"Bouncy" },
-	{ Lissajous, L"Lissajous" },
-	{ Rose, L"Rose" },
-	{ Lattice, L"Lattice" },
-};
+static ConfigRanges config_ranges = get_config_ranges();
+static std::map<ConfigOption, int> slider_ids = get_slider_ids();
+static std::map<SpritePattern, std::string> pattern_strings = get_pattern_strings();

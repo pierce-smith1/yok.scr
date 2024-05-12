@@ -1,18 +1,20 @@
 #pragma once
 
-#include <array>
 #include <algorithm>
 #include <iterator>
-#include <tuple>
 #include <utility>
 #include <map>
 #include <vector>
 #include <set>
 #include <numeric>
-#include <chrono>
 
 #include "context.h"
 #include "graphics.h"
+
+float wrap(float n, float min, float max);
+int clamp(int n, int min, int max);
+int emotion_map_index_of(float emotion); 
+
 
 class Sprite : public Identifiable<Empty> {
 public:
@@ -22,9 +24,8 @@ public:
 	virtual void draw(Context &ctx);
 	virtual void update(Context &ctx);
 
-	template <int C> float final() const {
-		return std::get<C>(m_home) + std::get<C>(m_relpos);
-	}
+	float final_x() const;
+	float final_y() const;
 
 protected:
 	void transform();
@@ -37,19 +38,21 @@ protected:
 	friend class SpriteChoreographer;
 };
 
+typedef std::vector<float> EmotionVector;
+
+enum Emotion {
+	OPTIMISM = 0,
+	EMPATHY = 1,
+	AMBITION = 2,
+	_EMOTIONS_COUNT
+};
+
+
 class Yonker : public Sprite {
 public:
-	enum Emotion {
-		OPTIMISM = 0,
-		EMPATHY = 1,
-		AMBITION = 2,
-		_EMOTIONS_COUNT
-	};
-	using EmotionVector = std::array<float, _EMOTIONS_COUNT>;
-
 	Yonker(const Texture *texture, const Point &home);
 
-	virtual void update(Context &ctx) override;
+	virtual void update(Context &ctx);
 
 protected:
 	const Bitmap &bitmap_for_current_emotion(Context &ctx) const;

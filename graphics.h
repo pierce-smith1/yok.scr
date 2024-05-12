@@ -1,29 +1,37 @@
 #pragma once
 
-#include <array>
 #include <algorithm>
 #include <iterator>
-#include <tuple>
 #include <utility>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "context.h"
 
 enum PaletteName;
 enum BitmapName;
 
-constexpr static unsigned int BITMAP_WH = 128;
+static unsigned int BITMAP_WH = 128;
 
-using Color = std::tuple<BYTE, BYTE, BYTE, BYTE>;
-enum Channel {
-	RED = 0,
-	GREEN = 1,
-	BLUE = 2,
-	ALPHA = 3
+//using Color = std::tuple<BYTE, BYTE, BYTE, BYTE>;
+struct Color {
+	Color() 
+		: red(0), green(0), blue(0), alpha(0) {}
+
+	Color(BYTE red, BYTE green, BYTE blue, BYTE alpha)
+		: red(red), green(green), blue(blue), alpha(alpha) {}
+
+	BYTE red;
+	BYTE green;
+	BYTE blue;
+	BYTE alpha;
 };
 
-using Id = unsigned int;
+bool operator<(const Color &a, const Color &b);
+bool operator==(const Color &a, const Color &b);
+
+typedef unsigned int Id;
 static Id running_id = 0;
 
 class Empty {};
@@ -50,17 +58,33 @@ enum PaletteIndex {
 	PI_HORNS_SHADOW = 7,
 	_PALETTE_SIZE
 };
-class Palette : public Identifiable<std::array<Color, _PALETTE_SIZE>> {
+
+class Palette : public Identifiable<std::vector<Color> > {
 public:
-	Palette(const std::initializer_list<Color> &i_list);
+	Palette() {}
+	Palette(
+		const Color &transparent, 
+		const Color &scales, 
+		const Color &scales_highlight, 
+		const Color &scales_shadow, 
+		const Color &horns, 
+		const Color &eye, 
+		const Color &whites,
+		const Color &horns_shadow
+	);
+	Palette &operator=(const Palette &other);
 };
 
-class Bitmap : public Identifiable<std::array<GLubyte, BITMAP_WH * BITMAP_WH>> {
-public:
-	Bitmap(const std::initializer_list<GLubyte> &i_list);
-	Bitmap(const GLubyte *data);
+struct Bitmap : public Identifiable<Empty> {
+	Bitmap(const GLubyte *data) : data(data) {}
+
+	GLubyte operator[](size_t index) const;
+
+	const GLubyte *data;
 };
 
+class Texture;
+typedef std::map<std::pair<Id, Id>, Texture *> TextureCache;
 class Texture {
 public:
 	static const Texture *get(const Palette &palette, const Bitmap &bitmap);
@@ -72,20 +96,19 @@ public:
 
 private:
 	Texture(const Palette &palette, const Bitmap &bitmap);
-	Texture(const Texture &texture) = delete;
-	Texture &operator=(const Texture &texture) = delete;
 
 	GLubyte *data();
 
-	static std::map<std::pair<Id, Id>, Texture *> texture_cache;
+	static TextureCache texture_cache;
 
 	unsigned int m_gl_tex_id;
 	const Palette &m_palette;
 	const Bitmap &m_bitmap;
 };
 
-using Point = std::pair<GLfloat, GLfloat>;
-enum Coord {
-	X = 0,
-	Y = 1
+struct Point {
+	Point(float x, float y) : x(x), y(y) {}
+
+	float x;
+	float y;
 };

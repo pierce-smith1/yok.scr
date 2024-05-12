@@ -3,17 +3,37 @@
 #include "resources.h"
 #include "config.h"
 
-using std::get;
+#include <math.h>
+
+float wrap(float n, float min, float max) {
+	if (n < min) {
+		return max - (min - n);
+	} else if (n > max) {
+		return min + (n - max);
+	} else {
+		return n;
+	}
+};
+
+int clamp(int n, int min, int max) {
+	return n < min ? min : (n > max) ? max : n;
+}
+
+int emotion_map_index_of(float emotion) {
+	return clamp(round(emotion * cfg[YonkEmotionScale]), -1, 1) + 1;
+}
 
 Sprite::Sprite(const Texture *texture, const Point &home) 
-	: m_texture(texture), m_home(home), m_relpos(0.0f, 0.0f), m_size(cfg.at(SpriteSize) / 1000.0f) { }
+	: m_texture(texture), 
+	m_home(home), 
+	m_relpos(0.0f, 0.0f), 
+	m_size(cfg[SpriteSize] / 1000.0f) { }
 
 void Sprite::change_texture(const Texture *texture) {
 	m_texture = texture;
 }
 
 void Sprite::draw(Context &ctx) {
-	update(ctx);
 	m_texture->apply();
 
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -38,22 +58,20 @@ void Sprite::draw(Context &ctx) {
 }
 
 void Sprite::update(Context &ctx) {
-	auto wrap = [](float n, float min, float max) -> float {
-		if (n < min) {
-			return max - (min - n);
-		} else if (n > max) {
-			return min + (n - max);
-		} else {
-			return n;
-		}
-	};
+	m_home.x = wrap(m_home.x, -1.0f - cfg[YonkHomeDrift], 1.0f + cfg[YonkHomeDrift]);
+	m_home.y = wrap(m_home.y, -1.0f - cfg[YonkHomeDrift], 1.0f + cfg[YonkHomeDrift]);
+}
 
-	get<X>(m_home) = wrap(get<X>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
-	get<Y>(m_home) = wrap(get<Y>(m_home), -1.0f - cfg.at(YonkHomeDrift), 1.0f + cfg.at(YonkHomeDrift));
+float Sprite::final_x() const {
+	return m_home.x + m_relpos.x;
+}
+
+float Sprite::final_y() const {
+	return m_home.y + m_relpos.y;
 }
 
 void Sprite::transform() {
-	glTranslatef(final<X>(), final<Y>(), 0.0f);
+	glTranslatef(final_x(), final_y(), 0.0f);
 	glScalef(m_size, m_size, 1.0f);
 }
 
@@ -63,27 +81,25 @@ Yonker::Yonker(const Texture *texture, const Point &home)
 void Yonker::update(Context &ctx) {
 	m_emotion_vector = emotion_vector(ctx);
 
-	auto abs_plus = [](float a, float b) -> float {
-		return a + abs(b);
-	};
-
-	float emotion_magnitude = 
-		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0f, abs_plus);
+	float emotion_magnitude = 0.0f;
+	for (EmotionVector::iterator it = m_emotion_vector.begin(); it != m_emotion_vector.end(); ++it) {
+		emotion_magnitude += fabs(*it);
+	}
 
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
-	get<X>(m_relpos) = Noise::wiggle(
-		get<X>(m_relpos),
-		-cfg.at(YonkHomeDrift),
-		cfg.at(YonkHomeDrift),
-		cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor))
+	m_relpos.x = Noise::wiggle(
+		m_relpos.x,
+		-cfg[YonkHomeDrift],
+		cfg[YonkHomeDrift],
+		cfg[YonkStepSize] * (emotion_magnitude * cfg[YonkShakeFactor])
 	);
 
-	get<Y>(m_relpos) = Noise::wiggle(
-		get<Y>(m_relpos),
-		-cfg.at(YonkHomeDrift),
-		cfg.at(YonkHomeDrift),
-		cfg.at(YonkStepSize) * (emotion_magnitude * cfg.at(YonkShakeFactor))
+	m_relpos.y = Noise::wiggle(
+		m_relpos.y,
+		-cfg[YonkHomeDrift],
+		cfg[YonkHomeDrift],
+		cfg[YonkStepSize] * (emotion_magnitude * cfg[YonkShakeFactor])
 	);
 	
 	Sprite::update(ctx);
@@ -92,14 +108,6 @@ void Yonker::update(Context &ctx) {
 }
 
 const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
-	auto clamp = [](int n, int min, int max) -> int {
-		return n < min ? min : (n > max) ? max : n;
-	};
-
-	auto emotion_map_index_of = [clamp](float emotion) -> int {
-		return clamp(round(emotion * cfg.at(YonkEmotionScale)), -1, 1) + 1;
-	};
-
 	int empathetic = emotion_map_index_of(m_emotion_vector[EMPATHY]);
 	int optimistic = emotion_map_index_of(m_emotion_vector[OPTIMISM]);
 	int ambitious = emotion_map_index_of(m_emotion_vector[AMBITION]);
@@ -129,14 +137,16 @@ const Bitmap &Yonker::bitmap_for_current_emotion(Context &ctx) const {
 	return *load_bitmap(emotion_map[empathetic][optimistic][ambitious]);
 }
 
-std::array<float, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx) const {
+EmotionVector Yonker::emotion_vector(Context &ctx) const {
 	// Continous noise will be perfect for this;
 	// Nearby to those pissed will also be pissed.
-	return {
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() - ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() - ctx.t(), ctx.t()),
-	};
+	EmotionVector emotions;
+
+	emotions.push_back(PerlinNoise::get(final_x() + ctx.t(), final_y() + ctx.t(), ctx.t()));
+	emotions.push_back(PerlinNoise::get(final_x() - ctx.t(), final_y() + ctx.t(), ctx.t()));
+	emotions.push_back(PerlinNoise::get(final_x() + ctx.t(), final_y() - ctx.t(), ctx.t()));
+
+	return emotions;
 }
 
 // A strange sillouette appears in the dark...
@@ -147,6 +157,16 @@ Impostor::Impostor(PaletteName palette, const Point &home)
 	: Sprite(Texture::of(palette, random_bitmap()), home) { }
 
 BitmapName Impostor::random_bitmap() {
-	static std::vector<BitmapName> impostors = { cvjoy, nx, vx, lkmoyai, fn, fnplead };
+	static std::vector<BitmapName> impostors; 
+	
+	if (impostors.empty()) {
+		impostors.push_back(cvjoy);
+		impostors.push_back(nx);
+		impostors.push_back(vx); 
+		impostors.push_back(lkmoyai); 
+		impostors.push_back(fn); 
+		impostors.push_back(fnplead);
+	}
+
 	return impostors[(int) (Noise::random() * impostors.size())];
 }

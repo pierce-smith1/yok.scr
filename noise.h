@@ -1,8 +1,22 @@
 #pragma once
 
-#include <tuple>
-#include <random>
-#include <array>
+#include <vector>
+
+float round(float x);
+
+class Vector3d {
+public:
+	Vector3d() : x(0), y(0), z(0) {}
+	Vector3d(float x, float y, float z);
+
+	float x;
+	float y;
+	float z;
+
+	float dot(const Vector3d &v) const;
+	Vector3d sub(const Vector3d &v) const; // Overload? Well, if one would...
+                                           // One will only choose what they think that they should
+};
 
 // The student says, this already is done!
 // To make something worse, it's absurd, what is won?
@@ -13,24 +27,12 @@ public:
 	static float get(float x, float y, float z);
 
 private:
-	class Vector : public std::tuple<float, float, float> {
-	public:
-		Vector(float x, float y, float z);
-
-		float x() const;
-		float y() const;
-		float z() const;
-		float dot(const Vector &v) const;
-		Vector sub(const Vector &v) const; // Overload? Well, if one would...
-		                                   // One will only choose what they think that they should
-	};
-
-	static Vector grad_vector(int x, int y, int z);
-	static Vector grad_vector_from_corner(const Vector &v);
-	static std::array<Vector, 8> cell_corners(const Vector &v);
-	static std::array<Vector, 8> offset_vectors(const Vector &v);
-	static std::array<float, 8> cell_dots(const Vector &v);
-	static float cell_interpolate(std::array<float, 8> dots, const Vector &v);
+	static Vector3d grad_vector(int x, int y, int z);
+	static Vector3d grad_vector_from_corner(const Vector3d &v);
+	static Vector3d *cell_corners(const Vector3d &v);
+	static Vector3d *offset_vectors(const Vector3d &v);
+	static float *cell_dots(const Vector3d &v);
+	static float cell_interpolate(float *dots, const Vector3d &v);
 	static float interpolate(float a, float b, float w);
 };
 
