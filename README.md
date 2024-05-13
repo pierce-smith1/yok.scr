@@ -9,7 +9,7 @@ This is a branch off of v1.0.2 that totally re-makes the code to be compatible w
 ## Building
 
 1. Install Windows 95 and Visual Studio 97 on something, probably a VM. I used the [OSR 2.5 release of 95 (also called the "OSR 3" or "C" version)](https://winworldpc.com/product/windows-95/osr-3) and [this version](https://winworldpc.com/product/microsoft-visual-stu/97-5x) of Visual Studio.
-2. Get this code onto your 95 machine, then open the .dsp file with Visual Studio.
+2. Get this code onto your 95 machine, then open the .dsw file with Visual Studio.
 3. Build or run the application and pray that it works!
 
 ## Troubleshooting
