@@ -82,7 +82,7 @@ float Registry::get(ConfigOption opt, float default_) {
 
 void Registry::write(ConfigOption opt, float value) {
 	char value_name[1 << 10] = {0};
-	sprintf(value_name, "%d", value);
+	sprintf(value_name, "%f", value);
 
 	size_t value_size = strlen(value_name) + 1;
 
