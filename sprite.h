@@ -38,6 +38,7 @@ protected:
 	virtual void draw_trail(Context &ctx);
 
 	const Texture *m_texture;
+	Point m_relpos_tendency;
 	Point m_relpos;
 	Point m_home;
 	GLdouble m_size;

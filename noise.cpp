@@ -6,7 +6,7 @@ double PerlinNoise::get(double x, double y, double z) {
 	return cell_interpolate(cell_dots(v), v);
 }
 
-PerlinNoise::Vector::Vector(double x, double y, double z) 
+PerlinNoise::Vector::Vector(double x, double y, double z)
 	: std::tuple<double, double, double>(x, y, z) { }
 
 double PerlinNoise::Vector::x() const {
@@ -124,14 +124,20 @@ double PerlinNoise::interpolate(double a, double b, double w) {
 	return (b - a) * (3.0 - w * 2.0) * w * w + a;
 }
 
-double Noise::wiggle(double base, double min, double max, double step) {
-	bool up = random() < 0.5;
+// rand_exp: Bias for the random number generator. >1 outputs higher numbers on average, <1 outputs lower numbers on average
+// distance_exp: Bias for the distance from the center. >1 increases the percieved distance, <1 decreases the percieved distance
+double Noise::wiggle(double base, double center, double min, double max, double step, double rand_exp, double distance_exp) {
+	auto inverse_lerp = [](double a, double b, double t) { return (t - a) / (b - a); };	// Interpolate from 0 to 1 as t ranges from a to b
+	int increase = (random() < 0.5 ? +1 : -1);
 
-	if (up) {
-		return base + random() * (max - base) * step;
+	double scaled_distance;
+	if (base < center) {
+		scaled_distance = -(1 - pow(1 - inverse_lerp(center, min, base), distance_exp));
 	} else {
-		return base - random() * (base - min) * step;
+		scaled_distance = +(1 - pow(1 - inverse_lerp(center, max, base), distance_exp));
 	}
+
+	return std::clamp(base + (1 - pow(1 - random(), rand_exp)) * (increase - scaled_distance) * step, min, max);
 }
 
 double Noise::random() {

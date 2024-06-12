@@ -9,7 +9,7 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0, 0.0), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
+	: m_texture(texture), m_home(home), m_relpos(0.0, 0.0), m_relpos_tendency(0.0, 0.0), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
 {
 	if (has_trail) {
 		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
@@ -99,7 +99,7 @@ void Sprite::draw_trail(Context &ctx) {
 	}
 }
 
-Yonker::Yonker(const Texture *texture, const Point &home) 
+Yonker::Yonker(const Texture *texture, const Point &home)
 	: Sprite(texture, home), m_emotion_vector({ 0.0, 0.0, 0.0 }) { }
 
 void Yonker::update(Context &ctx) {
@@ -115,18 +115,53 @@ void Yonker::update(Context &ctx) {
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
 	if (cfg[Cfg::HomeDrift] >= 0.000001) {
+		// currently, these exist for ease of modifying the values
+		const unsigned int time_between_tendency_changes = 60 * 30;
+		const double shake_divisor = 2.5;
+		const double tendency_randomness_exponent = 1.5;
+		const double tendency_distance_exponent = 1;	// doesn't do anything
+		const double wiggle_randomness_exponent = 1;
+		const double wiggle_distance_exponent = 1 / 2.5;
+
+		if (ctx.frame_count() % time_between_tendency_changes == 0) {
+			get<X>(m_relpos_tendency) = Noise::wiggle(
+				0.0,
+				0.0,
+				-cfg[Cfg::HomeDrift] / shake_divisor,
+				cfg[Cfg::HomeDrift] / shake_divisor,
+				cfg[Cfg::HomeDrift] / shake_divisor,
+				tendency_randomness_exponent,
+				tendency_distance_exponent
+			);
+			get<Y>(m_relpos_tendency) = Noise::wiggle(
+				0.0,
+				0.0,
+				-cfg[Cfg::HomeDrift] / shake_divisor,
+				cfg[Cfg::HomeDrift] / shake_divisor,
+				cfg[Cfg::HomeDrift] / shake_divisor,
+				tendency_randomness_exponent,
+				tendency_distance_exponent
+			);
+		}
+
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
-			-cfg[Cfg::HomeDrift],
-			cfg[Cfg::HomeDrift],
-			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
+			get<X>(m_relpos_tendency),
+			-cfg[Cfg::HomeDrift] / shake_divisor,
+			cfg[Cfg::HomeDrift] / shake_divisor,
+			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
+			wiggle_randomness_exponent,
+			wiggle_distance_exponent
 		);
 
 		get<Y>(m_relpos) = Noise::wiggle(
 			get<Y>(m_relpos),
-			-cfg[Cfg::HomeDrift],
-			cfg[Cfg::HomeDrift],
-			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
+			get<Y>(m_relpos_tendency),
+			-cfg[Cfg::HomeDrift] / shake_divisor,
+			cfg[Cfg::HomeDrift] / shake_divisor,
+			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
+			wiggle_randomness_exponent,
+			wiggle_distance_exponent
 		);
 	}
 
