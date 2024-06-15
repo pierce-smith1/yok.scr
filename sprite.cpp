@@ -9,7 +9,16 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0, 0.0), m_relpos_tendency(0.0, 0.0), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
+	: m_texture(texture),
+	m_home(home),
+	m_relpos(0.0, 0.0),
+	m_size(cfg[Cfg::SpriteSize] / 1000.0f),
+	m_trail_start_index(0),
+	m_relpos_tendency(0.0, 0.0),
+	m_frames_when_tendency_changes(0),
+	m_tendency_distance_from_home_bias(default_tendency_distance_from_home_bias.first),
+	m_wiggle_amount_bias(default_wiggle_amount_bias.first),
+	m_distance_from_tendency_bias(default_distance_from_tendency_bias.first)
 {
 	if (has_trail) {
 		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
@@ -37,7 +46,7 @@ void Sprite::draw(Context &ctx) {
 	// But plastered on a rectangular screen.
 	// Here we adjust so the ratio's fair
 	// And our wandering Llokin are properly seen.
-	double squarifiy_offset = (double) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
+	double squarifiy_offset = (double) ((long long) ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
 
 	glTexCoord2d(1.0, 0.0); glVertex2d(1.0 - squarifiy_offset, -1.0);
 	glTexCoord2d(1.0, 1.0); glVertex2d(1.0 - squarifiy_offset, 1.0);
@@ -59,11 +68,29 @@ void Sprite::update(Context &ctx) {
 		}
 	};
 
+	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (total - min);
+		} else if (total > max) {
+			return home + (max - total);
+		} else {
+			return home;
+		}
+	};
+
 	double edge_boundary = 0.15 + m_size / 1.1;
 	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
 	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
-	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	if (allow_screen_wrapping) {
+		get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
+	else {
+		// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
+		// Some patterns will be fighting against this, but since it's happening off screen, it shouldn't matter.
+		get<X>(m_home) = keep_in_bounds(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(m_home) = keep_in_bounds(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
 }
 
 Point &Sprite::home() {
@@ -99,6 +126,45 @@ void Sprite::draw_trail(Context &ctx) {
 	}
 }
 
+void Sprite::randomize_tendency() {
+	m_frames_when_tendency_changes += (size_t) round(randomize_tendency_variable(default_frames_between_tendency_changes)
+		* (1 + cfg[Cfg::HomeDrift] / home_drift_divisor) / (1 + cfg[Cfg::ShakeFactor] / shake_divisor / 2));
+	m_tendency_distance_from_home_bias = randomize_tendency_variable(default_tendency_distance_from_home_bias);
+	m_wiggle_amount_bias = randomize_tendency_variable(default_wiggle_amount_bias);
+	m_distance_from_tendency_bias = randomize_tendency_variable(default_distance_from_tendency_bias);
+
+	get<X>(m_relpos_tendency) = Noise::wiggle(
+		0.0,
+		0.0,
+		-cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		m_tendency_distance_from_home_bias
+	);
+	get<Y>(m_relpos_tendency) = Noise::wiggle(
+		0.0,
+		0.0,
+		-cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		m_tendency_distance_from_home_bias
+	);
+}
+
+template<typename T>
+double Sprite::randomize_tendency_variable(pair_randomness<T> tendency_pair) {
+	double tendency;
+
+	bool increase = Noise::random() < 0.5;
+	if (increase) {
+		tendency = tendency_pair.first * (1 + tendency_pair.second * Noise::random());
+	} else {
+		tendency = tendency_pair.first / (1 + tendency_pair.second * Noise::random());
+	}
+
+	return tendency;
+}
+
 Yonker::Yonker(const Texture *texture, const Point &home)
 	: Sprite(texture, home), m_emotion_vector({ 0.0, 0.0, 0.0 }) { }
 
@@ -115,53 +181,28 @@ void Yonker::update(Context &ctx) {
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
 	if (cfg[Cfg::HomeDrift] >= 0.000001) {
-		// currently, these exist for ease of modifying the values
-		const unsigned int time_between_tendency_changes = 60 * 30;
-		const double shake_divisor = 2.5;
-		const double tendency_randomness_exponent = 1.5;
-		const double tendency_distance_exponent = 1;	// doesn't do anything
-		const double wiggle_randomness_exponent = 1;
-		const double wiggle_distance_exponent = 1 / 2.5;
-
-		if (ctx.frame_count() % time_between_tendency_changes == 0) {
-			get<X>(m_relpos_tendency) = Noise::wiggle(
-				0.0,
-				0.0,
-				-cfg[Cfg::HomeDrift] / shake_divisor,
-				cfg[Cfg::HomeDrift] / shake_divisor,
-				cfg[Cfg::HomeDrift] / shake_divisor,
-				tendency_randomness_exponent,
-				tendency_distance_exponent
-			);
-			get<Y>(m_relpos_tendency) = Noise::wiggle(
-				0.0,
-				0.0,
-				-cfg[Cfg::HomeDrift] / shake_divisor,
-				cfg[Cfg::HomeDrift] / shake_divisor,
-				cfg[Cfg::HomeDrift] / shake_divisor,
-				tendency_randomness_exponent,
-				tendency_distance_exponent
-			);
+		if (ctx.frame_count() >= m_frames_when_tendency_changes) {
+			randomize_tendency();
 		}
 
 		get<X>(m_relpos) = Noise::wiggle(
 			get<X>(m_relpos),
 			get<X>(m_relpos_tendency),
-			-cfg[Cfg::HomeDrift] / shake_divisor,
-			cfg[Cfg::HomeDrift] / shake_divisor,
+			-cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
-			wiggle_randomness_exponent,
-			wiggle_distance_exponent
+			m_wiggle_amount_bias,
+			1.0 / m_distance_from_tendency_bias
 		);
 
 		get<Y>(m_relpos) = Noise::wiggle(
 			get<Y>(m_relpos),
 			get<Y>(m_relpos_tendency),
-			-cfg[Cfg::HomeDrift] / shake_divisor,
-			cfg[Cfg::HomeDrift] / shake_divisor,
+			-cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
-			wiggle_randomness_exponent,
-			wiggle_distance_exponent
+			m_wiggle_amount_bias,
+			1.0 / m_distance_from_tendency_bias
 		);
 	}
 
@@ -234,9 +275,9 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 	static auto yoy = Bitmaps::bitmaps_of_group(BitmapGroup::YoyImpostor);
 
 	if (Noise::random() < 0.5) {
-		return impostors[(int) (Noise::random() * impostors.size())];
+		return impostors[(size_t) (Noise::random() * impostors.size())];
 	} else {
-		return yoy[(int) (Noise::random() * yoy.size())];
+		return yoy[(size_t) (Noise::random() * yoy.size())];
 	}
 }
 

@@ -33,8 +33,8 @@ struct Cfg {
 		.index = __COUNTER__,
 		.name = L"YonkHomeDrift",
 		.legacy_id = 1002,
-		.default_= 0.5,
-		.range = { 0.0, 5.0 },
+		.default_= 0.1,
+		.range = { 0.0, 10.0 },
 		.dialog_control_id = IDC_YONK_HOME_DRIFT,
 	};
 

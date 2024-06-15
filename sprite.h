@@ -29,6 +29,7 @@ public:
 	}
 
 	Point &home();
+	inline static bool allow_screen_wrapping = true;
 
 protected:
 	void transform();
@@ -36,14 +37,33 @@ protected:
 	void increment_trail_index(const size_t amount = 1);
 	TrailSprite& get_trail(const size_t index = 0);
 	virtual void draw_trail(Context &ctx);
+	void randomize_tendency();
 
 	const Texture *m_texture;
-	Point m_relpos_tendency;
 	Point m_relpos;
 	Point m_home;
 	GLdouble m_size;
 	std::vector<TrailSprite> m_trail;
 	size_t m_trail_start_index;
+
+	template<typename T>							// first value gets multiplied or divided by 1 + random(second value)
+	using pair_randomness = std::pair<T, double>;	// probably needs a better name :)
+
+	template<typename T>
+	double randomize_tendency_variable(pair_randomness<T> tendency_pair);
+
+	inline const static pair_randomness<size_t> default_frames_between_tendency_changes = { 10 * 30, 0.5 };
+	inline const static pair_randomness<double> default_tendency_distance_from_home_bias = { 1.5, 0.2 };
+	inline const static pair_randomness<double> default_wiggle_amount_bias = { 1.0, 0.25 };
+	inline const static pair_randomness<double> default_distance_from_tendency_bias = { 2.5, 1.0 };
+	inline const static double shake_divisor = 1 / 0.3;
+	inline const static double home_drift_divisor = 10.0;
+
+	Point m_relpos_tendency;
+	size_t m_frames_when_tendency_changes;
+	double m_tendency_distance_from_home_bias;
+	double m_wiggle_amount_bias;
+	double m_distance_from_tendency_bias;
 };
 
 class Yonker : public Sprite {

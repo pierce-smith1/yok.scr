@@ -117,6 +117,8 @@ void SpriteChoreographer::update_player() {
 void PatternPlayer::set_pattern(PatternName pattern) {
 	m_pattern = pattern;
 	m_hash_offset++;
+	
+	Sprite::allow_screen_wrapping = !non_screen_wrapping_patterns.contains(m_pattern);
 }
 
 PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
@@ -183,17 +185,19 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		double lateral_modifier = (directions[sprite->id()] & West) ? -1.0 : 1.0;
 		double vertical_modifier = (directions[sprite->id()] & South) ? -1.0 : 1.0;
 
-		get<X>(sprite->home()) += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
+		get<X>(sprite->home()) += offset / cfg[Cfg::TimeDivisor] * lateral_modifier;
 		get<Y>(sprite->home()) += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
-		if (get<X>(sprite->home()) > 1.0 || get<X>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= West;
-			get<X>(sprite->home()) = signbit(get<X>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<X>() > 1.0) {
+			directions[sprite->id()] |= West;
+		} else if (sprite->final<X>() < -1.0) {
+			directions[sprite->id()] &= ~West;
 		}
 
-		if (get<Y>(sprite->home()) > 1.0 || get<Y>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= South;
-			get<Y>(sprite->home()) = signbit(get<Y>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<Y>() > 1.0) {
+			directions[sprite->id()] |= South;
+		} else if (sprite->final<Y>() < -1.0) {
+			directions[sprite->id()] &= ~South;
 		}
 	}},
 	{ Lissajous, [](Sprite *sprite, Context *ctx, double offset) {
@@ -248,9 +252,9 @@ std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 
 std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
-		const static double SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080 * 1920) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;

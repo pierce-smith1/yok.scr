@@ -62,6 +62,10 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 				m_dialog,
 				(DLGPROC) ScreenSaverPaletteCustomizeDialog
 			);
+			for (HBRUSH brush : PaletteCustomizeDialog::used_brushes) {
+				DeleteObject(brush);
+			}
+			PaletteCustomizeDialog::used_brushes.clear();
 			break;
 		}
 		case IDC_YONK_PATTERN: {
@@ -108,12 +112,19 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 BOOL ConfigDialog::slider_changed(WPARAM wparam, HWND slider) {
 	auto value = SendMessage(slider, TBM_GETPOS, 0, 0);
 
-	auto opt = *std::find_if(Cfg::All.begin(), Cfg::All.end(), [&](const auto &opt) {
+	auto &opt = *std::find_if(Cfg::All.begin(), Cfg::All.end(), [&](const auto &opt) {
 		return opt.dialog_control_id == GetDlgCtrlID(slider);
 	});
 
 	m_current_config[opt] = decodef(value);
 
+	return FALSE;
+}
+
+BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Definition &option) {
+	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
+	m_current_config[option] = checked ? 1.0 : 0.0;
+	refresh();
 	return FALSE;
 }
 
@@ -131,13 +142,6 @@ BOOL ConfigDialog::combobox_changed(HWND combobox, int option_type) {
 			break;
 	}
 
-	return FALSE;
-}
-
-BOOL ConfigDialog::checkbox_checked(WPARAM wparam, HWND checkbox, const Cfg::Definition &option) {
-	bool checked = Button_GetCheck(checkbox) == BST_CHECKED;
-	m_current_config[option] = checked ? 1.0 : 0.0;
-	refresh();
 	return FALSE;
 }
 
@@ -250,7 +254,8 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 			auto current_bitmap_position = Bitmaps::All.find(m_current_preview_bitmap);
 
 			auto bitmaps_start = Bitmaps::All.begin();
-			auto bitmaps_last = --Bitmaps::All.end();
+			auto bitmaps_last = Bitmaps::All.end();
+			bitmaps_last--;
 
 			if (control_id == IDC_PALDLG_PREV_BITMAP && current_bitmap_position == bitmaps_start) {
 				m_current_preview_bitmap = *bitmaps_last;
@@ -301,7 +306,7 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				break;
 			}
 
-			auto new_data = LOWORD(wparam) == IDC_PALDLG_DUPE_PALETTE
+			auto &new_data = LOWORD(wparam) == IDC_PALDLG_DUPE_PALETTE
 				? m_current_palette->data
 				: *DefaultPalette.data;
 
@@ -329,7 +334,7 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 				return FALSE;
 			}
 
-			auto palette = *std::find_if(Palettes::All.begin(), Palettes::All.end(), [&](const Palettes::Definition &palette) {
+			auto &palette = *std::find_if(Palettes::All.begin(), Palettes::All.end(), [&](const Palettes::Definition &palette) {
 				return *predefined_palette_name == palette.name;
 			});
 
@@ -351,12 +356,16 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 		case IDC_PALDLG_PNG_EXPORT: {
 			if (m_current_palette) {
 				IFileDialog *file_dialog;
-				CoCreateInstance(
+				HRESULT hr = CoCreateInstance(
 					CLSID_FileOpenDialog,
 					NULL,
 					CLSCTX_INPROC_SERVER,
 					IID_PPV_ARGS(&file_dialog)
 				);
+
+				if (hr != S_OK) {
+					break;
+				}
 
 				DWORD flags;
 				file_dialog->GetOptions(&flags);
@@ -385,8 +394,8 @@ BOOL PaletteCustomizeDialog::command(WPARAM wparam, LPARAM lparam) {
 
 				selected_folder->Release();
 			}
-      break;
-    }
+		  break;
+		}
 		case IDC_PALDLG_IMPORT_EXPORT_PALETTES: {
 			std::wstring *exported_palettes = new std::wstring(export_palettes());
 			PalettesImport *imported_palettes = (PalettesImport *) DialogBoxParam(
@@ -437,6 +446,8 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 		std::get<GREEN>(color),
 		std::get<BLUE>(color)
 	));
+
+	used_brushes.push_back(brush);
 
 	// This may be a resource leak because brushes are supposed to be freed
 	// after their use, but I have no idea how to get a reference to this brush
@@ -684,7 +695,7 @@ void PaletteCustomizeDialog::apply_palette_to_preview(HWND dialog, HANDLE previe
 	HDC memory_context = CreateCompatibleDC(GetDC(dialog));
 
 	SelectBitmap(memory_context, preview_bitmap);
-	RGBQUAD colors[_PALETTE_SIZE];
+	RGBQUAD colors[_PALETTE_SIZE] { };
 
 	// I REALLY don't want to go down a rabbit hole of figuring out how to make this bitmap
 	// actually transparent (it's an absolute miracle any of this works _at all_!), so we
@@ -775,10 +786,10 @@ std::wstring PaletteCustomizeDialog::export_palettes() {
 	std::wstring palettes_string = L"";
 
 	for (const auto &palette : all_palettes) {
-		auto name = palette.name;
+		auto &name = palette.name;
 		auto *data = palette.data;
 
-		palettes_string.append(palette.name + L" " + PalettesImport::palette_name_end + L" " + m_palette_repo.serialize(*data) + PalettesImport::palette_color_end + L"\r\n");
+		palettes_string.append(name + L" " + PalettesImport::palette_name_end + L" " + m_palette_repo.serialize(*data) + PalettesImport::palette_color_end + L"\r\n");
 	}
 	palettes_string.append(PalettesImport::input_terminator);
 
@@ -803,7 +814,7 @@ std::wstring PaletteCustomizeDialog::get_unique_suffixed_name(const std::wstring
 		return palette.name;
 	});
 
-	auto new_name = base;
+	std::wstring new_name = base;
 	for (int is_nth_copy = 2; true; is_nth_copy++) {
 		auto duplicate_name = std::find_if(palette_names.begin(), palette_names.end(), [&](const std::wstring &name) {
 			// This is a case-insensitive comparison because, being stored as 
@@ -1451,7 +1462,7 @@ LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message
 LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
 	const static HANDLE preview_bitmap = Bitmaps::load_raw_resource(Bitmaps::Lk.resource_id);
 
-	static auto current_palette = Palettes::Aemil;
+	static Palettes::Definition current_palette = Palettes::Aemil;
 
 	auto get_palette_control = [&]() -> HWND {
 		return GetDlgItem(dialog, IDC_PALDLG_CHOOSE_PREDEFINED);
