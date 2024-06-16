@@ -185,7 +185,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		double lateral_modifier = (directions[sprite->id()] & West) ? -1.0 : 1.0;
 		double vertical_modifier = (directions[sprite->id()] & South) ? -1.0 : 1.0;
 
-		get<X>(sprite->home()) += offset / cfg[Cfg::TimeDivisor] * lateral_modifier;
+		get<X>(sprite->home()) += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
 		get<Y>(sprite->home()) += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
 		if (sprite->final<X>() > 1.0) {

@@ -61,8 +61,6 @@ public:
 		}},
 	};
 
-	static inline std::vector<HBRUSH> used_brushes = { };
-
 	struct CurrentPalette {
 		PaletteData data;
 		std::wstring name;

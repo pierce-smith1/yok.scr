@@ -62,10 +62,6 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 				m_dialog,
 				(DLGPROC) ScreenSaverPaletteCustomizeDialog
 			);
-			for (HBRUSH brush : PaletteCustomizeDialog::used_brushes) {
-				DeleteObject(brush);
-			}
-			PaletteCustomizeDialog::used_brushes.clear();
 			break;
 		}
 		case IDC_YONK_PATTERN: {
@@ -446,8 +442,6 @@ HBRUSH PaletteCustomizeDialog::handle_color_button_message(WPARAM wparam, LPARAM
 		std::get<GREEN>(color),
 		std::get<BLUE>(color)
 	));
-
-	used_brushes.push_back(brush);
 
 	// This may be a resource leak because brushes are supposed to be freed
 	// after their use, but I have no idea how to get a reference to this brush
