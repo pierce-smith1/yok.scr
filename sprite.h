@@ -37,7 +37,6 @@ protected:
 	void increment_trail_index(const size_t amount = 1);
 	TrailSprite& get_trail(const size_t index = 0);
 	virtual void draw_trail(Context &ctx);
-	void randomize_tendency();
 
 	const Texture *m_texture;
 	Point m_relpos;
@@ -45,7 +44,15 @@ protected:
 	GLdouble m_size;
 	std::vector<TrailSprite> m_trail;
 	size_t m_trail_start_index;
+};
 
+class SpriteWiggler {
+public:
+	SpriteWiggler();
+	void randomize_tendency();
+	void wiggle(Context &ctx, const Point &home, Point &relpos, const double &magnitude);
+
+private:
 	template<typename T>							// first value gets multiplied or divided by 1 + random(second value)
 	using pair_randomness = std::pair<T, double>;	// probably needs a better name :)
 
@@ -85,6 +92,7 @@ protected:
 	EmotionVector emotion_vector(Context &ctx) const;
 
 	EmotionVector m_emotion_vector;
+	SpriteWiggler m_sprite_wiggler;
 };
 
 class Impostor : public Sprite {
