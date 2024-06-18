@@ -75,13 +75,71 @@ void Sprite::transform() {
 	glScaled(m_size, m_size, 1.0);
 }
 
-void Sprite::update_trail() {
+void Sprite::update_trail(Context &ctx) {
 	if (TrailSprite::get_trail_length() < 1) {
 		return;
 	}
 
-	get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
-	increment_trail_index();
+	if (cfg[Cfg::TrailsExactFollow] == 1.0) {
+		get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
+		increment_trail_index();
+	} else {
+		// TODO: Make this part not be complete fucking shit
+
+		// i'm sure this is not going to end up being a merge conflict
+		auto wrap = [](double home, double total, double min, double max) -> double {
+			if (total < min) {
+				return home + (max - min);
+			} else if (total > max) {
+				return home + (min - max);
+			} else {
+				return home;
+			}
+		};
+
+		// Need something better.
+		// This works most of the time™, but if the yokers are going too fast, it gets confused.
+		auto diff_unwrap = [](double total, double compare, double min, double max) -> double {
+			double wrap;
+			if (abs((total + (max - min)) - compare) < abs((total + (min - max)) - compare)) {
+				wrap = (total + (max - min)) - compare;
+			} else {
+				wrap = (total + (min - max)) - compare;
+			}
+
+			if (abs(total - compare) < abs(wrap)) {
+				return total - compare;
+			} else {
+				return wrap;
+			}
+		};
+
+		// ctrl+c ctrl+v
+		double edge_boundary = 0.15 + m_size / 1.1;
+		double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
+		double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
+		double min_boundary = -1.0 - (edge_boundary / horizontal_correction);
+		double max_boundary = +1.0 + (edge_boundary / horizontal_correction);
+
+		// lkfear
+		{
+			TrailSprite &trail = get_trail(TrailSprite::get_trail_length() - 1);
+			get<X>(trail.home()) += diff_unwrap(final<X>(), get<X>(trail.home()), min_boundary, max_boundary) * TrailSprite::get_trail_space();
+			get<Y>(trail.home()) += diff_unwrap(final<Y>(), get<Y>(trail.home()), min_boundary, max_boundary) * TrailSprite::get_trail_space();
+			get<X>(trail.home()) = wrap(get<X>(trail.home()), trail.final<X>(), min_boundary, max_boundary);
+			get<Y>(trail.home()) = wrap(get<Y>(trail.home()), trail.final<Y>(), min_boundary, max_boundary);
+			trail.change_texture(m_texture);
+		}
+		for (size_t i = 1; i < TrailSprite::get_trail_length(); i++) {
+			TrailSprite &trail = get_trail(TrailSprite::get_trail_length() - i - 1);
+			TrailSprite &prev_trail = get_trail(TrailSprite::get_trail_length() - i);
+			get<X>(trail.home()) += diff_unwrap(get<X>(prev_trail.home()), get<X>(trail.home()), min_boundary, max_boundary) * TrailSprite::get_trail_space();
+			get<Y>(trail.home()) += diff_unwrap(get<Y>(prev_trail.home()), get<Y>(trail.home()), min_boundary, max_boundary) * TrailSprite::get_trail_space();
+			get<X>(trail.home()) = wrap(get<X>(trail.home()), trail.final<X>(), min_boundary, max_boundary);
+			get<Y>(trail.home()) = wrap(get<Y>(trail.home()), trail.final<Y>(), min_boundary, max_boundary);
+			trail.change_texture(prev_trail.get_texture());
+		}
+	}
 }
 
 TrailSprite& Sprite::get_trail(const size_t index) {
@@ -94,7 +152,7 @@ void Sprite::increment_trail_index(const size_t amount) {
 }
 
 void Sprite::draw_trail(Context &ctx) {
-	for (size_t i = 0; i < TrailSprite::get_trail_length(); i += TrailSprite::get_trail_space()) {
+	for (size_t i = 0; i < (size_t) TrailSprite::get_trail_length(); i += (size_t) max(TrailSprite::get_trail_space(), 1)) {
 		get_trail(i).draw(ctx);
 	}
 }
@@ -134,7 +192,7 @@ void Yonker::update(Context &ctx) {
 
 	change_texture(Texture::get(m_texture->palette(), bitmap_for_current_emotion(ctx)));
 
-	update_trail();
+	update_trail(ctx);
 }
 
 const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
@@ -191,7 +249,7 @@ Impostor::Impostor(const PaletteData *palette, const Point &home)
 void Impostor::update(Context &ctx) {
 	Sprite::update(ctx);
 
-	update_trail();
+	update_trail(ctx);
 }
 
 Bitmaps::Definition &Impostor::random_bitmap() {
@@ -219,9 +277,17 @@ int TrailSprite::get_trail_length() {
 
 	int max_trail = (int) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);
 	int trail_length = std::clamp((int) round(cfg[Cfg::TrailLength]) + 1, 1, max_trail) - 1;
-	return trail_length * get_trail_space();
+	return (cfg[Cfg::TrailsExactFollow] == 1.0 ? trail_length * (int) get_trail_space() : trail_length);
 }
 
-int TrailSprite::get_trail_space() {
-	return (int) max(round(cfg[Cfg::TrailSpace]), 1);
+double TrailSprite::get_trail_space() {
+	if (cfg[Cfg::TrailsExactFollow] == 1.0) {
+		return max(round(cfg[Cfg::TrailSpace]), 1);
+	} else {
+		return pow(0.8 - cfg[Cfg::TrailSpace] / Cfg::TrailSpace.range.second * 0.55, 3);
+	}
+}
+
+const Texture *TrailSprite::get_texture() {
+	return m_texture;
 }

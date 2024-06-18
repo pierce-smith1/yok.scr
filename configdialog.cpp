@@ -100,6 +100,12 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			}
 			break;
 		}
+		case IDC_TRAILS_EXACT_FOLLOW: {
+			if (HIWORD(wparam) == BN_CLICKED) {
+				return checkbox_checked(wparam, (HWND) lparam, Cfg::TrailsExactFollow);
+			}
+			break;
+		}
 	}
 
 	return FALSE;
@@ -195,12 +201,16 @@ void ConfigDialog::refresh() {
 	Button_SetCheck(play_over_desktop_check, is_playing_over_desktop);
 
 	bool are_trails_enabled = m_current_config[Cfg::TrailsEnabled] == 1.0;
+	bool trails_exact_follow_enabled = m_current_config[Cfg::TrailsExactFollow] == 1.0;
 	HWND trail_length_slider = GetDlgItem(m_dialog, IDC_TRAIL_LENGTH);
 	HWND trail_space_slider = GetDlgItem(m_dialog, IDC_TRAIL_SPACE);
 	HWND trails_enabled_check = GetDlgItem(m_dialog, IDC_TRAILS_ENABLED);
+	HWND trails_exact_follow = GetDlgItem(m_dialog, IDC_TRAILS_EXACT_FOLLOW);
 	Button_SetCheck(trails_enabled_check, are_trails_enabled);
+	Button_SetCheck(trails_exact_follow, trails_exact_follow_enabled);
 	EnableWindow(trail_length_slider, are_trails_enabled);
 	EnableWindow(trail_space_slider, are_trails_enabled);
+	EnableWindow(trails_exact_follow, are_trails_enabled);
 
 	bool using_custom_palettes = m_current_config[Cfg::UseCustomPalettes] == 1.0;
 	HWND palette_selector = GetDlgItem(m_dialog, IDC_YONK_PALETTE);

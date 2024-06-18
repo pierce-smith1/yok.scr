@@ -32,7 +32,7 @@ public:
 
 protected:
 	void transform();
-	void update_trail();
+	void update_trail(Context &ctx);
 	void increment_trail_index(const size_t amount = 1);
 	TrailSprite& get_trail(const size_t index = 0);
 	virtual void draw_trail(Context &ctx);
@@ -83,7 +83,9 @@ public:
 	virtual void update(Context &ctx) override;
 
 	static int get_trail_length();
-	static int get_trail_space();
+	static double get_trail_space();
+
+	const Texture *get_texture();
 
 protected:
 	virtual void draw_trail(Context &ctx) override;

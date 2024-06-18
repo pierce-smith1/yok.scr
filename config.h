@@ -179,6 +179,13 @@ struct Cfg {
 		.dialog_control_id = IDC_TRAILS_ENABLED,
 	};
 
+	inline const static Definition TrailsExactFollow = {
+		.index = __COUNTER__,
+		.name = L"TrailsExactFollow",
+		.default_ = 1.0,
+		.dialog_control_id = IDC_TRAILS_EXACT_FOLLOW,
+	};
+
 	inline const static std::set<Definition> All = {
 		StepSize,
 		HomeDrift,
@@ -199,6 +206,7 @@ struct Cfg {
 		TrailSpace,
 		MaxTrailCount,
 		TrailsEnabled,
+		TrailsExactFollow,
 	};
 };
 
