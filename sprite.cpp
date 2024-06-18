@@ -12,7 +12,7 @@ Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
 	: m_texture(texture),
 	m_home(home),
 	m_relpos(0.0, 0.0),
-	m_size(cfg[Cfg::SpriteSize] / 1000.0f),
+	m_size(get_size()),
 	m_trail_start_index(0)
 {
 	if (has_trail) {
@@ -52,44 +52,14 @@ void Sprite::draw(Context &ctx) {
 	glPopMatrix();
 }
 
-void Sprite::update(Context &ctx) {
-	auto wrap = [](double home, double total, double min, double max) -> double {
-		if (total < min) {
-			return home + (max - min);
-		} else if (total > max) {
-			return home + (min - max);
-		} else {
-			return home;
-		}
-	};
-
-	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
-		if (total < min) {
-			return home + (total - min);
-		} else if (total > max) {
-			return home + (max - total);
-		} else {
-			return home;
-		}
-	};
-
-	double edge_boundary = 0.15 + m_size / 1.1;
-	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
-	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
-	if (allow_screen_wrapping) {
-		get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-		get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
-	}
-	else {
-		// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
-		// Some patterns will be fighting against this, but since it's happening off screen, it shouldn't matter.
-		get<X>(m_home) = keep_in_bounds(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-		get<Y>(m_home) = keep_in_bounds(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
-	}
-}
+void Sprite::update(Context &ctx) { }
 
 Point &Sprite::home() {
 	return m_home;
+}
+
+GLdouble Sprite::get_size() {
+	return cfg[Cfg::SpriteSize] / 1000.0;
 }
 
 void Sprite::transform() {

@@ -85,6 +85,7 @@ SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *spri
 
 void SpriteChoreographer::update() {
 	m_current_player->update();
+	m_current_player->handle_off_screen_sprites(!non_screen_wrapping_patterns.contains(m_pattern));
 	if (should_change_pattern()) {
 		change_pattern();
 	}
@@ -117,8 +118,46 @@ void SpriteChoreographer::update_player() {
 void PatternPlayer::set_pattern(PatternName pattern) {
 	m_pattern = pattern;
 	m_hash_offset++;
-	
-	Sprite::allow_screen_wrapping = !non_screen_wrapping_patterns.contains(m_pattern);
+}
+
+void PatternPlayer::handle_off_screen_sprites(bool wrap_sprites) {
+	auto wrap = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
+		} else {
+			return home;
+		}
+	};
+
+	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (min - total);
+		} else if (total > max) {
+			return home + (max - total);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	if (wrap_sprites) {
+		for (Sprite *sprite : *m_sprites) {
+			get<X>(sprite->home()) = wrap(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+			get<Y>(sprite->home()) = wrap(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+		}
+	} else {
+		// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
+		// Some patterns will be fighting against this, but since it's happening off screen and after pattern movement, it shouldn't matter.
+		for (Sprite *sprite : *m_sprites) {
+			get<X>(sprite->home()) = keep_in_bounds(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+			get<Y>(sprite->home()) = keep_in_bounds(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+		}
+	}
 }
 
 PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
