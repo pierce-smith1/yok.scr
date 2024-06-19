@@ -30,6 +30,7 @@
 #define DLG_PALETTE_CUSTOMIZER          159
 #define DLG_NEW_CUSTOM_PALETTE          162
 #define DLG_CUSTOM_CHOOSECOLOR          164
+#define DLG_PATTERN_SELECTOR            170
 #define COLOR_HUESCROLL                 700
 #define COLOR_SATSCROLL                 701
 #define COLOR_LUMSCROLL                 702
@@ -74,7 +75,6 @@
 #define IDC_DEFAULTS_BUTTON             1015
 #define IDC_TRAIL_SPACE                 1016
 #define IDC_IMPOSTOR_CHANCE             1018
-#define IDC_PATTERN_FIX                 1019
 #define IDC_VERSION_LABEL               1020
 #define IDC_TRAILS_ENABLED              1021
 #define IDC_PLAY_OVER_DESKTOP           1022
@@ -104,6 +104,12 @@
 #define IDC_PALDLG_NOT_ALL_COLORS_WARNING 1066
 #define IDC_CUSTOM_PALETTES_CHECK       1067
 #define IDC_PALDLG_PNG_EXPORT           1068
+#define IDC_PATTERN_SELECTOR_ENABLED    1069
+#define IDC_PATTERN_SELECTOR_DISABLED   1070
+#define IDC_ENABLE_PATTERN              1071
+#define IDC_DISABLE_PATTERN             1072
+#define IDC_PATTERN_SELECTOR_OPEN       1073
+#define IDC_NO_PATTERNS_ENABLED_TEXT    1074
 #define DLG_SCREENSAVERCONFIGURE        2003
 #define DLG_IMPORT_EXPORT_PALETTES      2004
 #define DLG_INSERT_PREDEFINED           2005
@@ -112,10 +118,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-
-#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_CONTROL_VALUE         1075
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

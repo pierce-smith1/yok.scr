@@ -20,6 +20,7 @@ enum PatternName {
 	Rose,
 	Lattice,
 	Bubbles,
+	RandomPattern,
 	_PATTERN_COUNT
 };
 
@@ -82,12 +83,26 @@ class SpriteChoreographer {
 public:
 	SpriteChoreographer(PatternName pattern, Sprites *sprites, Context *ctx);
 
+	static std::vector<std::pair<PatternName, std::wstring>> get_disabled_patterns();
+	static std::vector<std::pair<PatternName, std::wstring>> get_enabled_patterns();
+	static void load_disabled_patterns();
+	static void change_disabled_patterns(std::vector<std::pair<PatternName, std::wstring>> &disabled_patterns);
+	static void save_disabled_patterns();
+
 	void update();
 
 protected:
 	void change_pattern();
 	bool should_change_pattern();
 	void update_player();
+
+	inline const static std::wstring disabled_patterns_name = L"DisabledPatterns";
+	inline const static std::wstring disabled_patterns_default = L"";
+	inline const static std::wstring disabled_patterns_string_delimiter = L",";
+	inline const static PatternName default_pattern_all_invalid = Lattice;
+
+	inline static std::vector<std::pair<PatternName, std::wstring>> m_disabled_patterns = { };
+	inline static std::vector<std::pair<PatternName, std::wstring>> m_enabled_patterns = { };
 
 	Sprites *m_sprites;
 	Context *m_ctx;

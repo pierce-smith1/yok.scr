@@ -1,5 +1,6 @@
 #include "noise.h"
 #include "common.h"
+#include <chrono>
 
 double PerlinNoise::get(double x, double y, double z) {
 	Vector v = Vector(x, y, z);
@@ -29,12 +30,15 @@ PerlinNoise::Vector PerlinNoise::Vector::sub(const Vector &v) const {
 	return Vector(x() - v.x(), y() - v.y(), z() - v.z());
 };
 
+// std::chrono is a fucking pain
+const unsigned int PerlinNoise::base_seed = cast<unsigned int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+
 PerlinNoise::Vector PerlinNoise::grad_vector(double x, double y, double z) {
 	// To grow a seed from a single point
 	// With orderly chaos a constant we anoint
 	// But be careful not to overflow
 	// For what happens then, well, no one knows
-	double seed = 1;
+	double seed = base_seed;
 	seed = 31 * seed + x;
 	seed = 31 * seed + y;
 	seed = 31 * seed + z;
