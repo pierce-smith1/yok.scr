@@ -50,19 +50,18 @@ class SpriteWiggler {
 public:
 	SpriteWiggler();
 	void randomize_tendency();
-	void wiggle(Context &ctx, const Point &home, Point &relpos, const double &magnitude);
+	void wiggle_sprite(Context &ctx, const Point &home, Point &relpos, const double magnitude);
 
 private:
-	template<typename T>							// first value gets multiplied or divided by 1 + random(second value)
-	using pair_randomness = std::pair<T, double>;	// probably needs a better name :)
-
+	static double wiggle_coordinate(double base, double center, double min, double max, double step, double rand_exp = 1.0, double distance_exp = 1.0);
 	template<typename T>
-	double randomize_tendency_variable(pair_randomness<T> tendency_pair);
+	double randomize_tendency_variable(std::pair<T, double> tendency_pair);
 
-	inline const static pair_randomness<size_t> default_frames_between_tendency_changes = { 10 * 30, 0.5 };
-	inline const static pair_randomness<double> default_tendency_distance_from_home_bias = { 1.5, 0.2 };
-	inline const static pair_randomness<double> default_wiggle_amount_bias = { 1.0, 0.25 };
-	inline const static pair_randomness<double> default_distance_from_tendency_bias = { 3.0, 7.0 / 3.0 };
+	// First number gets multiplied or divided by 1 + random(second number)
+	inline const static std::pair<size_t, double> default_frames_between_tendency_changes = { 10 * 30, 0.5 };
+	inline const static std::pair<double, double> default_tendency_distance_from_home_bias = { 1.5, 0.2 };
+	inline const static std::pair<double, double> default_wiggle_amount_bias = { 1.0, 0.25 };
+	inline const static std::pair<double, double> default_distance_from_tendency_bias = { 3.0, 7.0 / 3.0 };
 	inline const static double shake_divisor = 1 / 0.3;
 	inline const static double home_drift_divisor = 10.0;
 

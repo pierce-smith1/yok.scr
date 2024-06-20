@@ -99,7 +99,7 @@ SpriteWiggler::SpriteWiggler()
 	m_wiggle_amount_bias(default_wiggle_amount_bias.first)
 { }
 
-void SpriteWiggler::wiggle(Context &ctx, const Point &home, Point &relpos, const double &magnitude) {
+void SpriteWiggler::wiggle_sprite(Context &ctx, const Point &home, Point &relpos, const double magnitude) {
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
 	if (cfg[Cfg::HomeDrift] >= 0.000001) {
@@ -107,7 +107,7 @@ void SpriteWiggler::wiggle(Context &ctx, const Point &home, Point &relpos, const
 			randomize_tendency();
 		}
 
-		get<X>(relpos) = Noise::wiggle(
+		get<X>(relpos) = wiggle_coordinate(
 			get<X>(relpos),
 			get<X>(m_relpos_tendency),
 			-cfg[Cfg::HomeDrift] / home_drift_divisor,
@@ -117,7 +117,7 @@ void SpriteWiggler::wiggle(Context &ctx, const Point &home, Point &relpos, const
 			1.0 / m_distance_from_tendency_bias
 		);
 
-		get<Y>(relpos) = Noise::wiggle(
+		get<Y>(relpos) = wiggle_coordinate(
 			get<Y>(relpos),
 			get<Y>(m_relpos_tendency),
 			-cfg[Cfg::HomeDrift] / home_drift_divisor,
@@ -129,6 +129,20 @@ void SpriteWiggler::wiggle(Context &ctx, const Point &home, Point &relpos, const
 	}
 }
 
+// rand_exp: Bias for the random number generator. >1 outputs higher numbers on average, <1 outputs lower numbers on average
+// distance_exp: Bias for the distance from the center. >1 increases the percieved distance, <1 decreases the percieved distance
+double SpriteWiggler::wiggle_coordinate(double base, double center, double min, double max, double step, double rand_exp, double distance_exp) {
+	auto inverse_lerp = [](double a, double b, double t) -> double { return (t - a) / (b - a); };	// Interpolate from 0 to 1 as t ranges from a to b
+	int increase = (Noise::random() < 0.5 ? +1 : -1);
+
+	double scaled_distance = base < center
+		? -(1 - pow(1 - inverse_lerp(center, min, base), distance_exp))
+		: +(1 - pow(1 - inverse_lerp(center, max, base), distance_exp));
+
+	double result = base + (1 - pow(1 - Noise::random(), rand_exp)) * (increase - scaled_distance) * step;
+	return std::clamp(result, min, max);
+};
+
 void SpriteWiggler::randomize_tendency() {
 	m_frames_when_tendency_changes += (size_t) round(randomize_tendency_variable(default_frames_between_tendency_changes)
 		* (1 + cfg[Cfg::HomeDrift] / home_drift_divisor) / (1 + cfg[Cfg::ShakeFactor] / shake_divisor / 2));
@@ -136,7 +150,7 @@ void SpriteWiggler::randomize_tendency() {
 	m_wiggle_amount_bias = randomize_tendency_variable(default_wiggle_amount_bias);
 	m_distance_from_tendency_bias = randomize_tendency_variable(default_distance_from_tendency_bias);
 
-	get<X>(m_relpos_tendency) = Noise::wiggle(
+	get<X>(m_relpos_tendency) = wiggle_coordinate(
 		0.0,
 		0.0,
 		-cfg[Cfg::HomeDrift],
@@ -144,7 +158,7 @@ void SpriteWiggler::randomize_tendency() {
 		cfg[Cfg::HomeDrift],
 		m_tendency_distance_from_home_bias
 	);
-	get<Y>(m_relpos_tendency) = Noise::wiggle(
+	get<Y>(m_relpos_tendency) = wiggle_coordinate(
 		0.0,
 		0.0,
 		-cfg[Cfg::HomeDrift],
@@ -155,7 +169,7 @@ void SpriteWiggler::randomize_tendency() {
 }
 
 template<typename T>
-double SpriteWiggler::randomize_tendency_variable(pair_randomness<T> tendency_pair) {
+double SpriteWiggler::randomize_tendency_variable(std::pair<T, double> tendency_pair) {
 	double tendency;
 
 	bool increase = Noise::random() < 0.5;
@@ -181,7 +195,7 @@ void Yonker::update(Context &ctx) {
 	double emotion_magnitude =
 		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0, abs_plus);
 
-	m_sprite_wiggler.wiggle(ctx, m_home, m_relpos, emotion_magnitude);
+	m_sprite_wiggler.wiggle_sprite(ctx, m_home, m_relpos, emotion_magnitude);
 
 	Sprite::update(ctx);
 

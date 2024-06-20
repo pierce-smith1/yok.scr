@@ -45,7 +45,8 @@ private:
 class PatternPlayer {
 public:
 	void set_pattern(PatternName pattern);
-	void handle_off_screen_sprites(bool wrap_sprites);
+	void wrap_off_screen_sprites();
+	void clamp_off_screen_sprites();
 
 	virtual void update() = 0;
 	virtual std::set<PatternName> &compatible_patterns() = 0;

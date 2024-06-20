@@ -124,22 +124,6 @@ double PerlinNoise::interpolate(double a, double b, double w) {
 	return (b - a) * (3.0 - w * 2.0) * w * w + a;
 }
 
-// rand_exp: Bias for the random number generator. >1 outputs higher numbers on average, <1 outputs lower numbers on average
-// distance_exp: Bias for the distance from the center. >1 increases the percieved distance, <1 decreases the percieved distance
-double Noise::wiggle(double base, double center, double min, double max, double step, double rand_exp, double distance_exp) {
-	auto inverse_lerp = [](double a, double b, double t) -> double { return (t - a) / (b - a); };	// Interpolate from 0 to 1 as t ranges from a to b
-	int increase = (random() < 0.5 ? +1 : -1);
-
-	double scaled_distance;
-	if (base < center) {
-		scaled_distance = -(1 - pow(1 - inverse_lerp(center, min, base), distance_exp));
-	} else {
-		scaled_distance = +(1 - pow(1 - inverse_lerp(center, max, base), distance_exp));
-	}
-
-	return std::clamp(base + (1 - pow(1 - random(), rand_exp)) * (increase - scaled_distance) * step, min, max);
-}
-
 double Noise::random() {
 	static std::random_device device;
 	static std::mt19937 rng(device());
