@@ -80,8 +80,8 @@ SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *spri
 	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites)
 { 
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
-	load_disabled_patterns();
-	if (std::find(m_enabled_patterns.begin(), m_enabled_patterns.end(), *pattern_strings.find(m_pattern)) == m_enabled_patterns.end()) {
+	m_enabled_patterns = PatternRepository::load_enabled_patterns();
+	if (std::find(m_enabled_patterns.begin(), m_enabled_patterns.end(), m_pattern) == m_enabled_patterns.end()) {
 		change_pattern();
 	}
 	update_player();
@@ -92,85 +92,6 @@ void SpriteChoreographer::update() {
 	if (should_change_pattern()) {
 		change_pattern();
 	}
-}
-
-std::vector<std::pair<PatternName, std::wstring>> SpriteChoreographer::get_disabled_patterns() {
-	return m_disabled_patterns;
-}
-
-std::vector<std::pair<PatternName, std::wstring>> SpriteChoreographer::get_enabled_patterns() {
-	return m_enabled_patterns;
-}
-
-void SpriteChoreographer::load_disabled_patterns() {
-	const std::wstring disabled_patterns_name = L"DisabledPatterns";
-	const std::wstring disabled_patterns_default = L"";
-	const std::wstring disabled_patterns_string_delimiter = L",";
-
-	Registry registry;
-
-	m_disabled_patterns.clear();
-	m_enabled_patterns.clear();
-
-
-	std::vector<std::wstring> disabled_patterns_strings = split<std::wstring>(registry.get_string(disabled_patterns_name, disabled_patterns_default), disabled_patterns_string_delimiter);
-	for (std::pair<PatternName, std::wstring> pattern : pattern_strings) {
-		auto disabled_pattern = std::find_if(disabled_patterns_strings.begin(), disabled_patterns_strings.end(), [&](const std::wstring &string) {
-			return string == pattern.second && pattern.first != RandomPattern;
-		});
-		if (disabled_pattern != disabled_patterns_strings.end()) {
-			m_disabled_patterns.push_back(pattern);
-		}
-	}
-	if (std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), *pattern_strings.find(RandomPattern)) != m_disabled_patterns.end()) {
-		m_disabled_patterns.erase(std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), *pattern_strings.find(RandomPattern)));
-	}
-
-	for (std::pair<PatternName, std::wstring> pattern : pattern_strings) {
-		if (std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), pattern) == m_disabled_patterns.end() && pattern.first != RandomPattern) {
-			m_enabled_patterns.push_back(pattern);
-		}
-	}
-
-	if (m_enabled_patterns.size() <= 0) {
-		m_enabled_patterns.push_back(*pattern_strings.find(default_pattern_all_invalid));
-		m_disabled_patterns.erase(std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), *pattern_strings.find(default_pattern_all_invalid)));
-	}
-}
-
-void SpriteChoreographer::change_disabled_patterns(std::vector<std::pair<PatternName, std::wstring>> &disabled_patterns) {
-	m_disabled_patterns.clear();
-	m_enabled_patterns.clear();
-
-	for (std::pair<PatternName, std::wstring> pattern : pattern_strings) {
-		if (std::find(disabled_patterns.begin(), disabled_patterns.end(), pattern) != disabled_patterns.end() && pattern.first != RandomPattern) {
-			m_disabled_patterns.push_back(pattern);
-		}
-	}
-
-	for (std::pair<PatternName, std::wstring> pattern : pattern_strings) {
-		if (std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), pattern) == m_disabled_patterns.end() && pattern.first != RandomPattern) {
-			m_enabled_patterns.push_back(pattern);
-		}
-	}
-
-	if (m_enabled_patterns.size() <= 0) {
-		m_enabled_patterns.push_back(*pattern_strings.find(default_pattern_all_invalid));
-		m_disabled_patterns.erase(std::find(m_disabled_patterns.begin(), m_disabled_patterns.end(), *pattern_strings.find(default_pattern_all_invalid)));
-	}
-}
-
-void SpriteChoreographer::save_disabled_patterns() {
-	std::wstring disabled_patterns_string = disabled_patterns_default;
-	for (auto &pattern : m_disabled_patterns) {
-		if (pattern != *m_disabled_patterns.begin()) {
-			disabled_patterns_string.append(disabled_patterns_string_delimiter);
-		}
-		disabled_patterns_string.append(pattern.second);
-	}
-
-	Registry registry;
-	registry.write_string(disabled_patterns_name, disabled_patterns_string);
 }
 
 bool SpriteChoreographer::should_change_pattern() {
@@ -185,7 +106,7 @@ bool SpriteChoreographer::should_change_pattern() {
 
 void SpriteChoreographer::change_pattern() {
 	size_t rand = (size_t) (Noise::random() * m_enabled_patterns.size());
-	m_pattern = m_enabled_patterns.at(rand).first;
+	m_pattern = m_enabled_patterns.at(rand);
 	update_player();
 }
 
@@ -416,3 +337,50 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		}
 	}},
 };
+
+std::vector<PatternName> PatternRepository::load_disabled_patterns() {
+	Registry registry;
+
+	std::vector<PatternName> disabled_patterns = { };
+
+	std::vector<std::wstring> disabled_patterns_strings = split<std::wstring>(registry.get_string(disabled_patterns_name, disabled_patterns_default), disabled_patterns_string_delimiter);
+	for (auto &pattern : pattern_strings) {
+		auto disabled_pattern = std::find_if(disabled_patterns_strings.begin(), disabled_patterns_strings.end(), [&](const std::wstring &string) {
+			return string == pattern.second && pattern.first != RandomPattern;
+		});
+		if (disabled_pattern != disabled_patterns_strings.end()) {
+			disabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	if (get_enabled_patterns(disabled_patterns).size() < 1) {
+		disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), default_pattern_all_disabled));
+	}
+
+	return disabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::get_enabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::vector<PatternName> enabled_patterns = { };
+
+	for (auto &pattern : pattern_strings) {
+		if (std::find(disabled_patterns.begin(), disabled_patterns.end(), pattern.first) == disabled_patterns.end() && pattern.first != RandomPattern) {
+			enabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	return enabled_patterns;
+}
+
+void PatternRepository::save_disabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::wstring disabled_patterns_string = disabled_patterns_default;
+	for (auto &pattern : disabled_patterns) {
+		if (pattern != *disabled_patterns.begin()) {
+			disabled_patterns_string.append(disabled_patterns_string_delimiter);
+		}
+		disabled_patterns_string.append(pattern_strings.at(pattern));
+	}
+
+	Registry registry;
+	registry.write_string(disabled_patterns_name, disabled_patterns_string);
+}

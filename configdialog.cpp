@@ -14,16 +14,21 @@
 
 ConfigDialog::ConfigDialog(HWND dialog)
 	: m_dialog(dialog), m_current_config(Registry::get_config()) {
-	SpriteChoreographer::load_disabled_patterns();
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
-	for (const auto &entry : SpriteChoreographer::get_enabled_patterns()) {
+	std::vector<PatternName> enabled_patterns = PatternRepository::load_enabled_patterns();
+	for (const auto &entry : enabled_patterns) {
 		// They saw in the API great awkwardness...
 		// So they solved the problem by - well, get this -
 		// Wrapping the function they could have better designed
 		// In a _macro_ that hides all its dubious lies...
-		ComboBox_AddString(pattern_box, entry.second.c_str());
+		ComboBox_AddString(pattern_box, pattern_strings.at(entry).c_str());
 	}
-	ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+	if (enabled_patterns.size() > 1) {
+		ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+		EnableWindow(pattern_box, TRUE);
+	} else {
+		EnableWindow(pattern_box, FALSE);
+	}
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	for (const auto &entry : palette_strings) {
@@ -45,7 +50,6 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 	switch (LOWORD(wparam)) {
 		case IDOK:
 			save();
-			SpriteChoreographer::save_disabled_patterns();
 			[[fallthrough]];
 		case IDCANCEL: {
 			EndDialog(m_dialog, LOWORD(wparam) == IDOK);
@@ -77,10 +81,16 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 
 			HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
 			ComboBox_ResetContent(pattern_box);
-			for (const auto &entry : SpriteChoreographer::get_enabled_patterns()) {
-				ComboBox_AddString(pattern_box, entry.second.c_str());
+			std::vector<PatternName> enabled_patterns = PatternRepository::load_enabled_patterns();
+			for (const auto &entry : enabled_patterns) {
+				ComboBox_AddString(pattern_box, pattern_strings.at(entry).c_str());
 			}
-			ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+			if (enabled_patterns.size() > 1) {
+				ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+				EnableWindow(pattern_box, TRUE);
+			} else {
+				EnableWindow(pattern_box, FALSE);
+			}
 			refresh();
 
 			break;
@@ -194,7 +204,7 @@ void ConfigDialog::refresh() {
 		(PatternName) m_current_config[Cfg::Pattern]).c_str()
 	);
 	if (pattern == CB_ERR) {
-		ComboBox_SelectString(pattern_box, -1, pattern_strings.at(RandomPattern).c_str());
+		ComboBox_SetCurSel(pattern_box, 0);
 		combobox_changed(pattern_box, IDC_YONK_PATTERN);
 	}
 
@@ -203,7 +213,7 @@ void ConfigDialog::refresh() {
 		(PaletteGroup) m_current_config[Cfg::Palette]).c_str()
 	);
 
-	bool is_pattern_fixed = SpriteChoreographer::get_enabled_patterns().size() <= 1;
+	bool is_pattern_fixed = PatternRepository::load_enabled_patterns().size() <= 1;
 	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
 	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
 
@@ -1549,24 +1559,24 @@ LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wp
 }
 
 LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
-	static std::vector<std::pair<PatternName, std::wstring>> disabled_patterns = { };
-	static std::vector<std::pair<PatternName, std::wstring>> enabled_patterns = { };
+	static std::vector<PatternName> disabled_patterns = { };
+	static std::vector<PatternName> enabled_patterns = { };
 
 	switch (message) {
 		case WM_INITDIALOG: {
 			Registry registry;
 
-			disabled_patterns = SpriteChoreographer::get_disabled_patterns();
-			enabled_patterns = SpriteChoreographer::get_enabled_patterns();
+			disabled_patterns = PatternRepository::load_disabled_patterns();
+			enabled_patterns = PatternRepository::get_enabled_patterns(disabled_patterns);
 
 			HWND enabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_ENABLED);
 			HWND disabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_DISABLED);
 
 			for (auto &pattern : enabled_patterns) {
-				ListBox_AddString(enabled_patterns_listbox, pattern.second.c_str());
+				ListBox_AddString(enabled_patterns_listbox, pattern_strings.at(pattern).c_str());
 			}
 			for (auto &pattern : disabled_patterns) {
-				ListBox_AddString(disabled_patterns_listbox, pattern.second.c_str());
+				ListBox_AddString(disabled_patterns_listbox, pattern_strings.at(pattern).c_str());
 			}
 
 			HWND enable_button = GetDlgItem(dialog, IDC_ENABLE_PATTERN);
@@ -1594,7 +1604,7 @@ LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPA
 
 			switch (LOWORD(wparam)) {
 				case IDOK: {
-					SpriteChoreographer::change_disabled_patterns(disabled_patterns);
+					PatternRepository::save_disabled_patterns(disabled_patterns);
 					[[fallthrough]];
 				}
 				case IDCANCEL: {
@@ -1631,7 +1641,7 @@ LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPA
 						ListBox_GetSelItems(disabled_patterns_listbox, 1, &selection);
 						auto &selected_pattern = disabled_patterns.at(selection);
 						enabled_patterns.push_back(selected_pattern);
-						ListBox_AddString(enabled_patterns_listbox, selected_pattern.second.c_str());
+						ListBox_AddString(enabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
 						ListBox_DeleteString(disabled_patterns_listbox, selection);
 						disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), selected_pattern));
 					}
@@ -1650,7 +1660,7 @@ LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPA
 						ListBox_GetSelItems(enabled_patterns_listbox, 1, &selection);
 						auto &selected_pattern = enabled_patterns.at(selection);
 						disabled_patterns.push_back(selected_pattern);
-						ListBox_AddString(disabled_patterns_listbox, selected_pattern.second.c_str());
+						ListBox_AddString(disabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
 						ListBox_DeleteString(enabled_patterns_listbox, selection);
 						enabled_patterns.erase(std::find(enabled_patterns.begin(), enabled_patterns.end(), selected_pattern));
 					}
