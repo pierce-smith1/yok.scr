@@ -1639,12 +1639,15 @@ LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPA
 					while (ListBox_GetSelCount(disabled_patterns_listbox) > 0) {
 						int selection = 0;
 						ListBox_GetSelItems(disabled_patterns_listbox, 1, &selection);
+
 						auto &selected_pattern = disabled_patterns.at(selection);
 						enabled_patterns.push_back(selected_pattern);
 						ListBox_AddString(enabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
+
 						ListBox_DeleteString(disabled_patterns_listbox, selection);
 						disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), selected_pattern));
 					}
+
 					EnableWindow(enable_button, FALSE);
 
 					if (enabled_patterns.size() > 0) {
@@ -1658,16 +1661,18 @@ LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPA
 					while (ListBox_GetSelCount(enabled_patterns_listbox) > 0) {
 						int selection = 0;
 						ListBox_GetSelItems(enabled_patterns_listbox, 1, &selection);
+
 						auto &selected_pattern = enabled_patterns.at(selection);
 						disabled_patterns.push_back(selected_pattern);
 						ListBox_AddString(disabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
+
 						ListBox_DeleteString(enabled_patterns_listbox, selection);
 						enabled_patterns.erase(std::find(enabled_patterns.begin(), enabled_patterns.end(), selected_pattern));
 					}
+
 					EnableWindow(disable_button, FALSE);
 
 					if (enabled_patterns.size() <= 0) {
-						
 						ShowWindow(no_patterns_enabled_text, SW_NORMAL);
 						EnableWindow(ok_button, FALSE);
 					}

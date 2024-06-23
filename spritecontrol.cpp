@@ -77,11 +77,10 @@ const PaletteData *SpriteGenerator::next_palette() const {
 }
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
-	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites)
+	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
 { 
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
-	m_enabled_patterns = PatternRepository::load_enabled_patterns();
-	if (std::find(m_enabled_patterns.begin(), m_enabled_patterns.end(), m_pattern) == m_enabled_patterns.end()) {
+	if (m_pattern == RandomPattern) {
 		change_pattern();
 	}
 	update_player();
@@ -105,8 +104,13 @@ bool SpriteChoreographer::should_change_pattern() {
 }
 
 void SpriteChoreographer::change_pattern() {
-	size_t rand = (size_t) (Noise::random() * m_enabled_patterns.size());
-	m_pattern = m_enabled_patterns.at(rand);
+	std::vector<PatternName> patterns = { };
+	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(patterns), [&](const PatternName &pattern) {
+		return pattern != m_pattern;
+	});
+
+	size_t rand = (size_t) (Noise::random() * patterns.size());
+	m_pattern = patterns.at(rand);
 	update_player();
 }
 
@@ -370,6 +374,10 @@ std::vector<PatternName> PatternRepository::get_enabled_patterns(const std::vect
 	}
 
 	return enabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::load_enabled_patterns() {
+	return get_enabled_patterns(load_disabled_patterns());
 }
 
 void PatternRepository::save_disabled_patterns(const std::vector<PatternName> &disabled_patterns) {
