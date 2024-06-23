@@ -82,10 +82,12 @@ public:
 
 	virtual void update(Context &ctx) override;
 
-	static int get_trail_length();
+	static size_t get_trail_length();
 	static double get_trail_space();
 
 	const Texture *get_texture();
+
+	Point target_position;
 
 protected:
 	virtual void draw_trail(Context &ctx) override;
