@@ -75,13 +75,96 @@ void Sprite::transform() {
 	glScaled(m_size, m_size, 1.0);
 }
 
-void Sprite::update_trail() {
+void Sprite::update_trail(Context &ctx) {
 	if (TrailSprite::get_trail_length() < 1) {
 		return;
 	}
 
-	get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
-	increment_trail_index();
+	if (cfg[Cfg::TrailsExactFollow] == 1.0) {
+		get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
+		increment_trail_index();
+	} else {
+		// :cvheadache:
+
+		const double edge_boundary = 0.15 + m_size / 1.1;
+		const double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
+		const double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
+		const double horizontal_boundary = 1.0 + edge_boundary / horizontal_correction;
+		const double vertical_boundary = 1.0 + edge_boundary / vertical_correction;
+
+		auto get_target = [=](Point current_target, Point last_target) -> Point {
+			Point new_target = last_target;
+
+			get<X>(current_target) += horizontal_boundary;
+			get<Y>(current_target) += vertical_boundary;
+			get<X>(last_target) += horizontal_boundary;
+			get<Y>(last_target) += vertical_boundary;
+			for (; get<X>(last_target) < 0.0; get<X>(last_target) += horizontal_boundary * 2);
+			for (; get<Y>(last_target) < 0.0; get<Y>(last_target) += horizontal_boundary * 2);
+			get<X>(last_target) = fmod(get<X>(last_target), horizontal_boundary * 2);
+			get<Y>(last_target) = fmod(get<Y>(last_target), vertical_boundary * 2);
+
+			if (abs(get<X>(current_target) - get<X>(last_target)) < abs((get<X>(current_target) - horizontal_boundary * 2) - get<X>(last_target))
+				&& abs(get<X>(current_target) - get<X>(last_target)) < abs((get<X>(current_target) + horizontal_boundary * 2) - get<X>(last_target))) {
+				get<X>(new_target) += get<X>(current_target) - get<X>(last_target);
+			} else if (abs((get<X>(current_target) - horizontal_boundary * 2) - get<X>(last_target)) < abs((get<X>(current_target) + horizontal_boundary * 2) - get<X>(last_target))) {
+				get<X>(new_target) += (get<X>(current_target) - horizontal_boundary * 2) - get<X>(last_target);
+			} else {
+				get<X>(new_target) += (get<X>(current_target) + horizontal_boundary * 2) - get<X>(last_target);
+			}
+			if (abs(get<Y>(current_target) - get<Y>(last_target)) < abs((get<Y>(current_target) - horizontal_boundary * 2) - get<Y>(last_target))
+				&& abs(get<Y>(current_target) - get<Y>(last_target)) < abs((get<Y>(current_target) + horizontal_boundary * 2) - get<Y>(last_target))) {
+				get<Y>(new_target) += get<Y>(current_target) - get<Y>(last_target);
+			} else if (abs((get<Y>(current_target) - horizontal_boundary * 2) - get<Y>(last_target)) < abs((get<Y>(current_target) + horizontal_boundary * 2) - get<Y>(last_target))) {
+				get<Y>(new_target) += (get<Y>(current_target) - horizontal_boundary * 2) - get<Y>(last_target);
+			} else {
+				get<Y>(new_target) += (get<Y>(current_target) + horizontal_boundary * 2) - get<Y>(last_target);
+			}
+
+			return new_target;
+		};
+
+		auto wrap = [](double position, double min, double max) -> double {
+			if (position < min) {
+				return position + (max - min);
+			} else if (position > max) {
+				return position + (min - max);
+			} else {
+				return position;
+			}
+		};
+
+		auto wrap_trail = [=](Point &current, Point &target) -> void {
+			double new_x = wrap(get<X>(current), -horizontal_boundary, +horizontal_boundary);
+			get<X>(target) += new_x - get<X>(current);
+			get<X>(current) = new_x;
+
+			double new_y = wrap(get<Y>(current), -vertical_boundary, +vertical_boundary);
+			get<Y>(target) += new_y - get<Y>(current);
+			get<Y>(current) = new_y;
+		};
+
+		auto move_trail = [=](Point &current, Point &target) -> void {
+			wrap_trail(current, target);
+
+			get<X>(current) += (get<X>(target) - get<X>(current)) * TrailSprite::get_trail_space();
+			get<Y>(current) += (get<Y>(target) - get<Y>(current)) * TrailSprite::get_trail_space();
+		};
+
+		{
+			TrailSprite &trail = get_trail(TrailSprite::get_trail_length() - 1);
+			trail.target_position = get_target(Point(final<X>(), final<Y>()), trail.target_position);
+			move_trail(trail.home(), trail.target_position);
+			trail.change_texture(m_texture);
+		}
+		for (size_t i = TrailSprite::get_trail_length() - 1; i > 0; i--) {
+			TrailSprite &trail = get_trail(i - 1);
+			const TrailSprite &target_trail = get_trail(i);
+			trail.target_position = get_target(Point(target_trail.final<X>(), target_trail.final<Y>()), trail.target_position);
+			move_trail(trail.home(), trail.target_position);
+			trail.change_texture(m_texture);
+		}
+	}
 }
 
 TrailSprite& Sprite::get_trail(const size_t index) {
@@ -94,7 +177,7 @@ void Sprite::increment_trail_index(const size_t amount) {
 }
 
 void Sprite::draw_trail(Context &ctx) {
-	for (size_t i = 0; i < TrailSprite::get_trail_length(); i += TrailSprite::get_trail_space()) {
+	for (size_t i = 0; i < (size_t) TrailSprite::get_trail_length(); i += (size_t) max(TrailSprite::get_trail_space(), 1)) {
 		get_trail(i).draw(ctx);
 	}
 }
@@ -134,7 +217,7 @@ void Yonker::update(Context &ctx) {
 
 	change_texture(Texture::get(m_texture->palette(), bitmap_for_current_emotion(ctx)));
 
-	update_trail();
+	update_trail(ctx);
 }
 
 const BitmapData &Yonker::bitmap_for_current_emotion(Context &ctx) const {
@@ -191,7 +274,7 @@ Impostor::Impostor(const PaletteData *palette, const Point &home)
 void Impostor::update(Context &ctx) {
 	Sprite::update(ctx);
 
-	update_trail();
+	update_trail(ctx);
 }
 
 Bitmaps::Definition &Impostor::random_bitmap() {
@@ -206,22 +289,30 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 }
 
 TrailSprite::TrailSprite(const Texture *texture, const Point &home)
-	: Sprite(texture, home, false) { }
+	: Sprite(texture, home, false), target_position(home) { }
 
 void TrailSprite::update(Context &ctx) { }
 
 void TrailSprite::draw_trail(Context &ctx) { }
 
-int TrailSprite::get_trail_length() {
+size_t TrailSprite::get_trail_length() {
 	if (cfg[Cfg::TrailsEnabled] != 1.0) {
 		return 0;
 	}
 
-	int max_trail = (int) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);
-	int trail_length = std::clamp((int) round(cfg[Cfg::TrailLength]) + 1, 1, max_trail) - 1;
-	return trail_length * get_trail_space();
+	size_t max_trail = (size_t) round(cfg[Cfg::MaxTrailCount] / cfg[Cfg::SpriteCount]);
+	size_t trail_length = std::clamp((size_t) round(cfg[Cfg::TrailLength]) + 1, 1ULL, max_trail) - 1;
+	return (cfg[Cfg::TrailsExactFollow] == 1.0 ? trail_length * (int) get_trail_space() : trail_length);
 }
 
-int TrailSprite::get_trail_space() {
-	return (int) max(round(cfg[Cfg::TrailSpace]), 1);
+double TrailSprite::get_trail_space() {
+	if (cfg[Cfg::TrailsExactFollow] == 1.0) {
+		return max(round(cfg[Cfg::TrailSpace]), 1);
+	} else {
+		return pow(0.85 - cfg[Cfg::TrailSpace] / Cfg::TrailSpace.range.second * 0.525, 5);
+	}
+}
+
+const Texture *TrailSprite::get_texture() {
+	return m_texture;
 }
