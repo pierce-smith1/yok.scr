@@ -104,13 +104,13 @@ bool SpriteChoreographer::should_change_pattern() {
 }
 
 void SpriteChoreographer::change_pattern() {
-	std::vector<PatternName> patterns = { };
-	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(patterns), [&](const PatternName &pattern) {
+	std::vector<PatternName> candidate_patterns = { };
+	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(candidate_patterns), [&](const PatternName &pattern) {
 		return pattern != m_pattern;
 	});
 
-	size_t rand = (size_t) (Noise::random() * patterns.size());
-	m_pattern = patterns.at(rand);
+	size_t random_index = (size_t) (Noise::random() * candidate_patterns.size());
+	m_pattern = candidate_patterns.at(random_index);
 	update_player();
 }
 
