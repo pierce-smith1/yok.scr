@@ -20,6 +20,7 @@ enum PatternName {
 	Rose,
 	Lattice,
 	Bubbles,
+	RandomPattern,
 	_PATTERN_COUNT
 };
 
@@ -97,10 +98,26 @@ protected:
 	bool should_change_pattern();
 	void update_player();
 
+
 	Sprites *m_sprites;
 	Context *m_ctx;
 	PatternName m_pattern;
 	std::vector<PatternPlayer *> m_players;
 	PatternPlayer *m_current_player;
+	std::vector<PatternName> m_enabled_patterns;
+};
+
+class PatternRepository {
+public:
+	static std::vector<PatternName> load_disabled_patterns();
+	static std::vector<PatternName> get_enabled_patterns(const std::vector<PatternName> &disabled_patterns);
+	static std::vector<PatternName> load_enabled_patterns();
+	static void save_disabled_patterns(const std::vector<PatternName> &patterns);
+
+protected:
+	inline const static std::wstring disabled_patterns_name = L"DisabledPatterns";
+	inline const static std::wstring disabled_patterns_default = L"";
+	inline const static std::wstring disabled_patterns_string_delimiter = L",";
+	inline const static PatternName default_pattern_all_disabled = Lattice;
 };
 

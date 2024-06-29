@@ -139,6 +139,7 @@ const static std::map<PatternName, std::wstring> pattern_strings = {
 	{ Rose, L"Rose" },
 	{ Lattice, L"Lattice" },
 	{ Bubbles, L"Bubbles" },
+	{ RandomPattern, L"Random" },
 };
 
 const static std::map<PaletteGroup, std::wstring> palette_strings = {
@@ -153,4 +154,5 @@ LRESULT CALLBACK ScreenSaverNewCustomPaletteDialog(HWND dialog, UINT message, WP
 LRESULT CALLBACK CustomColorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK ScreenSaverImportExportPalettesDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
+LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam);
 

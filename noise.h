@@ -25,6 +25,8 @@ private:
 		                                   // One will only choose what they think that they should
 	};
 
+	const static unsigned int base_seed;
+
 	static Vector grad_vector(double x, double y, double z);
 	static Vector grad_vector_from_corner(const Vector &v);
 	static std::array<Vector, 8> cell_corners(const Vector &v);

@@ -15,12 +15,19 @@
 ConfigDialog::ConfigDialog(HWND dialog)
 	: m_dialog(dialog), m_current_config(Registry::get_config()) {
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
-	for (const auto &entry : pattern_strings) {
+	std::vector<PatternName> enabled_patterns = PatternRepository::load_enabled_patterns();
+	for (const auto &entry : enabled_patterns) {
 		// They saw in the API great awkwardness...
 		// So they solved the problem by - well, get this -
 		// Wrapping the function they could have better designed
 		// In a _macro_ that hides all its dubious lies...
-		ComboBox_AddString(pattern_box, entry.second.c_str());
+		ComboBox_AddString(pattern_box, pattern_strings.at(entry).c_str());
+	}
+	if (enabled_patterns.size() > 1) {
+		ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+		EnableWindow(pattern_box, TRUE);
+	} else {
+		EnableWindow(pattern_box, FALSE);
 	}
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
@@ -64,6 +71,30 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 			);
 			break;
 		}
+		case IDC_PATTERN_SELECTOR_OPEN: {
+			DialogBox(
+				NULL,
+				MAKEINTRESOURCE(DLG_PATTERN_SELECTOR),
+				m_dialog,
+				(DLGPROC) ScreenSaverPatternSelectorDialog
+			);
+
+			HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
+			ComboBox_ResetContent(pattern_box);
+			std::vector<PatternName> enabled_patterns = PatternRepository::load_enabled_patterns();
+			for (const auto &entry : enabled_patterns) {
+				ComboBox_AddString(pattern_box, pattern_strings.at(entry).c_str());
+			}
+			if (enabled_patterns.size() > 1) {
+				ComboBox_AddString(pattern_box, pattern_strings.at(RandomPattern).c_str());
+				EnableWindow(pattern_box, TRUE);
+			} else {
+				EnableWindow(pattern_box, FALSE);
+			}
+			refresh();
+
+			break;
+		}
 		case IDC_YONK_PATTERN: {
 			if (HIWORD(wparam) == CBN_SELENDOK) {
 				return combobox_changed((HWND) lparam, IDC_YONK_PATTERN);
@@ -73,12 +104,6 @@ BOOL ConfigDialog::command(WPARAM wparam, LPARAM lparam) {
 		case IDC_YONK_PALETTE: {
 			if (HIWORD(wparam) == CBN_SELENDOK) {
 				return combobox_changed((HWND) lparam, IDC_YONK_PALETTE);
-			}
-			break;
-		}
-		case IDC_PATTERN_FIX: {
-			if (HIWORD(wparam) == BN_CLICKED) {
-				return checkbox_checked(wparam, (HWND) lparam, Cfg::IsPatternFixed);
 			}
 			break;
 		}
@@ -175,19 +200,21 @@ void ConfigDialog::refresh() {
 	}
 
 	HWND pattern_box = GetDlgItem(m_dialog, IDC_YONK_PATTERN);
-	ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
+	auto pattern = ComboBox_SelectString(pattern_box, -1, pattern_strings.at(
 		(PatternName) m_current_config[Cfg::Pattern]).c_str()
 	);
+	if (pattern == CB_ERR) {
+		ComboBox_SetCurSel(pattern_box, 0);
+		combobox_changed(pattern_box, IDC_YONK_PATTERN);
+	}
 
 	HWND palette_box = GetDlgItem(m_dialog, IDC_YONK_PALETTE);
 	ComboBox_SelectString(palette_box, -1, palette_strings.at(
 		(PaletteGroup) m_current_config[Cfg::Palette]).c_str()
 	);
 
-	bool is_pattern_fixed = m_current_config[Cfg::IsPatternFixed] == 1.0;
+	bool is_pattern_fixed = PatternRepository::load_enabled_patterns().size() <= 1;
 	HWND pattern_interval_slider = GetDlgItem(m_dialog, IDC_PATTERN_CHANGE_INTERVAL);
-	HWND pattern_fixed_check = GetDlgItem(m_dialog, IDC_PATTERN_FIX);
-	Button_SetCheck(pattern_fixed_check, is_pattern_fixed);
 	EnableWindow(pattern_interval_slider, !is_pattern_fixed);
 
 	bool is_playing_over_desktop = m_current_config[Cfg::PlayOverDesktop] == 1.0;
@@ -1529,6 +1556,136 @@ LRESULT CALLBACK AddPredefinedPaletteDialog(HWND dialog, UINT message, WPARAM wp
 					break;
 				}
 			}
+			break;
+		}
+	}
+
+	return FALSE;
+}
+
+LRESULT CALLBACK ScreenSaverPatternSelectorDialog(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
+	static std::vector<PatternName> disabled_patterns = { };
+	static std::vector<PatternName> enabled_patterns = { };
+
+	switch (message) {
+		case WM_INITDIALOG: {
+			Registry registry;
+
+			disabled_patterns = PatternRepository::load_disabled_patterns();
+			enabled_patterns = PatternRepository::get_enabled_patterns(disabled_patterns);
+
+			HWND enabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_ENABLED);
+			HWND disabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_DISABLED);
+
+			for (auto &pattern : enabled_patterns) {
+				ListBox_AddString(enabled_patterns_listbox, pattern_strings.at(pattern).c_str());
+			}
+			for (auto &pattern : disabled_patterns) {
+				ListBox_AddString(disabled_patterns_listbox, pattern_strings.at(pattern).c_str());
+			}
+
+			HWND enable_button = GetDlgItem(dialog, IDC_ENABLE_PATTERN);
+			HWND disable_button = GetDlgItem(dialog, IDC_DISABLE_PATTERN);
+
+			EnableWindow(enable_button, false);
+			EnableWindow(disable_button, false);
+
+			if (enabled_patterns.size() <= 0) {
+				HWND no_patterns_enabled_text = GetDlgItem(dialog, IDC_NO_PATTERNS_ENABLED_TEXT);
+				HWND ok_button = GetDlgItem(dialog, IDOK);
+				ShowWindow(no_patterns_enabled_text, SW_NORMAL);
+				EnableWindow(ok_button, FALSE);
+			}
+
+			return TRUE;
+		}
+		case WM_COMMAND: {
+			HWND enabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_ENABLED);
+			HWND disabled_patterns_listbox = GetDlgItem(dialog, IDC_PATTERN_SELECTOR_DISABLED);
+			HWND enable_button = GetDlgItem(dialog, IDC_ENABLE_PATTERN);
+			HWND disable_button = GetDlgItem(dialog, IDC_DISABLE_PATTERN);
+			HWND no_patterns_enabled_text = GetDlgItem(dialog, IDC_NO_PATTERNS_ENABLED_TEXT);
+			HWND ok_button = GetDlgItem(dialog, IDOK);
+
+			switch (LOWORD(wparam)) {
+				case IDOK: {
+					PatternRepository::save_disabled_patterns(disabled_patterns);
+					[[fallthrough]];
+				}
+				case IDCANCEL: {
+					EndDialog(dialog, LOWORD(wparam) == IDOK);
+					return TRUE;
+				}
+				case IDC_PATTERN_SELECTOR_ENABLED: {
+					switch (HIWORD(wparam)) {
+						case LBN_SELCHANGE: {
+							ListBox_SetSel(disabled_patterns_listbox, FALSE, -1);
+							EnableWindow(enable_button, FALSE);
+							EnableWindow(disable_button, ListBox_GetSelCount(enabled_patterns_listbox) != 0);
+
+							break;
+						}
+					}
+					return FALSE;
+				}
+				case IDC_PATTERN_SELECTOR_DISABLED: {
+					switch (HIWORD(wparam)) {
+						case LBN_SELCHANGE: {
+							ListBox_SetSel(enabled_patterns_listbox, FALSE, -1);
+							EnableWindow(enable_button, ListBox_GetSelCount(disabled_patterns_listbox) != 0);
+							EnableWindow(disable_button, FALSE);
+
+							break;
+						}
+					}
+					return FALSE;
+				}
+				case IDC_ENABLE_PATTERN: {
+					while (ListBox_GetSelCount(disabled_patterns_listbox) > 0) {
+						int selection = 0;
+						ListBox_GetSelItems(disabled_patterns_listbox, 1, &selection);
+
+						auto &selected_pattern = disabled_patterns.at(selection);
+						enabled_patterns.push_back(selected_pattern);
+						ListBox_AddString(enabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
+
+						ListBox_DeleteString(disabled_patterns_listbox, selection);
+						disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), selected_pattern));
+					}
+
+					EnableWindow(enable_button, FALSE);
+
+					if (enabled_patterns.size() > 0) {
+						ShowWindow(no_patterns_enabled_text, SW_HIDE);
+						EnableWindow(ok_button, TRUE);
+					}
+
+					return FALSE;
+				}
+				case IDC_DISABLE_PATTERN: {
+					while (ListBox_GetSelCount(enabled_patterns_listbox) > 0) {
+						int selection = 0;
+						ListBox_GetSelItems(enabled_patterns_listbox, 1, &selection);
+
+						auto &selected_pattern = enabled_patterns.at(selection);
+						disabled_patterns.push_back(selected_pattern);
+						ListBox_AddString(disabled_patterns_listbox, pattern_strings.at(selected_pattern).c_str());
+
+						ListBox_DeleteString(enabled_patterns_listbox, selection);
+						enabled_patterns.erase(std::find(enabled_patterns.begin(), enabled_patterns.end(), selected_pattern));
+					}
+
+					EnableWindow(disable_button, FALSE);
+
+					if (enabled_patterns.size() <= 0) {
+						ShowWindow(no_patterns_enabled_text, SW_NORMAL);
+						EnableWindow(ok_button, FALSE);
+					}
+
+					return FALSE;
+				}
+			}
+
 			break;
 		}
 	}

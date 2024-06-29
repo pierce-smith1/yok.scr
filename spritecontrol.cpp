@@ -77,9 +77,12 @@ const PaletteData *SpriteGenerator::next_palette() const {
 }
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
-	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites)
+	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
 { 
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
+	if (m_pattern == RandomPattern) {
+		change_pattern();
+	}
 	update_player();
 }
 
@@ -96,7 +99,7 @@ void SpriteChoreographer::update() {
 }
 
 bool SpriteChoreographer::should_change_pattern() {
-	if (cfg[Cfg::IsPatternFixed]) {
+	if (m_enabled_patterns.size() <= 1) {
 		return false;
 	}
 
@@ -106,7 +109,13 @@ bool SpriteChoreographer::should_change_pattern() {
 }
 
 void SpriteChoreographer::change_pattern() {
-	m_pattern = (PatternName) (Noise::random() * cast<double>(_PATTERN_COUNT));
+	std::vector<PatternName> candidate_patterns = { };
+	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(candidate_patterns), [&](const PatternName &pattern) {
+		return pattern != m_pattern;
+	});
+
+	size_t random_index = (size_t) (Noise::random() * candidate_patterns.size());
+	m_pattern = candidate_patterns.at(random_index);
 	update_player();
 }
 
@@ -383,3 +392,54 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		}
 	}},
 };
+
+std::vector<PatternName> PatternRepository::load_disabled_patterns() {
+	Registry registry;
+
+	std::vector<PatternName> disabled_patterns = { };
+
+	std::vector<std::wstring> disabled_patterns_strings = split<std::wstring>(registry.get_string(disabled_patterns_name, disabled_patterns_default), disabled_patterns_string_delimiter);
+	for (auto &pattern : pattern_strings) {
+		auto disabled_pattern = std::find_if(disabled_patterns_strings.begin(), disabled_patterns_strings.end(), [&](const std::wstring &string) {
+			return string == pattern.second && pattern.first != RandomPattern;
+		});
+		if (disabled_pattern != disabled_patterns_strings.end()) {
+			disabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	if (get_enabled_patterns(disabled_patterns).size() < 1) {
+		disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), default_pattern_all_disabled));
+	}
+
+	return disabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::get_enabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::vector<PatternName> enabled_patterns = { };
+
+	for (auto &pattern : pattern_strings) {
+		if (std::find(disabled_patterns.begin(), disabled_patterns.end(), pattern.first) == disabled_patterns.end() && pattern.first != RandomPattern) {
+			enabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	return enabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::load_enabled_patterns() {
+	return get_enabled_patterns(load_disabled_patterns());
+}
+
+void PatternRepository::save_disabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::wstring disabled_patterns_string = disabled_patterns_default;
+	for (auto &pattern : disabled_patterns) {
+		if (pattern != *disabled_patterns.begin()) {
+			disabled_patterns_string.append(disabled_patterns_string_delimiter);
+		}
+		disabled_patterns_string.append(pattern_strings.at(pattern));
+	}
+
+	Registry registry;
+	registry.write_string(disabled_patterns_name, disabled_patterns_string);
+}

@@ -109,14 +109,6 @@ struct Cfg {
 		.dialog_control_id = IDC_PATTERN_CHANGE_INTERVAL,
 	};
 
-	inline const static Definition IsPatternFixed = {
-		.index = __COUNTER__,
-		.name = L"IsPatternFixed",
-		.legacy_id = 1011,
-		.default_ = 0.0,
-		.dialog_control_id = IDC_PATTERN_FIX,
-	};
-
 	inline const static Definition ImpostorChance = {
 		.index = __COUNTER__,
 		.name = L"ImpostorChance",
@@ -190,7 +182,6 @@ struct Cfg {
 		ShakeFactor,
 		Pattern,
 		PatternChangeInterval,
-		IsPatternFixed,
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
