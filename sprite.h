@@ -29,6 +29,7 @@ public:
 	}
 
 	Point &home();
+	static GLdouble get_size();
 
 protected:
 	void transform();
@@ -43,6 +44,32 @@ protected:
 	GLdouble m_size;
 	std::vector<TrailSprite> m_trail;
 	size_t m_trail_start_index;
+};
+
+class SpriteWiggler {
+public:
+	SpriteWiggler();
+	void randomize_tendency();
+	void wiggle_sprite(Context &ctx, const Point &home, Point &relpos, const double magnitude);
+
+private:
+	static double wiggle_coordinate(double base, double center, double min, double max, double step, double rand_exp = 1.0, double distance_exp = 1.0);
+	template<typename T>
+	double randomize_tendency_variable(std::pair<T, double> tendency_pair);
+
+	// First number gets multiplied or divided by 1 + random(second number)
+	inline const static std::pair<size_t, double> default_frames_between_tendency_changes = { 10 * 30, 0.5 };
+	inline const static std::pair<double, double> default_tendency_distance_from_home_bias = { 1.5, 0.2 };
+	inline const static std::pair<double, double> default_wiggle_amount_bias = { 1.0, 0.25 };
+	inline const static std::pair<double, double> default_distance_from_tendency_bias = { 3.0, 7.0 / 3.0 };
+	inline const static double shake_divisor = 1 / 0.3;
+	inline const static double home_drift_divisor = 10.0;
+
+	Point m_relpos_tendency;
+	size_t m_frames_when_tendency_changes;
+	double m_tendency_distance_from_home_bias;
+	double m_wiggle_amount_bias;
+	double m_distance_from_tendency_bias;
 };
 
 class Yonker : public Sprite {
@@ -64,6 +91,7 @@ protected:
 	EmotionVector emotion_vector(Context &ctx) const;
 
 	EmotionVector m_emotion_vector;
+	SpriteWiggler m_sprite_wiggler;
 };
 
 class Impostor : public Sprite {

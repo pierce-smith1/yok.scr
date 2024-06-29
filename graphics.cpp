@@ -63,6 +63,7 @@ GLubyte *Texture::data() const {
 	for (int i = 0; i < m_bitmap.size(); i++) {
 		Color palette_color = m_palette[m_bitmap.data()[i]];
 
+	#pragma warning ( suppress : 6386 )		// kindly shut the fuck up
 		texture_data[i * 4 + RED] = std::get<RED>(palette_color);
 		texture_data[i * 4 + GREEN] = std::get<GREEN>(palette_color);
 		texture_data[i * 4 + BLUE] = std::get<BLUE>(palette_color);

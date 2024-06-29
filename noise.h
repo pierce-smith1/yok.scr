@@ -36,6 +36,5 @@ private:
 
 class Noise {
 public:
-	static double wiggle(double base, double min, double max, double step);
 	static double random();
 };

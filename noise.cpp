@@ -6,7 +6,7 @@ double PerlinNoise::get(double x, double y, double z) {
 	return cell_interpolate(cell_dots(v), v);
 }
 
-PerlinNoise::Vector::Vector(double x, double y, double z) 
+PerlinNoise::Vector::Vector(double x, double y, double z)
 	: std::tuple<double, double, double>(x, y, z) { }
 
 double PerlinNoise::Vector::x() const {
@@ -122,16 +122,6 @@ double PerlinNoise::cell_interpolate(std::array<double, 8> dots, const Vector &v
 
 double PerlinNoise::interpolate(double a, double b, double w) {
 	return (b - a) * (3.0 - w * 2.0) * w * w + a;
-}
-
-double Noise::wiggle(double base, double min, double max, double step) {
-	bool up = random() < 0.5;
-
-	if (up) {
-		return base + random() * (max - base) * step;
-	} else {
-		return base - random() * (base - min) * step;
-	}
 }
 
 double Noise::random() {

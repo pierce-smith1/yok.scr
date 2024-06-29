@@ -9,7 +9,11 @@
 using std::get;
 
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
-	: m_texture(texture), m_home(home), m_relpos(0.0, 0.0), m_size(cfg[Cfg::SpriteSize] / 1000.0f), m_trail_start_index(0)
+	: m_texture(texture),
+	m_home(home),
+	m_relpos(0.0, 0.0),
+	m_size(get_size()),
+	m_trail_start_index(0)
 {
 	if (has_trail) {
 		for (int i = 0; i < TrailSprite::get_trail_length(); i++) {
@@ -37,7 +41,7 @@ void Sprite::draw(Context &ctx) {
 	// But plastered on a rectangular screen.
 	// Here we adjust so the ratio's fair
 	// And our wandering Llokin are properly seen.
-	double squarifiy_offset = (double) (ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
+	double squarifiy_offset = (double) ((long long) ctx.rect().right - ctx.rect().bottom) / ctx.rect().right;
 
 	glTexCoord2d(1.0, 0.0); glVertex2d(1.0 - squarifiy_offset, -1.0);
 	glTexCoord2d(1.0, 1.0); glVertex2d(1.0 - squarifiy_offset, 1.0);
@@ -48,26 +52,14 @@ void Sprite::draw(Context &ctx) {
 	glPopMatrix();
 }
 
-void Sprite::update(Context &ctx) {
-	auto wrap = [](double home, double total, double min, double max) -> double {
-		if (total < min) {
-			return home + (max - min);
-		} else if (total > max) {
-			return home + (min - max);
-		} else {
-			return home;
-		}
-	};
-
-	double edge_boundary = 0.15 + m_size / 1.1;
-	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
-	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
-	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
-}
+void Sprite::update(Context &ctx) { }
 
 Point &Sprite::home() {
 	return m_home;
+}
+
+GLdouble Sprite::get_size() {
+	return cfg[Cfg::SpriteSize] / 1000.0;
 }
 
 void Sprite::transform() {
@@ -99,7 +91,98 @@ void Sprite::draw_trail(Context &ctx) {
 	}
 }
 
-Yonker::Yonker(const Texture *texture, const Point &home) 
+SpriteWiggler::SpriteWiggler()
+	: m_relpos_tendency(0, 0),
+	m_frames_when_tendency_changes(0),
+	m_distance_from_tendency_bias(default_distance_from_tendency_bias.first),
+	m_tendency_distance_from_home_bias(default_tendency_distance_from_home_bias.first),
+	m_wiggle_amount_bias(default_wiggle_amount_bias.first)
+{ }
+
+void SpriteWiggler::wiggle_sprite(Context &ctx, const Point &home, Point &relpos, const double magnitude) {
+	// In little steps up and down they'll roam,
+	// But never too far outside their home.
+	if (cfg[Cfg::HomeDrift] >= 0.000001) {
+		if (ctx.frame_count() >= m_frames_when_tendency_changes) {
+			randomize_tendency();
+		}
+
+		get<X>(relpos) = wiggle_coordinate(
+			get<X>(relpos),
+			get<X>(m_relpos_tendency),
+			-cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::StepSize] * (magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
+			m_wiggle_amount_bias,
+			1.0 / m_distance_from_tendency_bias
+		);
+
+		get<Y>(relpos) = wiggle_coordinate(
+			get<Y>(relpos),
+			get<Y>(m_relpos_tendency),
+			-cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::HomeDrift] / home_drift_divisor,
+			cfg[Cfg::StepSize] * (magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
+			m_wiggle_amount_bias,
+			1.0 / m_distance_from_tendency_bias
+		);
+	}
+}
+
+// rand_exp: Bias for the random number generator. >1 outputs higher numbers on average, <1 outputs lower numbers on average
+// distance_exp: Bias for the distance from the center. >1 increases the percieved distance, <1 decreases the percieved distance
+double SpriteWiggler::wiggle_coordinate(double base, double center, double min, double max, double step, double rand_exp, double distance_exp) {
+	auto inverse_lerp = [](double a, double b, double t) -> double { return (t - a) / (b - a); };	// Interpolate from 0 to 1 as t ranges from a to b
+	int increase = (Noise::random() < 0.5 ? +1 : -1);
+
+	double scaled_distance = base < center
+		? -(1 - pow(1 - inverse_lerp(center, min, base), distance_exp))
+		: +(1 - pow(1 - inverse_lerp(center, max, base), distance_exp));
+
+	double result = base + (1 - pow(1 - Noise::random(), rand_exp)) * (increase - scaled_distance) * step;
+	return std::clamp(result, min, max);
+};
+
+void SpriteWiggler::randomize_tendency() {
+	m_frames_when_tendency_changes += (size_t) round(randomize_tendency_variable(default_frames_between_tendency_changes)
+		* (1 + cfg[Cfg::HomeDrift] / home_drift_divisor) / (1 + cfg[Cfg::ShakeFactor] / shake_divisor / 2));
+	m_tendency_distance_from_home_bias = randomize_tendency_variable(default_tendency_distance_from_home_bias);
+	m_wiggle_amount_bias = randomize_tendency_variable(default_wiggle_amount_bias);
+	m_distance_from_tendency_bias = randomize_tendency_variable(default_distance_from_tendency_bias);
+
+	get<X>(m_relpos_tendency) = wiggle_coordinate(
+		0.0,
+		0.0,
+		-cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		m_tendency_distance_from_home_bias
+	);
+	get<Y>(m_relpos_tendency) = wiggle_coordinate(
+		0.0,
+		0.0,
+		-cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		cfg[Cfg::HomeDrift],
+		m_tendency_distance_from_home_bias
+	);
+}
+
+template<typename T>
+double SpriteWiggler::randomize_tendency_variable(std::pair<T, double> tendency_pair) {
+	double tendency;
+
+	bool increase = Noise::random() < 0.5;
+	if (increase) {
+		tendency = tendency_pair.first * (1 + tendency_pair.second * Noise::random());
+	} else {
+		tendency = tendency_pair.first / (1 + tendency_pair.second * Noise::random());
+	}
+
+	return tendency;
+}
+
+Yonker::Yonker(const Texture *texture, const Point &home)
 	: Sprite(texture, home), m_emotion_vector({ 0.0, 0.0, 0.0 }) { }
 
 void Yonker::update(Context &ctx) {
@@ -112,23 +195,7 @@ void Yonker::update(Context &ctx) {
 	double emotion_magnitude =
 		std::accumulate(m_emotion_vector.begin(), m_emotion_vector.end(), 0.0, abs_plus);
 
-	// In little steps up and down they'll roam,
-	// But never too far outside their home.
-	if (cfg[Cfg::HomeDrift] >= 0.000001) {
-		get<X>(m_relpos) = Noise::wiggle(
-			get<X>(m_relpos),
-			-cfg[Cfg::HomeDrift],
-			cfg[Cfg::HomeDrift],
-			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
-		);
-
-		get<Y>(m_relpos) = Noise::wiggle(
-			get<Y>(m_relpos),
-			-cfg[Cfg::HomeDrift],
-			cfg[Cfg::HomeDrift],
-			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
-		);
-	}
+	m_sprite_wiggler.wiggle_sprite(ctx, m_home, m_relpos, emotion_magnitude);
 
 	Sprite::update(ctx);
 
@@ -199,9 +266,9 @@ Bitmaps::Definition &Impostor::random_bitmap() {
 	static auto yoy = Bitmaps::bitmaps_of_group(BitmapGroup::YoyImpostor);
 
 	if (Noise::random() < 0.5) {
-		return impostors[(int) (Noise::random() * impostors.size())];
+		return impostors[(size_t) (Noise::random() * impostors.size())];
 	} else {
-		return yoy[(int) (Noise::random() * yoy.size())];
+		return yoy[(size_t) (Noise::random() * yoy.size())];
 	}
 }
 

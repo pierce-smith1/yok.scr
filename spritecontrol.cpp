@@ -85,6 +85,11 @@ SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *spri
 
 void SpriteChoreographer::update() {
 	m_current_player->update();
+	if (non_screen_wrapping_patterns.contains(m_pattern)) {
+		m_current_player->clamp_off_screen_sprites();
+	} else {
+		m_current_player->wrap_off_screen_sprites();
+	}
 	if (should_change_pattern()) {
 		change_pattern();
 	}
@@ -117,6 +122,50 @@ void SpriteChoreographer::update_player() {
 void PatternPlayer::set_pattern(PatternName pattern) {
 	m_pattern = pattern;
 	m_hash_offset++;
+}
+
+void PatternPlayer::wrap_off_screen_sprites() {
+	auto wrap = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = wrap(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = wrap(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
+}
+
+void PatternPlayer::clamp_off_screen_sprites() {
+	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (min - total);
+		} else if (total > max) {
+			return home + (max - total);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
+	// Some patterns will be fighting against this, but since it's happening off screen and after pattern movement, it shouldn't matter.
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = keep_in_bounds(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = keep_in_bounds(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
 }
 
 PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
@@ -186,14 +235,16 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		get<X>(sprite->home()) += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
 		get<Y>(sprite->home()) += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
-		if (get<X>(sprite->home()) > 1.0 || get<X>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= West;
-			get<X>(sprite->home()) = signbit(get<X>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<X>() > 1.0) {
+			directions[sprite->id()] |= West;
+		} else if (sprite->final<X>() < -1.0) {
+			directions[sprite->id()] &= ~West;
 		}
 
-		if (get<Y>(sprite->home()) > 1.0 || get<Y>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= South;
-			get<Y>(sprite->home()) = signbit(get<Y>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<Y>() > 1.0) {
+			directions[sprite->id()] |= South;
+		} else if (sprite->final<Y>() < -1.0) {
+			directions[sprite->id()] &= ~South;
 		}
 	}},
 	{ Lissajous, [](Sprite *sprite, Context *ctx, double offset) {
@@ -248,9 +299,9 @@ std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 
 std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
-		const static double SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080 * 1920) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;

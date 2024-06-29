@@ -23,6 +23,12 @@ enum PatternName {
 	_PATTERN_COUNT
 };
 
+const static std::set<PatternName> non_screen_wrapping_patterns = {
+	Bouncy,
+	Rose,
+	Lissajous
+};
+
 class SpriteGenerator {
 public:
 	SpriteGenerator();
@@ -39,6 +45,8 @@ private:
 class PatternPlayer {
 public:
 	void set_pattern(PatternName pattern);
+	void wrap_off_screen_sprites();
+	void clamp_off_screen_sprites();
 
 	virtual void update() = 0;
 	virtual std::set<PatternName> &compatible_patterns() = 0;
