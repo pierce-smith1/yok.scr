@@ -21,13 +21,15 @@ enum PatternName {
 	Lattice,
 	Bubbles,
 	RandomPattern,
+	Boids,
 	_PATTERN_COUNT
 };
 
 const static std::set<PatternName> non_screen_wrapping_patterns = {
 	Bouncy,
 	Rose,
-	Lissajous
+	Lissajous,
+	Boids,
 };
 
 class SpriteGenerator {

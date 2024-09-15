@@ -300,7 +300,8 @@ void GlobalPlayer::update() {
 
 std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
-		Bubbles
+		Bubbles,
+		Boids,
 	};
 
 	return patterns;
@@ -358,6 +359,90 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
 			
+			if (cos_theta > 0) {
+				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
+
+				double cos_theta_sq = cos_theta * cos_theta;
+				double cos_2theta = 2 * cos_theta_sq - 1;
+
+				double sin_theta = std::sqrt(1 - cos_theta_sq);
+				double sin_2theta = (sin_theta + cos_theta) * (sin_theta + cos_theta) - 1;
+
+				double Rx = get<X>(L) * cos_2theta - get<Y>(L) * sin_2theta;
+				double Ry = get<X>(L) * sin_2theta + get<Y>(L) * cos_2theta;
+
+				get<X>(velocity[a->id()]) = Rx;
+				get<Y>(velocity[a->id()]) = Ry;
+			}
+		}
+
+		for (Sprite *sprite : *sprites) {
+			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
+			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glColor4d(0.2, 0.2, 0.2, 1.0);
+			glBegin(GL_LINE_LOOP);
+			for (int i = 0; i < 20; i++) {
+				double theta = 2.0 * M_PI * i / 20.0;
+				double x = BUBBLE_X_RADIUS / 2 * std::cos(theta);
+				double y = BUBBLE_Y_RADIUS / 2 * std::sin(theta);
+				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
+			}
+			glEnd();
+		}
+	}},
+	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
+		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
+
+		static std::map<Id, Point> velocity;
+
+		if (velocity.empty()) {
+			for (const Sprite *sprite : *sprites) {
+				double radians = Noise::random() * M_PI * 2;
+				double mag = Noise::random() + 0.4;
+				velocity[sprite->id()] = { std::cos(radians) * mag, std::sin(radians) * mag };
+			}
+		}
+
+		std::vector<std::pair<Sprite *, Sprite *>> collisions;
+		for (size_t i = 0; i < sprites->size(); i++) {
+			for (size_t j = 0; j < sprites->size(); j++) {
+				if (i == j) {
+					continue;
+				}
+
+				Sprite *a = (*sprites)[i];
+				Sprite *b = (*sprites)[j];
+
+				double dist_x = a->final<X>() - b->final<X>();
+				double dist_y = (a->final<Y>() - b->final<Y>()) * STRETCH_RATIO;
+				double dist = std::sqrt(dist_x * dist_x + dist_y * dist_y);
+
+				if (dist < BUBBLE_X_RADIUS) {
+					collisions.push_back({ a, b });
+				}
+			}
+		}
+
+		for (const auto &collision : collisions) {
+			Sprite *a = collision.first;
+			Sprite *b = collision.second;
+
+			Point L = { -get<X>(velocity[a->id()]), -get<Y>(velocity[a->id()]) };
+			double mag_L = std::sqrt(get<X>(L) * get<X>(L) + get<Y>(L) * get<Y>(L));
+			Point L_u = { get<X>(L) / mag_L, get<Y>(L) / mag_L };
+
+			Point N = { a->final<X>() - b->final<X>(), a->final<Y>() - b->final<Y>() };
+			double mag_N = std::sqrt(get<X>(N) * get<X>(N) + get<Y>(N) * get<Y>(N));
+			get<X>(N) /= mag_N;
+			get<Y>(N) /= mag_N;
+
+			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
+
 			if (cos_theta > 0) {
 				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
 
