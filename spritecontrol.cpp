@@ -395,85 +395,211 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
-		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
+		const static double SEPARATION_Y_RADIUS = (8.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
+		const static double VISION_Y_RADIUS = (15.0 / (cfg[Cfg::SpriteCount] / 15.0 + 20.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
+		const static double BLIND_DEGREES = 30.0;
+
+		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
+		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
+		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to align sprites that are in a pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;				// How strongly to pull sprites towards the middle of their pack
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.1;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
+		static std::map<Id, double> desired_velocity;
+		static std::map<Id, double> desired_separation;
+		static std::map<Id, double> vision_range;
+		static std::map<Id, double> blind_angle;
 
-		if (velocity.empty()) {
+		// Gives a random value between (1 - variation; 1 + variation).
+		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
+		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
+		// Variation shouldn't be larger than 1. Exponent must be larger than 0. Slope should be from 0 to 1.
+		auto random_curve = [](double variation, double exponent = 5.0, double slope = 0.1) {
+			double random = Noise::random();
+			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
+			random = random * slope + pow(random, exponent) * (1 - slope);
+			return 1.0 + sign * random * variation;		// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * variation
+		};
+
+		// Converts a vector to an angle in the range (-M_PI, M_PI].
+		auto get_angle = [](const Point &vector) {
+			double x = get<X>(vector);
+			double y = get<Y>(vector);
+
+			if (x == 0 && y == 0) {
+				return 0.0;
+			}
+
+			double angle = atan2(y, x);
+
+			// i'm sure there will be absolutely nothing wrong with this
+			if (x >= 0) {
+				return angle;
+			} else if (y >= 0) {
+				return angle + M_PI;
+			} else {
+				return angle - M_PI;
+			}
+		};
+
+		// Wraps angles to be inside the range (-M_PI, M_PI]
+		auto wrap_angle = [](double angle) {
+			angle += M_PI;
+			angle -= 2 * M_PI * floor(angle / (2 * M_PI));
+			return angle - 2 * M_PI;
+		};
+
+		auto get_vector_magnitude = [](const Point &vector) {
+			double x = get<X>(vector);
+			double y = get<Y>(vector);
+
+			return sqrt(x * x + y * y);
+		};
+
+		auto normalize_vector = [get_vector_magnitude](const Point &vector) {
+			double magnitude = get_vector_magnitude(vector);
+			return magnitude != 0.0 ? vector / magnitude : vector;
+		};
+
+		if (velocity.empty() || desired_velocity.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
 			for (const Sprite *sprite : *sprites) {
+				double magnitude = Noise::random() / 2.0 + 0.65;
 				double radians = Noise::random() * M_PI * 2;
-				double mag = Noise::random() + 0.4;
-				velocity[sprite->id()] = { std::cos(radians) * mag, std::sin(radians) * mag };
+				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
+				desired_velocity[sprite->id()] = magnitude;
+
+				double separation_radius = random_curve(0.2) * SEPARATION_X_RADIUS;
+				desired_separation[sprite->id()] = separation_radius;
+
+				double vision_radius = random_curve(0.5) * VISION_X_RADIUS;
+				vision_range[sprite->id()] = vision_radius;
+
+				double degrees = random_curve(1.0, 10.0, 0.25) * BLIND_DEGREES;
+				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
 			}
 		}
 
-		std::vector<std::pair<Sprite *, Sprite *>> collisions;
-		for (size_t i = 0; i < sprites->size(); i++) {
-			for (size_t j = 0; j < sprites->size(); j++) {
-				if (i == j) {
+		std::map<Sprite *, Point> separation_velocity_changes;
+		std::map<Sprite *, Point> alignment_velocity_changes;
+		std::map<Sprite *, Point> cohesion_velocity_changes;
+
+		for (Sprite *current_sprite : *sprites) {
+			size_t sprites_seen = 1;
+			double average_angle = get_angle(velocity[current_sprite->id()]);
+			Point average_pos = Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
+				if (current_sprite == other_sprite) {
 					continue;
 				}
 
-				Sprite *a = (*sprites)[i];
-				Sprite *b = (*sprites)[j];
+				double dist_x = current_sprite->final<X>() - other_sprite->final<X>();
+				double dist_y = (current_sprite->final<Y>() - other_sprite->final<Y>()) * STRETCH_RATIO;
+				Point diff = Point(dist_x, dist_y);
 
-				double dist_x = a->final<X>() - b->final<X>();
-				double dist_y = (a->final<Y>() - b->final<Y>()) * STRETCH_RATIO;
-				double dist = std::sqrt(dist_x * dist_x + dist_y * dist_y);
+				double dist = get_vector_magnitude(diff);
+				
+				if (dist > vision_range[current_sprite->id()]) {
+					continue;
+				}
 
-				if (dist < BUBBLE_X_RADIUS) {
-					collisions.push_back({ a, b });
+				double current_angle = get_angle(velocity[current_sprite->id()]);
+				double relative_angle = get_angle(diff);
+				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+
+				if (abs(relative_angle) >= blind_angle[current_sprite->id()]) {
+					sprites_seen++;
+					double other_angle = get_angle(velocity[other_sprite->id()]);
+					average_angle += other_angle;
+					average_pos += Point(other_sprite->final<X>(), other_sprite->final<Y>());
+				}
+
+				if (dist < desired_separation[current_sprite->id()]) {
+					diff /= dist * dist / desired_separation[current_sprite->id()];
+					separation_velocity_changes[current_sprite] = diff;
 				}
 			}
-		}
 
-		for (const auto &collision : collisions) {
-			Sprite *a = collision.first;
-			Sprite *b = collision.second;
+			if (sprites_seen > 1) {
+				average_angle /= sprites_seen;
+				average_pos /= (double) sprites_seen;
 
-			Point L = { -get<X>(velocity[a->id()]), -get<Y>(velocity[a->id()]) };
-			double mag_L = std::sqrt(get<X>(L) * get<X>(L) + get<Y>(L) * get<Y>(L));
-			Point L_u = { get<X>(L) / mag_L, get<Y>(L) / mag_L };
+				// i sure hope the angles i'm calculating line up with the angles used for movement
+				alignment_velocity_changes[current_sprite] = Point(cos(average_angle), sin(average_angle));
 
-			Point N = { a->final<X>() - b->final<X>(), a->final<Y>() - b->final<Y>() };
-			double mag_N = std::sqrt(get<X>(N) * get<X>(N) + get<Y>(N) * get<Y>(N));
-			get<X>(N) /= mag_N;
-			get<Y>(N) /= mag_N;
-
-			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
-
-			if (cos_theta > 0) {
-				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
-
-				double cos_theta_sq = cos_theta * cos_theta;
-				double cos_2theta = 2 * cos_theta_sq - 1;
-
-				double sin_theta = std::sqrt(1 - cos_theta_sq);
-				double sin_2theta = (sin_theta + cos_theta) * (sin_theta + cos_theta) - 1;
-
-				double Rx = get<X>(L) * cos_2theta - get<Y>(L) * sin_2theta;
-				double Ry = get<X>(L) * sin_2theta + get<Y>(L) * cos_2theta;
-
-				get<X>(velocity[a->id()]) = Rx;
-				get<Y>(velocity[a->id()]) = Ry;
+				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
+				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
 			}
 		}
 
+		for (auto &sprite : separation_velocity_changes) {
+			double scale = get_vector_magnitude(sprite.second);
+			scale = min(desired_velocity[sprite.first->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[sprite.first->id()] += sprite.second * scale;
+		}
+
+		for (auto &sprite : alignment_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite.first->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+			sprite_velocity /= magnitude;
+
+			Point diff = sprite.second - sprite_velocity;
+			diff *= ALIGNMENT_FORCE_MULT;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			// there's probably a better way to do this but i can't be bothered figuring it out now
+		}
+
+		for (auto &sprite : cohesion_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite.first->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+			sprite_velocity /= magnitude;
+
+			Point diff = sprite.second - sprite_velocity;
+			diff *= COHESION_FORCE_MULT;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			// refer to previous comment
+		}
+
+		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
+		size_t sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
+			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
+			double velocity_change = (desired_velocity[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
+
+			velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;
+
 			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
 			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4d(0.2, 0.2, 0.2, 1.0);
+
+			// temporary visuals
+			if (sprite_num == random_sprite) {
+				glBegin(GL_LINE_LOOP);
+				for (int i = 0; i < 20; i++) {
+					double theta = 2.0 * M_PI * i / 20.0;
+					double x = vision_range[sprite->id()] * std::cos(theta);
+					double y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta);
+					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
+				}
+				glEnd();
+			}
 			glBegin(GL_LINE_LOOP);
 			for (int i = 0; i < 20; i++) {
 				double theta = 2.0 * M_PI * i / 20.0;
-				double x = BUBBLE_X_RADIUS / 2 * std::cos(theta);
-				double y = BUBBLE_Y_RADIUS / 2 * std::sin(theta);
+				double x = desired_separation[sprite->id()] * std::cos(theta);
+				double y = desired_separation[sprite->id()] / STRETCH_RATIO * std::sin(theta);
 				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
+
+			sprite_num++;
 		}
 	}},
 };

@@ -39,6 +39,15 @@ private:
 };
 
 using Point = std::pair<GLdouble, GLdouble>;
+Point operator+(const Point &l, const Point &r);
+Point operator+=(Point &l, const Point &r);
+Point operator-(const Point &l, const Point &r);
+Point operator-=(Point &l, const Point &r);
+Point operator*(const Point &l, const GLdouble &r);
+Point operator*=(Point &l, const GLdouble &r);
+Point operator/(const Point &l, const GLdouble &r);
+Point operator/=(Point &l, const GLdouble &r);
+
 enum Coord {
 	X = 0,
 	Y = 1
