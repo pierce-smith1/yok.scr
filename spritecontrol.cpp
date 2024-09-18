@@ -395,17 +395,20 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double SEPARATION_Y_RADIUS = (8.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
-		const static double VISION_Y_RADIUS = (15.0 / (cfg[Cfg::SpriteCount] / 15.0 + 20.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 15.0 + 20.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
-		const static double BLIND_DEGREES = 30.0;
+		const static double BLIND_DEGREES = 45.0;
+		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
 
-		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
-		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
-		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to align sprites that are in a pack
-		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;				// How strongly to pull sprites towards the middle of their pack
-		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.1;	// How strongly to accelerate sprites towards their desired velocity
+		const static double DEFAULT_FORCE_MULT = 0.05;	// Multiplier for all forces below
+		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.5;			// How strongly to separate sprites that are too close
+		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
+		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 1.5;			// How strongly to push sprites away from the edges
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_velocity;
@@ -466,7 +469,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		if (velocity.empty() || desired_velocity.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
 			for (const Sprite *sprite : *sprites) {
-				double magnitude = Noise::random() / 2.0 + 0.65;
+				double magnitude = Noise::random() + 0.4;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
 				desired_velocity[sprite->id()] = magnitude;
@@ -485,20 +488,22 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> separation_velocity_changes;
 		std::map<Sprite *, Point> alignment_velocity_changes;
 		std::map<Sprite *, Point> cohesion_velocity_changes;
+		std::map<Sprite *, Point> edge_push_velocity_changes;
 
 		for (Sprite *current_sprite : *sprites) {
+			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 			size_t sprites_seen = 1;
 			double average_angle = get_angle(velocity[current_sprite->id()]);
-			Point average_pos = Point(current_sprite->final<X>(), current_sprite->final<Y>());
+			Point average_pos = Point(current_final);
 
 			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
 				if (current_sprite == other_sprite) {
 					continue;
 				}
 
-				double dist_x = current_sprite->final<X>() - other_sprite->final<X>();
-				double dist_y = (current_sprite->final<Y>() - other_sprite->final<Y>()) * STRETCH_RATIO;
-				Point diff = Point(dist_x, dist_y);
+				Point other_final = Point(other_sprite->final<X>(), other_sprite->final<Y>());
+				Point diff = current_final - other_final;
+				get<Y>(diff) *= STRETCH_RATIO;
 
 				double dist = get_vector_magnitude(diff);
 				
@@ -514,7 +519,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					sprites_seen++;
 					double other_angle = get_angle(velocity[other_sprite->id()]);
 					average_angle += other_angle;
-					average_pos += Point(other_sprite->final<X>(), other_sprite->final<Y>());
+					average_pos += other_final;
 				}
 
 				if (dist < desired_separation[current_sprite->id()]) {
@@ -532,6 +537,26 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
 				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
+			}
+
+			Point edge_push = Point(0.0, 0.0);
+
+			if (-1.0 + EDGE_PUSH_X_RADIUS > get<X>(current_final)) {
+				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<X>(current_final)) {
+				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+			}
+
+			if (-1.0 + EDGE_PUSH_X_RADIUS > get<Y>(current_final)) {
+				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
+			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<Y>(current_final)) {
+				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
+			}
+
+			if (edge_push != Point(0.0, 0.0)) {
+				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0/2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
+				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0/2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
+				edge_push_velocity_changes[current_sprite] = edge_push;
 			}
 		}
 
@@ -563,6 +588,12 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 			// refer to previous comment
+		}
+
+		for (auto &sprite : edge_push_velocity_changes) {
+			double scale = get_vector_magnitude(sprite.second);
+			scale *= desired_velocity[sprite.first->id()] * EDGE_PUSH_FORCE_MULT;
+			velocity[sprite.first->id()] += sprite.second * scale;
 		}
 
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());

@@ -29,6 +29,7 @@ const static std::set<PatternName> non_screen_wrapping_patterns = {
 	Bouncy,
 	Rose,
 	Lissajous,
+	Boids,
 };
 
 class SpriteGenerator {
