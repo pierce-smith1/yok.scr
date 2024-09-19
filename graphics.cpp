@@ -80,7 +80,7 @@ Point operator+(const Point &l, const Point &r) {
 	return Point(x, y);
 }
 
-Point operator+=(Point &l, const Point &r) {
+Point &operator+=(Point &l, const Point &r) {
 	get<X>(l) += get<X>(r);
 	get<Y>(l) += get<Y>(r);
 
@@ -94,7 +94,7 @@ Point operator-(const Point &l, const Point &r) {
 	return Point(x, y);
 }
 
-Point operator-=(Point &l, const Point &r) {
+Point &operator-=(Point &l, const Point &r) {
 	get<X>(l) -= get<X>(r);
 	get<Y>(l) -= get<Y>(r);
 
@@ -108,7 +108,7 @@ Point operator*(const Point &l, const GLdouble &r) {
 	return Point(x, y);
 }
 
-Point operator*=(Point &l, const GLdouble &r) {
+Point &operator*=(Point &l, const GLdouble &r) {
 	get<X>(l) *= r;
 	get<Y>(l) *= r;
 
@@ -122,7 +122,7 @@ Point operator/(const Point &l, const GLdouble &r) {
 	return Point(x, y);
 }
 
-Point operator/=(Point &l, const GLdouble &r) {
+Point &operator/=(Point &l, const GLdouble &r) {
 	get<X>(l) /= r;
 	get<Y>(l) /= r;
 

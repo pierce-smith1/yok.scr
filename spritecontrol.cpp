@@ -411,7 +411,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
-		static std::map<Id, double> desired_velocity;
+		static std::map<Id, double> desired_speed;
 		static std::map<Id, double> desired_separation;
 		static std::map<Id, double> vision_range;
 		static std::map<Id, double> blind_angle;
@@ -429,8 +429,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		// Converts a vector to an angle in the range (-M_PI, M_PI].
 		auto get_angle = [](const Point &vector) {
-			double x = get<X>(vector);
-			double y = get<Y>(vector);
+			const auto &[x, y] = vector;
 
 			if (x == 0 && y == 0) {
 				return 0.0;
@@ -450,29 +449,32 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		// Wraps angles to be inside the range (-M_PI, M_PI]
 		auto wrap_angle = [](double angle) {
-			angle += M_PI;
-			angle -= 2 * M_PI * floor(angle / (2 * M_PI));
-			return angle - 2 * M_PI;
+			while (angle > M_PI) {
+				angle -= 2.0 * M_PI;
+			}
+			while (angle < -M_PI) {
+				angle += 2.0 * M_PI;
+			}
+			return angle;
 		};
 
 		auto get_vector_magnitude = [](const Point &vector) {
-			double x = get<X>(vector);
-			double y = get<Y>(vector);
+			const auto &[x, y] = vector;
 
 			return sqrt(x * x + y * y);
 		};
 
-		auto normalize_vector = [get_vector_magnitude](const Point &vector) {
+		auto normalize_vector = [&](const Point &vector) {
 			double magnitude = get_vector_magnitude(vector);
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
-		if (velocity.empty() || desired_velocity.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
+		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.4;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
-				desired_velocity[sprite->id()] = magnitude;
+				desired_speed[sprite->id()] = magnitude;
 
 				double separation_radius = random_curve(0.2) * SEPARATION_X_RADIUS;
 				desired_separation[sprite->id()] = separation_radius;
@@ -491,9 +493,16 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> edge_push_velocity_changes;
 
 		for (Sprite *current_sprite : *sprites) {
+			const Point &current_velocity = velocity[current_sprite->id()];
+			const double &current_desired_separation = desired_separation[current_sprite->id()];
+			const double &current_vision_range = vision_range[current_sprite->id()];
+			const double &current_blind_angle = blind_angle[current_sprite->id()];
+
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+			Point separation_velocity = Point(0.0, 0.0);
 			size_t sprites_seen = 1;
-			double average_angle = get_angle(velocity[current_sprite->id()]);
+			double average_angle = get_angle(current_velocity);
 			Point average_pos = Point(current_final);
 
 			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
@@ -507,26 +516,28 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				double dist = get_vector_magnitude(diff);
 				
-				if (dist > vision_range[current_sprite->id()]) {
+				if (dist > current_vision_range) {
 					continue;
 				}
 
-				double current_angle = get_angle(velocity[current_sprite->id()]);
+				double current_angle = get_angle(current_velocity);
 				double relative_angle = get_angle(diff);
 				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
-				if (abs(relative_angle) >= blind_angle[current_sprite->id()]) {
+				if (abs(relative_angle) >= current_blind_angle) {
 					sprites_seen++;
 					double other_angle = get_angle(velocity[other_sprite->id()]);
 					average_angle += other_angle;
 					average_pos += other_final;
 				}
 
-				if (dist < desired_separation[current_sprite->id()]) {
-					diff /= dist * dist / desired_separation[current_sprite->id()];
-					separation_velocity_changes[current_sprite] = diff;
+				if (dist < current_desired_separation) {
+					diff /= dist * dist / current_desired_separation;
+					separation_velocity += diff;
 				}
 			}
+
+			separation_velocity_changes[current_sprite] = separation_velocity;
 
 			if (sprites_seen > 1) {
 				average_angle /= sprites_seen;
@@ -560,47 +571,47 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 		}
 
-		for (auto &sprite : separation_velocity_changes) {
-			double scale = get_vector_magnitude(sprite.second);
-			scale = min(desired_velocity[sprite.first->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
-			velocity[sprite.first->id()] += sprite.second * scale;
+		for (auto &[sprite, velocity_change] : separation_velocity_changes) {
+			double scale = get_vector_magnitude(velocity_change);
+			scale = min(desired_speed[sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[sprite->id()] += velocity_change * scale;
 		}
 
-		for (auto &sprite : alignment_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite.first->id()];
+		for (auto &[sprite, velocity_change] : alignment_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite->id()];
 			double magnitude = get_vector_magnitude(sprite_velocity);
 			sprite_velocity /= magnitude;
 
-			Point diff = sprite.second - sprite_velocity;
+			Point diff = velocity_change - sprite_velocity;
 			diff *= ALIGNMENT_FORCE_MULT;
 
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 			// there's probably a better way to do this but i can't be bothered figuring it out now
 		}
 
-		for (auto &sprite : cohesion_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite.first->id()];
+		for (auto &[sprite, velocity_change] : cohesion_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite->id()];
 			double magnitude = get_vector_magnitude(sprite_velocity);
 			sprite_velocity /= magnitude;
 
-			Point diff = sprite.second - sprite_velocity;
+			Point diff = velocity_change - sprite_velocity;
 			diff *= COHESION_FORCE_MULT;
 
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 			// refer to previous comment
 		}
 
-		for (auto &sprite : edge_push_velocity_changes) {
-			double scale = get_vector_magnitude(sprite.second);
-			scale *= desired_velocity[sprite.first->id()] * EDGE_PUSH_FORCE_MULT;
-			velocity[sprite.first->id()] += sprite.second * scale;
+		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
+			double scale = get_vector_magnitude(velocity_change);
+			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
+			velocity[sprite->id()] += velocity_change * scale;
 		}
 
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
 		size_t sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
 			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
-			double velocity_change = (desired_velocity[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
+			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
 
 			velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;
 
