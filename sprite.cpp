@@ -62,8 +62,8 @@ void Sprite::update(Context &ctx) {
 	double edge_boundary = 0.15 + m_size / 1.1;
 	double horizontal_correction = max((double) ctx.rect().right / (double) ctx.rect().bottom, 1.0);
 	double vertical_correction = max((double) ctx.rect().bottom / (double) ctx.rect().right, 1.0);
-	get<X>(m_home) = wrap(get<X>(m_home), final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-	get<Y>(m_home) = wrap(get<Y>(m_home), final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	m_home.x = wrap(m_home.x, final_x(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+	m_home.y = wrap(m_home.y, final_y(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
 }
 
 Point &Sprite::home() {
@@ -71,7 +71,7 @@ Point &Sprite::home() {
 }
 
 void Sprite::transform() {
-	glTranslated(final<X>(), final<Y>(), 0.0);
+	glTranslated(final_x(), final_y(), 0.0);
 	glScaled(m_size, m_size, 1.0);
 }
 
@@ -80,7 +80,7 @@ void Sprite::update_trail() {
 		return;
 	}
 
-	get_trail() = TrailSprite(m_texture, Point(final<X>(), final<Y>()));
+	get_trail() = TrailSprite(m_texture, Point(final_x(), final_y()));
 	increment_trail_index();
 }
 
@@ -115,15 +115,15 @@ void Yonker::update(Context &ctx) {
 	// In little steps up and down they'll roam,
 	// But never too far outside their home.
 	if (cfg[Cfg::HomeDrift] >= 0.000001) {
-		get<X>(m_relpos) = Noise::wiggle(
-			get<X>(m_relpos),
+		m_relpos.x = Noise::wiggle(
+			m_relpos.x,
 			-cfg[Cfg::HomeDrift],
 			cfg[Cfg::HomeDrift],
 			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
 		);
 
-		get<Y>(m_relpos) = Noise::wiggle(
-			get<Y>(m_relpos),
+		m_relpos.y = Noise::wiggle(
+			m_relpos.y,
 			-cfg[Cfg::HomeDrift],
 			cfg[Cfg::HomeDrift],
 			cfg[Cfg::StepSize] * (emotion_magnitude * cfg[Cfg::ShakeFactor]) / max((cfg[Cfg::HomeDrift] / Cfg::HomeDrift.default_), 1)
@@ -175,9 +175,9 @@ std::array<double, Yonker::_EMOTIONS_COUNT> Yonker::emotion_vector(Context &ctx)
 	// Continous noise will be perfect for this;
 	// Nearby to those pissed will also be pissed.
 	return {
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() - ctx.t(), final<Y>() + ctx.t(), ctx.t()),
-		PerlinNoise::get(final<X>() + ctx.t(), final<Y>() - ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() + ctx.t(), final_y() + ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() - ctx.t(), final_y() + ctx.t(), ctx.t()),
+		PerlinNoise::get(final_x() + ctx.t(), final_y() - ctx.t(), ctx.t()),
 	};
 }
 

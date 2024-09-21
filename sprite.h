@@ -24,9 +24,14 @@ public:
 	virtual void draw(Context &ctx);
 	virtual void update(Context &ctx);
 
-	template <int C> double final() const {
-		return std::get<C>(m_home) + std::get<C>(m_relpos);
+	double final_x() const {
+		return m_home.x + m_relpos.x;
 	}
+
+	double final_y() const {
+		return m_home.y + m_relpos.y;
+	}
+
 
 	Point &home();
 

@@ -38,8 +38,7 @@ private:
 	const BitmapData &m_bitmap;
 };
 
-using Point = std::pair<GLdouble, GLdouble>;
-enum Coord {
-	X = 0,
-	Y = 1
+struct Point {
+	GLdouble x;
+	GLdouble y;
 };
