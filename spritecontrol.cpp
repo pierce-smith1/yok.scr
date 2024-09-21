@@ -77,21 +77,29 @@ const PaletteData *SpriteGenerator::next_palette() const {
 }
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
-	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites)
+	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
 { 
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
+	if (m_pattern == RandomPattern) {
+		change_pattern();
+	}
 	update_player();
 }
 
 void SpriteChoreographer::update() {
 	m_current_player->update();
+	if (non_screen_wrapping_patterns.contains(m_pattern)) {
+		m_current_player->clamp_off_screen_sprites();
+	} else {
+		m_current_player->wrap_off_screen_sprites();
+	}
 	if (should_change_pattern()) {
 		change_pattern();
 	}
 }
 
 bool SpriteChoreographer::should_change_pattern() {
-	if (cfg[Cfg::IsPatternFixed]) {
+	if (m_enabled_patterns.size() <= 1) {
 		return false;
 	}
 
@@ -101,7 +109,13 @@ bool SpriteChoreographer::should_change_pattern() {
 }
 
 void SpriteChoreographer::change_pattern() {
-	m_pattern = (PatternName) (Noise::random() * cast<double>(_PATTERN_COUNT));
+	std::vector<PatternName> candidate_patterns = { };
+	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(candidate_patterns), [&](const PatternName &pattern) {
+		return pattern != m_pattern;
+	});
+
+	size_t random_index = (size_t) (Noise::random() * candidate_patterns.size());
+	m_pattern = candidate_patterns.at(random_index);
 	update_player();
 }
 
@@ -117,6 +131,50 @@ void SpriteChoreographer::update_player() {
 void PatternPlayer::set_pattern(PatternName pattern) {
 	m_pattern = pattern;
 	m_hash_offset++;
+}
+
+void PatternPlayer::wrap_off_screen_sprites() {
+	auto wrap = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = wrap(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = wrap(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
+}
+
+void PatternPlayer::clamp_off_screen_sprites() {
+	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (min - total);
+		} else if (total > max) {
+			return home + (max - total);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
+	// Some patterns will be fighting against this, but since it's happening off screen and after pattern movement, it shouldn't matter.
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = keep_in_bounds(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = keep_in_bounds(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
 }
 
 PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
@@ -186,14 +244,16 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		sprite->home().x += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
 		sprite->home().y += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
-		if (sprite->home().x > 1.0 || sprite->home().x < -1.0) {
-			directions[sprite->id()] ^= West;
-			sprite->home().x = signbit(sprite->home().x) ? -1.0 : 1.0;
+		if (sprite->final<X>() > 1.0) {
+			directions[sprite->id()] |= West;
+		} else if (sprite->final<X>() < -1.0) {
+			directions[sprite->id()] &= ~West;
 		}
 
-		if (sprite->home().y > 1.0 || sprite->home().y < -1.0) {
-			directions[sprite->id()] ^= South;
-			sprite->home().y = signbit(sprite->home().y) ? -1.0 : 1.0;
+		if (sprite->final<Y>() > 1.0) {
+			directions[sprite->id()] |= South;
+		} else if (sprite->final<Y>() < -1.0) {
+			directions[sprite->id()] &= ~South;
 		}
 	}},
 	{ Lissajous, [](Sprite *sprite, Context *ctx, double offset) {
@@ -248,9 +308,9 @@ std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 
 std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
-		const static double SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080 * 1920) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;
@@ -332,3 +392,54 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		}
 	}},
 };
+
+std::vector<PatternName> PatternRepository::load_disabled_patterns() {
+	Registry registry;
+
+	std::vector<PatternName> disabled_patterns = { };
+
+	std::vector<std::wstring> disabled_patterns_strings = split<std::wstring>(registry.get_string(disabled_patterns_name, disabled_patterns_default), disabled_patterns_string_delimiter);
+	for (auto &pattern : pattern_strings) {
+		auto disabled_pattern = std::find_if(disabled_patterns_strings.begin(), disabled_patterns_strings.end(), [&](const std::wstring &string) {
+			return string == pattern.second && pattern.first != RandomPattern;
+		});
+		if (disabled_pattern != disabled_patterns_strings.end()) {
+			disabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	if (get_enabled_patterns(disabled_patterns).size() < 1) {
+		disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), default_pattern_all_disabled));
+	}
+
+	return disabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::get_enabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::vector<PatternName> enabled_patterns = { };
+
+	for (auto &pattern : pattern_strings) {
+		if (std::find(disabled_patterns.begin(), disabled_patterns.end(), pattern.first) == disabled_patterns.end() && pattern.first != RandomPattern) {
+			enabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	return enabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::load_enabled_patterns() {
+	return get_enabled_patterns(load_disabled_patterns());
+}
+
+void PatternRepository::save_disabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::wstring disabled_patterns_string = disabled_patterns_default;
+	for (auto &pattern : disabled_patterns) {
+		if (pattern != *disabled_patterns.begin()) {
+			disabled_patterns_string.append(disabled_patterns_string_delimiter);
+		}
+		disabled_patterns_string.append(pattern_strings.at(pattern));
+	}
+
+	Registry registry;
+	registry.write_string(disabled_patterns_name, disabled_patterns_string);
+}

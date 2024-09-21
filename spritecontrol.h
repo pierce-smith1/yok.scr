@@ -20,7 +20,14 @@ enum PatternName {
 	Rose,
 	Lattice,
 	Bubbles,
+	RandomPattern,
 	_PATTERN_COUNT
+};
+
+const static std::set<PatternName> non_screen_wrapping_patterns = {
+	Bouncy,
+	Rose,
+	Lissajous
 };
 
 class SpriteGenerator {
@@ -39,6 +46,8 @@ private:
 class PatternPlayer {
 public:
 	void set_pattern(PatternName pattern);
+	void wrap_off_screen_sprites();
+	void clamp_off_screen_sprites();
 
 	virtual void update() = 0;
 	virtual std::set<PatternName> &compatible_patterns() = 0;
@@ -89,10 +98,26 @@ protected:
 	bool should_change_pattern();
 	void update_player();
 
+
 	Sprites *m_sprites;
 	Context *m_ctx;
 	PatternName m_pattern;
 	std::vector<PatternPlayer *> m_players;
 	PatternPlayer *m_current_player;
+	std::vector<PatternName> m_enabled_patterns;
+};
+
+class PatternRepository {
+public:
+	static std::vector<PatternName> load_disabled_patterns();
+	static std::vector<PatternName> get_enabled_patterns(const std::vector<PatternName> &disabled_patterns);
+	static std::vector<PatternName> load_enabled_patterns();
+	static void save_disabled_patterns(const std::vector<PatternName> &patterns);
+
+protected:
+	inline const static std::wstring disabled_patterns_name = L"DisabledPatterns";
+	inline const static std::wstring disabled_patterns_default = L"";
+	inline const static std::wstring disabled_patterns_string_delimiter = L",";
+	inline const static PatternName default_pattern_all_disabled = Lattice;
 };
 
