@@ -149,8 +149,8 @@ void PatternPlayer::wrap_off_screen_sprites() {
 	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
 
 	for (Sprite *sprite : *m_sprites) {
-		get<X>(sprite->home()) = wrap(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-		get<Y>(sprite->home()) = wrap(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+		sprite->home().x = wrap(sprite->home().x, sprite->final_x(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		sprite->home().y = wrap(sprite->home().y, sprite->final_y(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
 	}
 }
 
@@ -172,8 +172,8 @@ void PatternPlayer::clamp_off_screen_sprites() {
 	// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
 	// Some patterns will be fighting against this, but since it's happening off screen and after pattern movement, it shouldn't matter.
 	for (Sprite *sprite : *m_sprites) {
-		get<X>(sprite->home()) = keep_in_bounds(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
-		get<Y>(sprite->home()) = keep_in_bounds(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+		sprite->home().x = keep_in_bounds(sprite->home().x, sprite->final_x(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		sprite->home().y = keep_in_bounds(sprite->home().y, sprite->final_y(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
 	}
 }
 
@@ -244,15 +244,15 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		sprite->home().x += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
 		sprite->home().y += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
-		if (sprite->final<X>() > 1.0) {
+		if (sprite->final_x() > 1.0) {
 			directions[sprite->id()] |= West;
-		} else if (sprite->final<X>() < -1.0) {
+		} else if (sprite->final_x() < -1.0) {
 			directions[sprite->id()] &= ~West;
 		}
 
-		if (sprite->final<Y>() > 1.0) {
+		if (sprite->final_y() > 1.0) {
 			directions[sprite->id()] |= South;
-		} else if (sprite->final<Y>() < -1.0) {
+		} else if (sprite->final_y() < -1.0) {
 			directions[sprite->id()] &= ~South;
 		}
 	}},

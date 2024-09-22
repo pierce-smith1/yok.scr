@@ -11,7 +11,7 @@ using std::get;
 Sprite::Sprite(const Texture *texture, const Point &home, const bool has_trail)
 	: m_texture(texture),
 	m_home(home),
-	m_relpos(0.0, 0.0),
+	m_relpos({ 0.0, 0.0 }),
 	m_size(get_size()),
 	m_trail_start_index(0)
 {
@@ -92,7 +92,7 @@ void Sprite::draw_trail(Context &ctx) {
 }
 
 SpriteWiggler::SpriteWiggler()
-	: m_relpos_tendency(0, 0),
+	: m_relpos_tendency({ 0, 0 }),
 	m_frames_when_tendency_changes(0),
 	m_distance_from_tendency_bias(default_distance_from_tendency_bias.first),
 	m_tendency_distance_from_home_bias(default_tendency_distance_from_home_bias.first),
@@ -107,9 +107,9 @@ void SpriteWiggler::wiggle_sprite(Context &ctx, const Point &home, Point &relpos
 			randomize_tendency();
 		}
 
-		get<X>(relpos) = wiggle_coordinate(
-			get<X>(relpos),
-			get<X>(m_relpos_tendency),
+		relpos.x = wiggle_coordinate(
+			relpos.x,
+			m_relpos_tendency.x,
 			-cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::StepSize] * (magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
@@ -117,9 +117,9 @@ void SpriteWiggler::wiggle_sprite(Context &ctx, const Point &home, Point &relpos
 			1.0 / m_distance_from_tendency_bias
 		);
 
-		get<Y>(relpos) = wiggle_coordinate(
-			get<Y>(relpos),
-			get<Y>(m_relpos_tendency),
+		relpos.y = wiggle_coordinate(
+			relpos.y,
+			m_relpos_tendency.y,
 			-cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::HomeDrift] / home_drift_divisor,
 			cfg[Cfg::StepSize] * (magnitude * cfg[Cfg::ShakeFactor] / shake_divisor),
@@ -150,7 +150,7 @@ void SpriteWiggler::randomize_tendency() {
 	m_wiggle_amount_bias = randomize_tendency_variable(default_wiggle_amount_bias);
 	m_distance_from_tendency_bias = randomize_tendency_variable(default_distance_from_tendency_bias);
 
-	get<X>(m_relpos_tendency) = wiggle_coordinate(
+	m_relpos_tendency.x = wiggle_coordinate(
 		0.0,
 		0.0,
 		-cfg[Cfg::HomeDrift],
@@ -158,7 +158,7 @@ void SpriteWiggler::randomize_tendency() {
 		cfg[Cfg::HomeDrift],
 		m_tendency_distance_from_home_bias
 	);
-	get<Y>(m_relpos_tendency) = wiggle_coordinate(
+	m_relpos_tendency.y = wiggle_coordinate(
 		0.0,
 		0.0,
 		-cfg[Cfg::HomeDrift],
