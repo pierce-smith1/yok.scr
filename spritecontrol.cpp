@@ -47,8 +47,8 @@ SpriteGenerator::SpriteGenerator() {
 std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 	Sprites sprites;
 
-	for (double y = -1.2; y < 1.2; y += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
-		for (double x = -1.2; x < 1.2; x += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
+	for (double y = -1.05; y < 1.05; y += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
+		for (double x = -1.05; x < 1.05; x += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
 			if (Noise::random() < pow(cfg[Cfg::ImpostorChance], 3)) {
 				sprites.push_back(new Impostor(next_palette(), Point(x, y)));
 			} else {
@@ -416,6 +416,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, double> vision_range;
 		static std::map<Id, double> blind_angle;
 
+		// debug shit
+		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
+		Point random_average_velocity;
+		Point random_average_position;
+
 		// Gives a random value between (1 - variation; 1 + variation).
 		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
 		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
@@ -437,6 +442,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			double angle = atan2(y, x);
 
+			/*
 			// i'm sure there will be absolutely nothing wrong with this
 			if (x >= 0) {
 				return angle;
@@ -445,6 +451,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			} else {
 				return angle - M_PI;
 			}
+			/**/
+
+			return angle;
 		};
 
 		// Wraps angles to be inside the range (-M_PI, M_PI]
@@ -492,6 +501,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> cohesion_velocity_changes;
 		std::map<Sprite *, Point> edge_push_velocity_changes;
 
+		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
 			const double &current_desired_separation = desired_separation[current_sprite->id()];
@@ -547,6 +557,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				alignment_velocity_changes[current_sprite] = Point(cos(average_angle), sin(average_angle));
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
+				if (sprite_num == random_sprite) {
+					random_average_position = relative_average_pos;
+				}
 				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
 			}
 
@@ -569,6 +582,20 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0/2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
 				edge_push_velocity_changes[current_sprite] = edge_push;
 			}
+
+			if (sprite_num == random_sprite) {
+				if (alignment_velocity_changes.contains(current_sprite)) {
+					random_average_velocity = alignment_velocity_changes[current_sprite] * 0.2;
+				} else {
+					random_average_velocity = Point(0, 0);
+				}
+
+				if (!cohesion_velocity_changes.contains(current_sprite)) {
+					random_average_position = Point(0, 0);
+				}
+			}
+
+			sprite_num++;
 		}
 
 		for (auto &[sprite, velocity_change] : separation_velocity_changes) {
@@ -607,8 +634,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			velocity[sprite->id()] += velocity_change * scale;
 		}
 
-		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
-		size_t sprite_num = 0;
+		sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
 			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
 			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
@@ -623,20 +649,38 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			// temporary visuals
 			if (sprite_num == random_sprite) {
+				glColor4d(0.5, 0.5, 0.5, 1.0);
+
 				glBegin(GL_LINE_LOOP);
-				for (int i = 0; i < 20; i++) {
-					double theta = 2.0 * M_PI * i / 20.0;
-					double x = vision_range[sprite->id()] * std::cos(theta);
-					double y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta);
+				for (int i = 0; i < 360; i++) {
+					double theta = 2.0 * M_PI * i / 360.0;
+					double x = 0;
+					double y = 0;
+					if (abs(theta - M_PI) >= blind_angle[sprite->id()]) {
+						x = vision_range[sprite->id()] * std::cos(theta + get_angle(velocity[sprite->id()]));
+						y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta + get_angle(velocity[sprite->id()]));
+					}
 					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 				}
 				glEnd();
+
+				glBegin(GL_LINES);
+				glColor4d(0.8, 0.2, 0.2, 1.0);	// red: average velocity
+				glVertex2d(sprite->final<X>(), sprite->final<Y>());
+				glVertex2d(get<X>(random_average_velocity) + sprite->final<X>(), get<Y>(random_average_velocity) + sprite->final<Y>());
+
+				glColor4d(0.2, 0.5, 0.8, 1.0);	// blue: average position
+				glVertex2d(sprite->final<X>(), sprite->final<Y>());
+				glVertex2d(get<X>(random_average_position) + sprite->final<X>(), get<Y>(random_average_position) + sprite->final<Y>());
+				glEnd();
+
+				glColor4d(0.2, 0.2, 0.2, 1.0);
 			}
 			glBegin(GL_LINE_LOOP);
 			for (int i = 0; i < 20; i++) {
 				double theta = 2.0 * M_PI * i / 20.0;
-				double x = desired_separation[sprite->id()] * std::cos(theta);
-				double y = desired_separation[sprite->id()] / STRETCH_RATIO * std::sin(theta);
+				double x = desired_separation[sprite->id()] / 2.0 * std::cos(theta);
+				double y = desired_separation[sprite->id()] / 2.0 / STRETCH_RATIO * std::sin(theta);
 				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
