@@ -47,8 +47,8 @@ SpriteGenerator::SpriteGenerator() {
 std::vector<Sprite *> SpriteGenerator::make(unsigned int n) const {
 	Sprites sprites;
 
-	for (double y = -1.05; y < 1.05; y += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
-		for (double x = -1.05; x < 1.05; x += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
+	for (double y = -1.2; y < 1.2; y += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
+		for (double x = -1.2; x < 1.2; x += 1.0 / sqrt(cfg[Cfg::SpriteCount])) {
 			if (Noise::random() < pow(cfg[Cfg::ImpostorChance], 3)) {
 				sprites.push_back(new Impostor(next_palette(), Point(x, y)));
 			} else {
@@ -78,7 +78,7 @@ const PaletteData *SpriteGenerator::next_palette() const {
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
 	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
-{ 
+{
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
 	if (m_pattern == RandomPattern) {
 		change_pattern();
@@ -195,7 +195,7 @@ void SinglePassPlayer::update() {
 		sprite->update(*m_ctx);
 	}
 }
- 
+
 std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
 		Roamers,
@@ -211,7 +211,7 @@ std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 }
 
 std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_functions {
-	{ Roamers, [](Sprite* sprite, Context* ctx, double offset) {
+	{ Roamers, [](Sprite *sprite, Context *ctx, double offset) {
 		// Every pattern is made of three things!
 		// The sprite, the creature who kindly participates -
 		// The context, the timepiece by which we will calculate -
@@ -226,7 +226,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, double offset) {
 		get<X>(sprite->home()) += offset < 0.5 ? ((1.0 - offset) / cfg[Cfg::TimeDivisor]) : 0.0;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0: (offset / cfg[Cfg::TimeDivisor]);
+		get<Y>(sprite->home()) += offset < 0.5 ? 0.0 : (offset / cfg[Cfg::TimeDivisor]);
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, double offset) {
 		static int NorthWest = 0b01;
@@ -358,7 +358,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			get<Y>(N) /= mag_N;
 
 			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
-			
+
 			if (cos_theta > 0) {
 				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
 
@@ -395,7 +395,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
 		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 15.0 + 20.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
@@ -403,12 +403,12 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
 
-		const static double DEFAULT_FORCE_MULT = 0.05;	// Multiplier for all forces below
+		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
 		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.5;			// How strongly to separate sprites that are too close
 		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
-		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
-		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 1.5;			// How strongly to push sprites away from the edges
-		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;				// How strongly to pull sprites towards the middle of their pack
+		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.2;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
@@ -421,15 +421,17 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		Point random_average_velocity;
 		Point random_average_position;
 
-		// Gives a random value between (1 - variation; 1 + variation).
+		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
 		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
 		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
-		// Variation shouldn't be larger than 1. Exponent must be larger than 0. Slope should be from 0 to 1.
-		auto random_curve = [](double variation, double exponent = 5.0, double slope = 0.1) {
+		// Negative variation shouldn't be larger than 1. Exponent must be larger than 0. Slope should be from 0 to 1.
+		auto random_curve = [](double negative_variation, double positive_variation, double exponent = 5.0, double slope = 0.1) {
 			double random = Noise::random();
 			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
+			double variation = sign < 0 ? negative_variation : positive_variation;
 			random = random * slope + pow(random, exponent) * (1 - slope);
-			return 1.0 + sign * random * variation;		// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * variation
+			return 1.0 + sign * random * variation;
+			// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * (sign(rand) < 0 ? negative_variation : positive_variation)
 		};
 
 		// Converts a vector to an angle in the range (-M_PI, M_PI].
@@ -480,18 +482,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
 			for (const Sprite *sprite : *sprites) {
-				double magnitude = Noise::random() + 0.4;
+				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
 				desired_speed[sprite->id()] = magnitude;
 
-				double separation_radius = random_curve(0.2) * SEPARATION_X_RADIUS;
+				double separation_radius = random_curve(0.2, 0.2, 2.5) * SEPARATION_X_RADIUS;
 				desired_separation[sprite->id()] = separation_radius;
 
-				double vision_radius = random_curve(0.5) * VISION_X_RADIUS;
+				double vision_radius = random_curve(0.5, 0.5, 5.0, 0.2) * VISION_X_RADIUS;
 				vision_range[sprite->id()] = vision_radius;
 
-				double degrees = random_curve(1.0, 10.0, 0.25) * BLIND_DEGREES;
+				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
 				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
 			}
 		}
@@ -512,7 +514,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			Point separation_velocity = Point(0.0, 0.0);
 			size_t sprites_seen = 1;
-			double average_angle = get_angle(current_velocity);
+			Point average_velocity = Point(current_velocity);
 			Point average_pos = Point(current_final);
 
 			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
@@ -525,7 +527,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				get<Y>(diff) *= STRETCH_RATIO;
 
 				double dist = get_vector_magnitude(diff);
-				
+
 				if (dist > current_vision_range) {
 					continue;
 				}
@@ -536,8 +538,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				if (abs(relative_angle) >= current_blind_angle) {
 					sprites_seen++;
-					double other_angle = get_angle(velocity[other_sprite->id()]);
-					average_angle += other_angle;
+					Point other_velocity = velocity[other_sprite->id()];
+					average_velocity += other_velocity;
 					average_pos += other_final;
 				}
 
@@ -550,11 +552,10 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			separation_velocity_changes[current_sprite] = separation_velocity;
 
 			if (sprites_seen > 1) {
-				average_angle /= sprites_seen;
+				average_velocity /= (double) sprites_seen;
 				average_pos /= (double) sprites_seen;
 
-				// i sure hope the angles i'm calculating line up with the angles used for movement
-				alignment_velocity_changes[current_sprite] = Point(cos(average_angle), sin(average_angle));
+				alignment_velocity_changes[current_sprite] = average_velocity;
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
 				if (sprite_num == random_sprite) {
@@ -578,17 +579,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 
 			if (edge_push != Point(0.0, 0.0)) {
-				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0/2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
-				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0/2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
+				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
+				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
 				edge_push_velocity_changes[current_sprite] = edge_push;
 			}
 
 			if (sprite_num == random_sprite) {
 				if (alignment_velocity_changes.contains(current_sprite)) {
-					random_average_velocity = alignment_velocity_changes[current_sprite] * 0.2;
+					random_average_velocity = alignment_velocity_changes[current_sprite];
 				} else {
-					random_average_velocity = Point(0, 0);
+					random_average_velocity = Point(current_velocity);
 				}
+				random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
 
 				if (!cohesion_velocity_changes.contains(current_sprite)) {
 					random_average_position = Point(0, 0);
