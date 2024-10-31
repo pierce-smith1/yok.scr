@@ -397,24 +397,30 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
 		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
-		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 15.0 + 20.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
 		const static double BLIND_DEGREES = 45.0;
 		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
+		const static long long IGNORE_PACK_DURATION = 150;
+		const static long long IGNORE_PACK_COOLDOWN = 300;
+		const static double IGNORE_PACK_CHANCE = 0.002;
+		const static double GLOBAL_IGNORE_PACK_CHANCE = 0.0001;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
-		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.5;			// How strongly to separate sprites that are too close
+		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
 		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
-		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;				// How strongly to pull sprites towards the middle of their pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
 		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
-		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.2;	// How strongly to accelerate sprites towards their desired velocity
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
 		static std::map<Id, double> desired_separation;
 		static std::map<Id, double> vision_range;
 		static std::map<Id, double> blind_angle;
+		static std::map<Id, long long> ignore_pack;
+		static long long last_global_ignore_pack = 0;
 
 		// debug shit
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
@@ -424,7 +430,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
 		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
 		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
-		// Negative variation shouldn't be larger than 1. Exponent must be larger than 0. Slope should be from 0 to 1.
+		// Variation shouldn't result in a number below 0. Exponent must be larger than 0. Slope should be from 0 to 1.
 		auto random_curve = [](double negative_variation, double positive_variation, double exponent = 5.0, double slope = 0.1) {
 			double random = Noise::random();
 			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
@@ -480,7 +486,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
-		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
+		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty() || ignore_pack.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
@@ -495,6 +501,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
 				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
+
+				double starting_ignore_duration = random_curve(2.0, 0.5, 2.0, 0.0) * IGNORE_PACK_DURATION;
+				ignore_pack[sprite->id()] = (long long) starting_ignore_duration;
 			}
 		}
 
@@ -503,12 +512,30 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> cohesion_velocity_changes;
 		std::map<Sprite *, Point> edge_push_velocity_changes;
 
+		last_global_ignore_pack++;
+
+		bool global_ignore_pack = false;
+		if (last_global_ignore_pack >= IGNORE_PACK_COOLDOWN
+			&& (Noise::random() * IGNORE_PACK_COOLDOWN / last_global_ignore_pack) < GLOBAL_IGNORE_PACK_CHANCE) {
+			global_ignore_pack = true;
+			last_global_ignore_pack = 0;
+		}
+
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
 			const double &current_desired_separation = desired_separation[current_sprite->id()];
 			const double &current_vision_range = vision_range[current_sprite->id()];
 			const double &current_blind_angle = blind_angle[current_sprite->id()];
+			const long long &current_ignore_pack = --ignore_pack[current_sprite->id()];
+
+			if (-current_ignore_pack >= IGNORE_PACK_COOLDOWN) {
+				if (global_ignore_pack) {
+					ignore_pack[current_sprite->id()] = (long long) (random_curve(-1.0, 1.0, 2.0, 0.0) * IGNORE_PACK_DURATION);
+				} else if ((Noise::random() * IGNORE_PACK_COOLDOWN / (-current_ignore_pack)) < IGNORE_PACK_CHANCE) {
+					ignore_pack[current_sprite->id()] = (long long) (random_curve(0.5, 2.0, 5.0, 0.2) * IGNORE_PACK_DURATION);
+				}
+			}
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
@@ -532,15 +559,17 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					continue;
 				}
 
-				double current_angle = get_angle(current_velocity);
-				double relative_angle = get_angle(diff);
-				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+				if (current_ignore_pack <= 0) {
+					double current_angle = get_angle(current_velocity);
+					double relative_angle = get_angle(diff);
+					relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
-				if (abs(relative_angle) >= current_blind_angle) {
-					sprites_seen++;
-					Point other_velocity = velocity[other_sprite->id()];
-					average_velocity += other_velocity;
-					average_pos += other_final;
+					if (abs(relative_angle) >= current_blind_angle) {
+						sprites_seen++;
+						Point other_velocity = velocity[other_sprite->id()];
+						average_velocity += other_velocity;
+						average_pos += other_final;
+					}
 				}
 
 				if (dist < current_desired_separation) {
