@@ -72,3 +72,59 @@ GLubyte *Texture::data() const {
 
 	return texture_data;
 }
+
+Point operator+(const Point &l, const Point &r) {
+	double x = get<X>(l) + get<X>(r);
+	double y = get<Y>(l) + get<Y>(r);
+
+	return Point(x, y);
+}
+
+Point &operator+=(Point &l, const Point &r) {
+	get<X>(l) += get<X>(r);
+	get<Y>(l) += get<Y>(r);
+
+	return l;
+}
+
+Point operator-(const Point &l, const Point &r) {
+	double x = get<X>(l) - get<X>(r);
+	double y = get<Y>(l) - get<Y>(r);
+
+	return Point(x, y);
+}
+
+Point &operator-=(Point &l, const Point &r) {
+	get<X>(l) -= get<X>(r);
+	get<Y>(l) -= get<Y>(r);
+
+	return l;
+}
+
+Point operator*(const Point &l, const GLdouble &r) {
+	double x = get<X>(l) * r;
+	double y = get<Y>(l) * r;
+
+	return Point(x, y);
+}
+
+Point &operator*=(Point &l, const GLdouble &r) {
+	get<X>(l) *= r;
+	get<Y>(l) *= r;
+
+	return l;
+}
+
+Point operator/(const Point &l, const GLdouble &r) {
+	double x = get<X>(l) / r;
+	double y = get<Y>(l) / r;
+
+	return Point(x, y);
+}
+
+Point &operator/=(Point &l, const GLdouble &r) {
+	get<X>(l) /= r;
+	get<Y>(l) /= r;
+
+	return l;
+}

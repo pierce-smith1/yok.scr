@@ -78,7 +78,7 @@ const PaletteData *SpriteGenerator::next_palette() const {
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
 	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
-{ 
+{
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
 	if (m_pattern == RandomPattern) {
 		change_pattern();
@@ -195,7 +195,7 @@ void SinglePassPlayer::update() {
 		sprite->update(*m_ctx);
 	}
 }
- 
+
 std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
 		Roamers,
@@ -211,7 +211,7 @@ std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 }
 
 std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_functions {
-	{ Roamers, [](Sprite* sprite, Context* ctx, double offset) {
+	{ Roamers, [](Sprite *sprite, Context *ctx, double offset) {
 		// Every pattern is made of three things!
 		// The sprite, the creature who kindly participates -
 		// The context, the timepiece by which we will calculate -
@@ -226,7 +226,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, double offset) {
 		get<X>(sprite->home()) += offset < 0.5 ? ((1.0 - offset) / cfg[Cfg::TimeDivisor]) : 0.0;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0: (offset / cfg[Cfg::TimeDivisor]);
+		get<Y>(sprite->home()) += offset < 0.5 ? 0.0 : (offset / cfg[Cfg::TimeDivisor]);
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, double offset) {
 		static int NorthWest = 0b01;
@@ -300,7 +300,8 @@ void GlobalPlayer::update() {
 
 std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
-		Bubbles
+		Bubbles,
+		Boids,
 	};
 
 	return patterns;
@@ -357,7 +358,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			get<Y>(N) /= mag_N;
 
 			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
-			
+
 			if (cos_theta > 0) {
 				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
 
@@ -389,6 +390,333 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
+		}
+	}},
+	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
+		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
+		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
+		const static double BLIND_DEGREES = 45.0;
+		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
+		const static long long IGNORE_PACK_DURATION = 150;
+		const static long long IGNORE_PACK_COOLDOWN = 300;
+		const static double IGNORE_PACK_CHANCE = 0.002;
+		const static double GLOBAL_IGNORE_PACK_CHANCE = 0.0001;
+
+		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
+		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
+		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
+		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
+
+		static std::map<Id, Point> velocity;
+		static std::map<Id, double> desired_speed;
+		static std::map<Id, double> desired_separation;
+		static std::map<Id, double> vision_range;
+		static std::map<Id, double> blind_angle;
+		static std::map<Id, long long> ignore_pack;
+		static long long last_global_ignore_pack = 0;
+
+		// debug shit
+		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
+		Point random_average_velocity;
+		Point random_average_position;
+
+		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
+		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
+		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
+		// Variation shouldn't result in a number below 0. Exponent must be larger than 0. Slope should be from 0 to 1.
+		auto random_curve = [](double negative_variation, double positive_variation, double exponent = 5.0, double slope = 0.1) {
+			double random = Noise::random();
+			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
+			double variation = sign < 0 ? negative_variation : positive_variation;
+			random = random * slope + pow(random, exponent) * (1 - slope);
+			return 1.0 + sign * random * variation;
+			// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * (sign(rand) < 0 ? negative_variation : positive_variation)
+		};
+
+		// Converts a vector to an angle in the range (-M_PI, M_PI].
+		auto get_angle = [](const Point &vector) {
+			const auto &[x, y] = vector;
+
+			if (x == 0 && y == 0) {
+				return 0.0;
+			}
+
+			double angle = atan2(y, x);
+
+			/*
+			// i'm sure there will be absolutely nothing wrong with this
+			if (x >= 0) {
+				return angle;
+			} else if (y >= 0) {
+				return angle + M_PI;
+			} else {
+				return angle - M_PI;
+			}
+			/**/
+
+			return angle;
+		};
+
+		// Wraps angles to be inside the range (-M_PI, M_PI]
+		auto wrap_angle = [](double angle) {
+			while (angle > M_PI) {
+				angle -= 2.0 * M_PI;
+			}
+			while (angle < -M_PI) {
+				angle += 2.0 * M_PI;
+			}
+			return angle;
+		};
+
+		auto get_vector_magnitude = [](const Point &vector) {
+			const auto &[x, y] = vector;
+
+			return sqrt(x * x + y * y);
+		};
+
+		auto normalize_vector = [&](const Point &vector) {
+			double magnitude = get_vector_magnitude(vector);
+			return magnitude != 0.0 ? vector / magnitude : vector;
+		};
+
+		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty() || ignore_pack.empty()) {
+			for (const Sprite *sprite : *sprites) {
+				double magnitude = Noise::random() + 0.8;
+				double radians = Noise::random() * M_PI * 2;
+				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
+				desired_speed[sprite->id()] = magnitude;
+
+				double separation_radius = random_curve(0.2, 0.2, 2.5) * SEPARATION_X_RADIUS;
+				desired_separation[sprite->id()] = separation_radius;
+
+				double vision_radius = random_curve(0.5, 0.5, 5.0, 0.2) * VISION_X_RADIUS;
+				vision_range[sprite->id()] = vision_radius;
+
+				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
+				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
+
+				double starting_ignore_duration = random_curve(2.0, 0.5, 2.0, 0.0) * IGNORE_PACK_DURATION;
+				ignore_pack[sprite->id()] = (long long) starting_ignore_duration;
+			}
+		}
+
+		std::map<Sprite *, Point> separation_velocity_changes;
+		std::map<Sprite *, Point> alignment_velocity_changes;
+		std::map<Sprite *, Point> cohesion_velocity_changes;
+		std::map<Sprite *, Point> edge_push_velocity_changes;
+
+		last_global_ignore_pack++;
+
+		bool global_ignore_pack = false;
+		if (last_global_ignore_pack >= IGNORE_PACK_COOLDOWN
+			&& (Noise::random() * IGNORE_PACK_COOLDOWN / last_global_ignore_pack) < GLOBAL_IGNORE_PACK_CHANCE) {
+			global_ignore_pack = true;
+			last_global_ignore_pack = 0;
+		}
+
+		size_t sprite_num = 0;
+		for (Sprite *current_sprite : *sprites) {
+			const Point &current_velocity = velocity[current_sprite->id()];
+			const double &current_desired_separation = desired_separation[current_sprite->id()];
+			const double &current_vision_range = vision_range[current_sprite->id()];
+			const double &current_blind_angle = blind_angle[current_sprite->id()];
+			const long long &current_ignore_pack = --ignore_pack[current_sprite->id()];
+
+			if (-current_ignore_pack >= IGNORE_PACK_COOLDOWN) {
+				if (global_ignore_pack) {
+					ignore_pack[current_sprite->id()] = (long long) (random_curve(-1.0, 1.0, 2.0, 0.0) * IGNORE_PACK_DURATION);
+				} else if ((Noise::random() * IGNORE_PACK_COOLDOWN / (-current_ignore_pack)) < IGNORE_PACK_CHANCE) {
+					ignore_pack[current_sprite->id()] = (long long) (random_curve(0.5, 2.0, 5.0, 0.2) * IGNORE_PACK_DURATION);
+				}
+			}
+
+			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+			Point separation_velocity = Point(0.0, 0.0);
+			size_t sprites_seen = 1;
+			Point average_velocity = Point(current_velocity);
+			Point average_pos = Point(current_final);
+
+			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
+				if (current_sprite == other_sprite) {
+					continue;
+				}
+
+				Point other_final = Point(other_sprite->final<X>(), other_sprite->final<Y>());
+				Point diff = current_final - other_final;
+				get<Y>(diff) *= STRETCH_RATIO;
+
+				double dist = get_vector_magnitude(diff);
+
+				if (dist > current_vision_range) {
+					continue;
+				}
+
+				if (current_ignore_pack <= 0) {
+					double current_angle = get_angle(current_velocity);
+					double relative_angle = get_angle(diff);
+					relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+
+					if (abs(relative_angle) >= current_blind_angle) {
+						sprites_seen++;
+						Point other_velocity = velocity[other_sprite->id()];
+						average_velocity += other_velocity;
+						average_pos += other_final;
+					}
+				}
+
+				if (dist < current_desired_separation) {
+					diff /= dist * dist / current_desired_separation;
+					separation_velocity += diff;
+				}
+			}
+
+			separation_velocity_changes[current_sprite] = separation_velocity;
+
+			if (sprites_seen > 1) {
+				average_velocity /= (double) sprites_seen;
+				average_pos /= (double) sprites_seen;
+
+				alignment_velocity_changes[current_sprite] = average_velocity;
+
+				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
+				if (sprite_num == random_sprite) {
+					random_average_position = relative_average_pos;
+				}
+				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
+			}
+
+			Point edge_push = Point(0.0, 0.0);
+
+			if (-1.0 + EDGE_PUSH_X_RADIUS > get<X>(current_final)) {
+				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<X>(current_final)) {
+				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+			}
+
+			if (-1.0 + EDGE_PUSH_X_RADIUS > get<Y>(current_final)) {
+				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
+			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<Y>(current_final)) {
+				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
+			}
+
+			if (edge_push != Point(0.0, 0.0)) {
+				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
+				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
+				edge_push_velocity_changes[current_sprite] = edge_push;
+			}
+
+			if (sprite_num == random_sprite) {
+				if (alignment_velocity_changes.contains(current_sprite)) {
+					random_average_velocity = alignment_velocity_changes[current_sprite];
+				} else {
+					random_average_velocity = Point(current_velocity);
+				}
+				random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
+
+				if (!cohesion_velocity_changes.contains(current_sprite)) {
+					random_average_position = Point(0, 0);
+				}
+			}
+
+			sprite_num++;
+		}
+
+		for (auto &[sprite, velocity_change] : separation_velocity_changes) {
+			double scale = get_vector_magnitude(velocity_change);
+			scale = min(desired_speed[sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[sprite->id()] += velocity_change * scale;
+		}
+
+		for (auto &[sprite, velocity_change] : alignment_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+			sprite_velocity /= magnitude;
+
+			Point diff = velocity_change - sprite_velocity;
+			diff *= ALIGNMENT_FORCE_MULT;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			// there's probably a better way to do this but i can't be bothered figuring it out now
+		}
+
+		for (auto &[sprite, velocity_change] : cohesion_velocity_changes) {
+			Point &sprite_velocity = velocity[sprite->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+			sprite_velocity /= magnitude;
+
+			Point diff = velocity_change - sprite_velocity;
+			diff *= COHESION_FORCE_MULT;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			// refer to previous comment
+		}
+
+		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
+			double scale = get_vector_magnitude(velocity_change);
+			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
+			velocity[sprite->id()] += velocity_change * scale;
+		}
+
+		sprite_num = 0;
+		for (Sprite *sprite : *sprites) {
+			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
+			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
+
+			velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;
+
+			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
+			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glColor4d(0.2, 0.2, 0.2, 1.0);
+
+			// temporary visuals
+			if (sprite_num == random_sprite) {
+				glColor4d(0.5, 0.5, 0.5, 1.0);
+
+				glBegin(GL_LINE_LOOP);
+				for (int i = 0; i < 360; i++) {
+					double theta = 2.0 * M_PI * i / 360.0;
+					double x = 0;
+					double y = 0;
+					if (abs(theta - M_PI) >= blind_angle[sprite->id()]) {
+						x = vision_range[sprite->id()] * std::cos(theta + get_angle(velocity[sprite->id()]));
+						y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta + get_angle(velocity[sprite->id()]));
+					}
+					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
+				}
+				glEnd();
+
+				glBegin(GL_LINES);
+				glColor4d(0.8, 0.2, 0.2, 1.0);	// red: average velocity
+				glVertex2d(sprite->final<X>(), sprite->final<Y>());
+				glVertex2d(get<X>(random_average_velocity) + sprite->final<X>(), get<Y>(random_average_velocity) + sprite->final<Y>());
+
+				glColor4d(0.2, 0.5, 0.8, 1.0);	// blue: average position
+				glVertex2d(sprite->final<X>(), sprite->final<Y>());
+				glVertex2d(get<X>(random_average_position) + sprite->final<X>(), get<Y>(random_average_position) + sprite->final<Y>());
+				glEnd();
+
+				glColor4d(0.2, 0.2, 0.2, 1.0);
+			}
+			glBegin(GL_LINE_LOOP);
+			for (int i = 0; i < 20; i++) {
+				double theta = 2.0 * M_PI * i / 20.0;
+				double x = desired_separation[sprite->id()] / 2.0 * std::cos(theta);
+				double y = desired_separation[sprite->id()] / 2.0 / STRETCH_RATIO * std::sin(theta);
+				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
+			}
+			glEnd();
+
+			sprite_num++;
 		}
 	}},
 };
