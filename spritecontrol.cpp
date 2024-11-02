@@ -399,7 +399,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
 		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
-		const static double BLIND_DEGREES = 45.0;
+		const static double BLIND_RADIANS = 45.0 * M_PI / 180.0;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
 		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
@@ -411,7 +411,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, double> desired_speed;
 		static std::map<Id, double> desired_separation;
 		static std::map<Id, double> vision_range;
-		static std::map<Id, double> blind_angle;
 
 		// debug shit
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
@@ -465,7 +464,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
-		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
+		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
@@ -477,9 +476,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				double vision_radius = random_curve(0.5, 0.5, 5.0, 0.2) * VISION_X_RADIUS;
 				vision_range[sprite->id()] = vision_radius;
-
-				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
-				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
 			}
 		}
 
@@ -492,7 +488,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			const Point &current_velocity = velocity[current_sprite->id()];
 			const double &current_desired_separation = desired_separation[current_sprite->id()];
 			const double &current_vision_range = vision_range[current_sprite->id()];
-			const double &current_blind_angle = blind_angle[current_sprite->id()];
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
@@ -520,7 +515,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				double relative_angle = get_angle(diff);
 				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
-				if (abs(relative_angle) >= current_blind_angle) {
+				if (abs(relative_angle) >= BLIND_RADIANS) {
 					sprites_seen++;
 					Point other_velocity = velocity[other_sprite->id()];
 					average_velocity += other_velocity;
@@ -616,7 +611,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					double theta = 2.0 * M_PI * i / 360.0;
 					double x = 0;
 					double y = 0;
-					if (abs(theta - M_PI) >= blind_angle[sprite->id()]) {
+					if (abs(theta - M_PI) >= BLIND_RADIANS) {
 						x = vision_range[sprite->id()] * std::cos(theta + get_angle(velocity[sprite->id()]));
 						y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta + get_angle(velocity[sprite->id()]));
 					}
