@@ -400,14 +400,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
 		const static double BLIND_DEGREES = 45.0;
-		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
-		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
 		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
 		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
 		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
-		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
 		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
@@ -443,18 +440,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 
 			double angle = atan2(y, x);
-
-			/*
-			// i'm sure there will be absolutely nothing wrong with this
-			if (x >= 0) {
-				return angle;
-			} else if (y >= 0) {
-				return angle + M_PI;
-			} else {
-				return angle - M_PI;
-			}
-			/**/
-
 			return angle;
 		};
 
@@ -501,7 +486,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> separation_velocity_changes;
 		std::map<Sprite *, Point> alignment_velocity_changes;
 		std::map<Sprite *, Point> cohesion_velocity_changes;
-		std::map<Sprite *, Point> edge_push_velocity_changes;
 
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
@@ -564,26 +548,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
 			}
 
-			Point edge_push = Point(0.0, 0.0);
-
-			if (-1.0 + EDGE_PUSH_X_RADIUS > get<X>(current_final)) {
-				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
-			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<X>(current_final)) {
-				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
-			}
-
-			if (-1.0 + EDGE_PUSH_X_RADIUS > get<Y>(current_final)) {
-				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
-			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<Y>(current_final)) {
-				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
-			}
-
-			if (edge_push != Point(0.0, 0.0)) {
-				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
-				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
-				edge_push_velocity_changes[current_sprite] = edge_push;
-			}
-
 			if (sprite_num == random_sprite) {
 				if (alignment_velocity_changes.contains(current_sprite)) {
 					random_average_velocity = alignment_velocity_changes[current_sprite];
@@ -628,12 +592,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 			// refer to previous comment
-		}
-
-		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
-			double scale = get_vector_magnitude(velocity_change);
-			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
-			velocity[sprite->id()] += velocity_change * scale;
 		}
 
 		sprite_num = 0;
