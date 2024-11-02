@@ -397,18 +397,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
 		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
-		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 6.5 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
 		const static double BLIND_DEGREES = 45.0;
 		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
-		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
-		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.2;			// How strongly to align sprites that are in a pack
-		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 0.5;				// How strongly to pull sprites towards the middle of their pack
+		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 2.0;			// How strongly to separate sprites that are too close
+		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to align sprites that are in a pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 7.5;				// How strongly to pull sprites towards the middle of their pack
 		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
-		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
+		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.5;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
@@ -558,10 +558,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				alignment_velocity_changes[current_sprite] = average_velocity;
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
+				cohesion_velocity_changes[current_sprite] = relative_average_pos;
+
 				if (sprite_num == random_sprite) {
 					random_average_position = relative_average_pos;
 				}
-				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
 			}
 
 			Point edge_push = Point(0.0, 0.0);
@@ -609,7 +610,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		for (auto &[sprite, velocity_change] : alignment_velocity_changes) {
 			Point &sprite_velocity = velocity[sprite->id()];
 			double magnitude = get_vector_magnitude(sprite_velocity);
-			sprite_velocity /= magnitude;
 
 			Point diff = velocity_change - sprite_velocity;
 			diff *= ALIGNMENT_FORCE_MULT;
@@ -621,20 +621,20 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		for (auto &[sprite, velocity_change] : cohesion_velocity_changes) {
 			Point &sprite_velocity = velocity[sprite->id()];
 			double magnitude = get_vector_magnitude(sprite_velocity);
-			sprite_velocity /= magnitude;
 
-			Point diff = velocity_change - sprite_velocity;
-			diff *= COHESION_FORCE_MULT;
+			velocity_change *= COHESION_FORCE_MULT;
 
-			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			sprite_velocity = normalize_vector(sprite_velocity + velocity_change) * magnitude;
 			// refer to previous comment
 		}
 
+		/*
 		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
 			double scale = get_vector_magnitude(velocity_change);
 			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
 			velocity[sprite->id()] += velocity_change * scale;
 		}
+		/**/
 
 		sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
