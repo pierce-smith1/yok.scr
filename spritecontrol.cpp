@@ -402,10 +402,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double BLIND_DEGREES = 45.0;
 		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
-		const static long long IGNORE_PACK_DURATION = 150;
-		const static long long IGNORE_PACK_COOLDOWN = 300;
-		const static double IGNORE_PACK_CHANCE = 0.002;
-		const static double GLOBAL_IGNORE_PACK_CHANCE = 0.0001;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
 		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to separate sprites that are too close
@@ -419,8 +415,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, double> desired_separation;
 		static std::map<Id, double> vision_range;
 		static std::map<Id, double> blind_angle;
-		static std::map<Id, long long> ignore_pack;
-		static long long last_global_ignore_pack = 0;
 
 		// debug shit
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
@@ -486,7 +480,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
-		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty() || ignore_pack.empty()) {
+		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
@@ -501,9 +495,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
 				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
-
-				double starting_ignore_duration = random_curve(2.0, 0.5, 2.0, 0.0) * IGNORE_PACK_DURATION;
-				ignore_pack[sprite->id()] = (long long) starting_ignore_duration;
 			}
 		}
 
@@ -512,30 +503,12 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> cohesion_velocity_changes;
 		std::map<Sprite *, Point> edge_push_velocity_changes;
 
-		last_global_ignore_pack++;
-
-		bool global_ignore_pack = false;
-		if (last_global_ignore_pack >= IGNORE_PACK_COOLDOWN
-			&& (Noise::random() * IGNORE_PACK_COOLDOWN / last_global_ignore_pack) < GLOBAL_IGNORE_PACK_CHANCE) {
-			global_ignore_pack = true;
-			last_global_ignore_pack = 0;
-		}
-
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
 			const double &current_desired_separation = desired_separation[current_sprite->id()];
 			const double &current_vision_range = vision_range[current_sprite->id()];
 			const double &current_blind_angle = blind_angle[current_sprite->id()];
-			const long long &current_ignore_pack = --ignore_pack[current_sprite->id()];
-
-			if (-current_ignore_pack >= IGNORE_PACK_COOLDOWN) {
-				if (global_ignore_pack) {
-					ignore_pack[current_sprite->id()] = (long long) (random_curve(-1.0, 1.0, 2.0, 0.0) * IGNORE_PACK_DURATION);
-				} else if ((Noise::random() * IGNORE_PACK_COOLDOWN / (-current_ignore_pack)) < IGNORE_PACK_CHANCE) {
-					ignore_pack[current_sprite->id()] = (long long) (random_curve(0.5, 2.0, 5.0, 0.2) * IGNORE_PACK_DURATION);
-				}
-			}
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
@@ -559,17 +532,15 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					continue;
 				}
 
-				if (current_ignore_pack <= 0) {
-					double current_angle = get_angle(current_velocity);
-					double relative_angle = get_angle(diff);
-					relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+				double current_angle = get_angle(current_velocity);
+				double relative_angle = get_angle(diff);
+				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
-					if (abs(relative_angle) >= current_blind_angle) {
-						sprites_seen++;
-						Point other_velocity = velocity[other_sprite->id()];
-						average_velocity += other_velocity;
-						average_pos += other_final;
-					}
+				if (abs(relative_angle) >= current_blind_angle) {
+					sprites_seen++;
+					Point other_velocity = velocity[other_sprite->id()];
+					average_velocity += other_velocity;
+					average_pos += other_final;
 				}
 
 				if (dist < current_desired_separation) {
