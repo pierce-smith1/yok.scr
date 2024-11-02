@@ -463,6 +463,17 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
+		auto apply_velocity_change = [&](Sprite *sprite, const Point &change, double multiplier) -> void {
+			Point &sprite_velocity = velocity[sprite->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+			sprite_velocity /= magnitude;
+
+			Point diff = change - sprite_velocity;
+			diff *= multiplier;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+		};
+
 		if (velocity.empty() || desired_speed.empty() || desired_separation.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
@@ -475,10 +486,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 		}
 
-		std::map<Sprite *, Point> separation_velocity_changes;
-		std::map<Sprite *, Point> alignment_velocity_changes;
-		std::map<Sprite *, Point> cohesion_velocity_changes;
-
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
@@ -488,8 +495,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			Point separation_velocity = Point(0.0, 0.0);
 			size_t sprites_seen = 1;
-			Point average_velocity = Point(current_velocity);
-			Point average_pos = Point(current_final);
+			Point average_velocity = current_velocity;
+			Point average_pos = current_final;
 
 			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
 				if (current_sprite == other_sprite) {
@@ -523,65 +530,25 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				}
 			}
 
-			separation_velocity_changes[current_sprite] = separation_velocity;
+			double scale = get_vector_magnitude(separation_velocity);
+			scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[current_sprite->id()] += separation_velocity * scale;
 
 			if (sprites_seen > 1) {
 				average_velocity /= (double) sprites_seen;
 				average_pos /= (double) sprites_seen;
 
-				alignment_velocity_changes[current_sprite] = average_velocity;
+				apply_velocity_change(current_sprite, average_velocity, ALIGNMENT_FORCE_MULT);
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
 				if (sprite_num == random_sprite) {
 					random_average_position = relative_average_pos;
 				}
-				cohesion_velocity_changes[current_sprite] = normalize_vector(relative_average_pos);
-			}
 
-			if (sprite_num == random_sprite) {
-				if (alignment_velocity_changes.contains(current_sprite)) {
-					random_average_velocity = alignment_velocity_changes[current_sprite];
-				} else {
-					random_average_velocity = Point(current_velocity);
-				}
-				random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
-
-				if (!cohesion_velocity_changes.contains(current_sprite)) {
-					random_average_position = Point(0, 0);
-				}
+				apply_velocity_change(current_sprite, normalize_vector(relative_average_pos), COHESION_FORCE_MULT);
 			}
 
 			sprite_num++;
-		}
-
-		for (auto &[sprite, velocity_change] : separation_velocity_changes) {
-			double scale = get_vector_magnitude(velocity_change);
-			scale = min(desired_speed[sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
-			velocity[sprite->id()] += velocity_change * scale;
-		}
-
-		for (auto &[sprite, velocity_change] : alignment_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite->id()];
-			double magnitude = get_vector_magnitude(sprite_velocity);
-			sprite_velocity /= magnitude;
-
-			Point diff = velocity_change - sprite_velocity;
-			diff *= ALIGNMENT_FORCE_MULT;
-
-			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
-			// there's probably a better way to do this but i can't be bothered figuring it out now
-		}
-
-		for (auto &[sprite, velocity_change] : cohesion_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite->id()];
-			double magnitude = get_vector_magnitude(sprite_velocity);
-			sprite_velocity /= magnitude;
-
-			Point diff = velocity_change - sprite_velocity;
-			diff *= COHESION_FORCE_MULT;
-
-			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
-			// refer to previous comment
 		}
 
 		sprite_num = 0;
