@@ -410,11 +410,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
 
-		// debug shit
-		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
-		Point random_average_velocity;
-		Point random_average_position;
-
 		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
 		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
 		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
@@ -536,9 +531,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				apply_velocity_change(current_sprite, average_velocity, ALIGNMENT_FORCE_MULT);
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
-				if (sprite_num == random_sprite) {
-					random_average_position = relative_average_pos;
-				}
 
 				apply_velocity_change(current_sprite, normalize_vector(relative_average_pos), COHESION_FORCE_MULT);
 			}
@@ -559,35 +551,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glColor4d(0.2, 0.2, 0.2, 1.0);
 
-			// temporary visuals
-			if (sprite_num == random_sprite) {
-				glColor4d(0.5, 0.5, 0.5, 1.0);
-
-				glBegin(GL_LINE_LOOP);
-				for (int i = 0; i < 360; i++) {
-					double theta = 2.0 * M_PI * i / 360.0;
-					double x = 0;
-					double y = 0;
-					if (abs(theta - M_PI) >= BLIND_RADIANS) {
-						x = VISION_X_RADIUS * std::cos(theta + get_angle(velocity[sprite->id()]));
-						y = VISION_X_RADIUS / STRETCH_RATIO * std::sin(theta + get_angle(velocity[sprite->id()]));
-					}
-					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
-				}
-				glEnd();
-
-				glBegin(GL_LINES);
-				glColor4d(0.8, 0.2, 0.2, 1.0);	// red: average velocity
-				glVertex2d(sprite->final<X>(), sprite->final<Y>());
-				glVertex2d(get<X>(random_average_velocity) + sprite->final<X>(), get<Y>(random_average_velocity) + sprite->final<Y>());
-
-				glColor4d(0.2, 0.5, 0.8, 1.0);	// blue: average position
-				glVertex2d(sprite->final<X>(), sprite->final<Y>());
-				glVertex2d(get<X>(random_average_position) + sprite->final<X>(), get<Y>(random_average_position) + sprite->final<Y>());
-				glEnd();
-
-				glColor4d(0.2, 0.2, 0.2, 1.0);
-			}
 			glBegin(GL_LINE_LOOP);
 			for (int i = 0; i < 20; i++) {
 				double theta = 2.0 * M_PI * i / 20.0;
