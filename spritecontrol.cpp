@@ -395,9 +395,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / 2'000'000 / 3.0 + 0.7, 1.1);
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
-		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 8.0 + 15.0)) * std::pow(SCREEN_SIZE / 2'000'000 / 3.0 + 0.7, 1.1);
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
 		const static double BLIND_RADIANS = 45.0 * M_PI / 180.0;
 
@@ -428,18 +428,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 		}
 
-		size_t sprite_num = 0;
-		for (Sprite *current_sprite : *sprites) {
+		for (size_t i = 0; i < sprites->size(); i++) {
+			auto current_sprite = (*sprites)[i];
+
 			const double desired_speed = get_offset(current_sprite->id()) + 0.8;
-
 			const Point &current_velocity = velocity[current_sprite->id()];
-
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
 			Point separation_velocity = Point(0.0, 0.0);
-			size_t sprites_seen = 1;
 			Point average_velocity = current_velocity;
 			Point average_pos = current_final;
+
+			size_t sprites_seen = 1;
 
 			for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
 				if (current_sprite == other_sprite) {
@@ -487,12 +487,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				apply_velocity_change(current_sprite, MathUtils::normalize(relative_average_pos), COHESION_FORCE_MULT);
 			}
-
-			sprite_num++;
 		}
 
-		sprite_num = 0;
-		for (Sprite *sprite : *sprites) {
+		for (size_t i = 0; i < sprites->size(); i++) {
+			auto sprite = (*sprites)[i];
+
 			const double desired_speed = get_offset(sprite->id()) + 0.8;
 
 			double magnitude = MathUtils::get_magnitude(velocity[sprite->id()]);
@@ -502,20 +501,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
 			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glColor4d(0.2, 0.2, 0.2, 1.0);
-
-			glBegin(GL_LINE_LOOP);
-			for (int i = 0; i < 20; i++) {
-				double theta = 2.0 * M_PI * i / 20.0;
-				double x = SEPARATION_X_RADIUS / 2.0 * std::cos(theta);
-				double y = SEPARATION_X_RADIUS / 2.0 / STRETCH_RATIO * std::sin(theta);
-				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
-			}
-			glEnd();
-
-			sprite_num++;
 		}
 	}},
 };
