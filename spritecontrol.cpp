@@ -409,7 +409,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
-		static std::map<Id, double> desired_separation;
 
 		// debug shit
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
@@ -474,22 +473,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 		};
 
-		if (velocity.empty() || desired_speed.empty() || desired_separation.empty()) {
+		if (velocity.empty() || desired_speed.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
 				desired_speed[sprite->id()] = magnitude;
-
-				double separation_radius = random_curve(0.2, 0.2, 2.5) * SEPARATION_X_RADIUS;
-				desired_separation[sprite->id()] = separation_radius;
 			}
 		}
 
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
-			const double &current_desired_separation = desired_separation[current_sprite->id()];
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
@@ -524,8 +519,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					average_pos += other_final;
 				}
 
-				if (dist < current_desired_separation) {
-					diff /= dist * dist / current_desired_separation;
+				if (dist < SEPARATION_X_RADIUS) {
+					diff /= dist * dist / SEPARATION_X_RADIUS;
 					separation_velocity += diff;
 				}
 			}
@@ -596,8 +591,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			glBegin(GL_LINE_LOOP);
 			for (int i = 0; i < 20; i++) {
 				double theta = 2.0 * M_PI * i / 20.0;
-				double x = desired_separation[sprite->id()] / 2.0 * std::cos(theta);
-				double y = desired_separation[sprite->id()] / 2.0 / STRETCH_RATIO * std::sin(theta);
+				double x = SEPARATION_X_RADIUS / 2.0 * std::cos(theta);
+				double y = SEPARATION_X_RADIUS / 2.0 / STRETCH_RATIO * std::sin(theta);
 				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
