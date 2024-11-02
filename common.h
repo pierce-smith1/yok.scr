@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 using Id = unsigned int;
 static Id running_id = 0;
@@ -25,7 +26,6 @@ enum Channel {
 	BLUE = 2,
 	ALPHA = 3
 };
-
 
 template <typename String> std::vector<String> split(const String &string, const String &delimiter) {
 	if (string.empty()) {

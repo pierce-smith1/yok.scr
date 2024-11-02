@@ -409,62 +409,15 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		static std::map<Id, Point> velocity;
 
-		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
-		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
-		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
-		// Variation shouldn't result in a number below 0. Exponent must be larger than 0. Slope should be from 0 to 1.
-		auto random_curve = [](double negative_variation, double positive_variation, double exponent = 5.0, double slope = 0.1) {
-			double random = Noise::random();
-			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
-			double variation = sign < 0 ? negative_variation : positive_variation;
-			random = random * slope + pow(random, exponent) * (1 - slope);
-			return 1.0 + sign * random * variation;
-			// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * (sign(rand) < 0 ? negative_variation : positive_variation)
-		};
-
-		// Converts a vector to an angle in the range (-M_PI, M_PI].
-		auto get_angle = [](const Point &vector) {
-			const auto &[x, y] = vector;
-
-			if (x == 0 && y == 0) {
-				return 0.0;
-			}
-
-			double angle = atan2(y, x);
-			return angle;
-		};
-
-		// Wraps angles to be inside the range (-M_PI, M_PI]
-		auto wrap_angle = [](double angle) {
-			while (angle > M_PI) {
-				angle -= 2.0 * M_PI;
-			}
-			while (angle < -M_PI) {
-				angle += 2.0 * M_PI;
-			}
-			return angle;
-		};
-
-		auto get_vector_magnitude = [](const Point &vector) {
-			const auto &[x, y] = vector;
-
-			return sqrt(x * x + y * y);
-		};
-
-		auto normalize_vector = [&](const Point &vector) {
-			double magnitude = get_vector_magnitude(vector);
-			return magnitude != 0.0 ? vector / magnitude : vector;
-		};
-
 		auto apply_velocity_change = [&](Sprite *sprite, const Point &change, double multiplier) -> void {
 			Point &sprite_velocity = velocity[sprite->id()];
-			double magnitude = get_vector_magnitude(sprite_velocity);
+			double magnitude = MathUtils::get_magnitude(sprite_velocity);
 			sprite_velocity /= magnitude;
 
 			Point diff = change - sprite_velocity;
 			diff *= multiplier;
 
-			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			sprite_velocity = MathUtils::normalize(sprite_velocity + diff) * magnitude;
 		};
 
 		if (velocity.empty()) {
@@ -497,15 +450,15 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				Point diff = current_final - other_final;
 				get<Y>(diff) *= STRETCH_RATIO;
 
-				double dist = get_vector_magnitude(diff);
+				double dist = MathUtils::get_magnitude(diff);
 
 				if (dist > VISION_X_RADIUS) {
 					continue;
 				}
 
-				double current_angle = get_angle(current_velocity);
-				double relative_angle = get_angle(diff);
-				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+				double current_angle = MathUtils::get_angle(current_velocity);
+				double relative_angle = MathUtils::get_angle(diff);
+				relative_angle = MathUtils::wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
 				if (abs(relative_angle) >= BLIND_RADIANS) {
 					sprites_seen++;
@@ -520,7 +473,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				}
 			}
 
-			double scale = get_vector_magnitude(separation_velocity);
+			double scale = MathUtils::get_magnitude(separation_velocity);
 			scale = min(desired_speed / scale, 1.0) * SEPARATION_FORCE_MULT;
 			velocity[current_sprite->id()] += separation_velocity * scale;
 
@@ -532,7 +485,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
-				apply_velocity_change(current_sprite, normalize_vector(relative_average_pos), COHESION_FORCE_MULT);
+				apply_velocity_change(current_sprite, MathUtils::normalize(relative_average_pos), COHESION_FORCE_MULT);
 			}
 
 			sprite_num++;
@@ -542,7 +495,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		for (Sprite *sprite : *sprites) {
 			const double desired_speed = get_offset(sprite->id()) + 0.8;
 
-			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
+			double magnitude = MathUtils::get_magnitude(velocity[sprite->id()]);
 			double velocity_change = (desired_speed - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
 
 			velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;

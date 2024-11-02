@@ -7,8 +7,6 @@
 #include "graphics.h"
 #include "sprite.h"
 
-const static double M_PI = std::acos(-1);
-
 using Sprites = std::vector<Sprite *>;
 
 enum PatternName {

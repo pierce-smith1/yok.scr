@@ -1,4 +1,7 @@
 #include "graphics.h"
+#include "noise.h"
+
+#include <math.h>
 
 BitmapData::BitmapData(const std::initializer_list<GLubyte> &i_list) {
 	std::copy(i_list.begin(), i_list.end(), begin());
@@ -127,4 +130,47 @@ Point &operator/=(Point &l, const GLdouble &r) {
 	get<Y>(l) /= r;
 
 	return l;
+}
+
+double MathUtils::random_curve(double negative_variation, double positive_variation, double exponent, double slope) {
+	double random = Noise::random();
+	double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
+	double variation = sign < 0 ? negative_variation : positive_variation;
+
+	random = random * slope + pow(random, exponent) * (1 - slope);
+
+	double result = 1.0 + sign * random * variation;
+	return result;
+}
+
+double MathUtils::get_angle(const Point &vector) {
+	const auto &[x, y] = vector;
+
+	if (x == 0 && y == 0) {
+		return 0.0;
+	}
+
+	double angle = atan2(y, x);
+	return angle;
+}
+
+double MathUtils::wrap_angle(double angle) {
+	while (angle > M_PI) {
+		angle -= 2.0 * M_PI;
+	}
+	while (angle < -M_PI) {
+		angle += 2.0 * M_PI;
+	}
+	return angle;
+}
+
+double MathUtils::get_magnitude(const Point &vector) {
+	const auto &[x, y] = vector;
+
+	return sqrt(x * x + y * y);
+}
+
+Point MathUtils::normalize(const Point &vector) {
+	double magnitude = get_magnitude(vector);
+	return magnitude != 0.0 ? vector / magnitude : vector;
 }

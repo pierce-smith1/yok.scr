@@ -13,6 +13,8 @@
 #include "bitmaps.h"
 #include "common.h"
 
+const static double M_PI = std::acos(-1);
+
 class Texture {
 public:
 	static const Texture *get(const PaletteData &palette, const BitmapData &bitmap);
@@ -47,6 +49,24 @@ Point operator*(const Point &l, const GLdouble &r);
 Point &operator*=(Point &l, const GLdouble &r);
 Point operator/(const Point &l, const GLdouble &r);
 Point &operator/=(Point &l, const GLdouble &r);
+
+namespace MathUtils {
+	// Gives a random value between (1 - negative_variation; 1 + positive_variation).
+	// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
+	// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
+	// Variation shouldn't result in a number below 0. Exponent must be larger than 0. Slope should be from 0 to 1.
+	double random_curve(double negative_variation, double positive_variation, double exponent, double slope);
+
+	// Converts a vector to an angle in the range (-M_PI, M_PI].
+	double get_angle(const Point &vector);
+
+	// Wraps angles to be inside the range (-M_PI, M_PI]
+	double wrap_angle(double angle);
+
+	double get_magnitude(const Point &vector);
+
+	Point normalize(const Point &vector);
+}
 
 enum Coord {
 	X = 0,
