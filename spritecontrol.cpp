@@ -408,7 +408,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.3;	// How strongly to accelerate sprites towards their desired velocity
 
 		static std::map<Id, Point> velocity;
-		static std::map<Id, double> desired_speed;
 
 		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
 		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
@@ -468,17 +467,18 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
 		};
 
-		if (velocity.empty() || desired_speed.empty()) {
+		if (velocity.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
-				desired_speed[sprite->id()] = magnitude;
 			}
 		}
 
 		size_t sprite_num = 0;
 		for (Sprite *current_sprite : *sprites) {
+			const double desired_speed = get_offset(current_sprite->id()) + 0.8;
+
 			const Point &current_velocity = velocity[current_sprite->id()];
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
@@ -521,7 +521,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 
 			double scale = get_vector_magnitude(separation_velocity);
-			scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			scale = min(desired_speed / scale, 1.0) * SEPARATION_FORCE_MULT;
 			velocity[current_sprite->id()] += separation_velocity * scale;
 
 			if (sprites_seen > 1) {
@@ -540,8 +540,10 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
+			const double desired_speed = get_offset(sprite->id()) + 0.8;
+
 			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
-			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
+			double velocity_change = (desired_speed - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
 
 			velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;
 
