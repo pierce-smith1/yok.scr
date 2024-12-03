@@ -311,7 +311,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0));
 		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;
@@ -395,12 +395,12 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
 		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0));
 		const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
-		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 6.5 + 15.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 6.5 + 15.0));
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
-		const static double BLIND_DEGREES = 45.0;
-		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080LL * 1920LL) / 3.0 + 0.7, 1.1);
+		const static double BLIND_ANGLE = 45.0 * M_PI / 180.0;
+		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0));
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
@@ -412,9 +412,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
-		static std::map<Id, double> desired_separation;
-		static std::map<Id, double> vision_range;
-		static std::map<Id, double> blind_angle;
 
 		// debug shit
 		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
@@ -438,24 +435,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		auto get_angle = [](const Point &vector) {
 			const auto &[x, y] = vector;
 
-			if (x == 0 && y == 0) {
+			if (x == 0.0 && y == 0.0) {
 				return 0.0;
 			}
 
-			double angle = atan2(y, x);
-
-			/*
-			// i'm sure there will be absolutely nothing wrong with this
-			if (x >= 0) {
-				return angle;
-			} else if (y >= 0) {
-				return angle + M_PI;
-			} else {
-				return angle - M_PI;
-			}
-			/**/
-
-			return angle;
+			return atan2(y, x);
 		};
 
 		// Wraps angles to be inside the range (-M_PI, M_PI]
@@ -480,21 +464,12 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
-		if (velocity.empty() || desired_speed.empty() || desired_separation.empty() || vision_range.empty() || blind_angle.empty()) {
+		if (velocity.empty() || desired_speed.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
 				double radians = Noise::random() * M_PI * 2;
 				velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
 				desired_speed[sprite->id()] = magnitude;
-
-				double separation_radius = random_curve(0.2, 0.2, 2.5) * SEPARATION_X_RADIUS;
-				desired_separation[sprite->id()] = separation_radius;
-
-				double vision_radius = random_curve(0.5, 0.5, 5.0, 0.2) * VISION_X_RADIUS;
-				vision_range[sprite->id()] = vision_radius;
-
-				double degrees = random_curve(1.0, 1.5, 10.0, 0.25) * BLIND_DEGREES;
-				blind_angle[sprite->id()] = degrees * M_PI / 180.0;
 			}
 		}
 
@@ -503,12 +478,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		std::map<Sprite *, Point> cohesion_velocity_changes;
 		std::map<Sprite *, Point> edge_push_velocity_changes;
 
-		size_t sprite_num = 0;
+		size_t sprite_num = 0;	// debug shit
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
-			const double &current_desired_separation = desired_separation[current_sprite->id()];
-			const double &current_vision_range = vision_range[current_sprite->id()];
-			const double &current_blind_angle = blind_angle[current_sprite->id()];
 
 			Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
 
@@ -528,7 +500,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				double dist = get_vector_magnitude(diff);
 
-				if (dist > current_vision_range) {
+				if (dist > VISION_X_RADIUS) {
 					continue;
 				}
 
@@ -536,15 +508,15 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				double relative_angle = get_angle(diff);
 				relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
 
-				if (abs(relative_angle) >= current_blind_angle) {
+				if (abs(relative_angle) >= BLIND_ANGLE) {
 					sprites_seen++;
 					Point other_velocity = velocity[other_sprite->id()];
 					average_velocity += other_velocity;
 					average_pos += other_final;
 				}
 
-				if (dist < current_desired_separation) {
-					diff /= dist * dist / current_desired_separation;
+				if (dist < SEPARATION_X_RADIUS) {
+					diff /= dist * dist / SEPARATION_X_RADIUS;
 					separation_velocity += diff;
 				}
 			}
@@ -560,7 +532,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
 				cohesion_velocity_changes[current_sprite] = relative_average_pos;
 
-				if (sprite_num == random_sprite) {
+				if (sprite_num == random_sprite) {	// debug shit
 					random_average_position = relative_average_pos;
 				}
 			}
@@ -585,6 +557,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				edge_push_velocity_changes[current_sprite] = edge_push;
 			}
 
+			// debug shit
 			if (sprite_num == random_sprite) {
 				if (alignment_velocity_changes.contains(current_sprite)) {
 					random_average_velocity = alignment_velocity_changes[current_sprite];
@@ -628,13 +601,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			// refer to previous comment
 		}
 
-		/*
 		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
 			double scale = get_vector_magnitude(velocity_change);
 			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
 			velocity[sprite->id()] += velocity_change * scale;
 		}
-		/**/
 
 		sprite_num = 0;
 		for (Sprite *sprite : *sprites) {
@@ -658,9 +629,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 					double theta = 2.0 * M_PI * i / 360.0;
 					double x = 0;
 					double y = 0;
-					if (abs(theta - M_PI) >= blind_angle[sprite->id()]) {
-						x = vision_range[sprite->id()] * std::cos(theta + get_angle(velocity[sprite->id()]));
-						y = vision_range[sprite->id()] / STRETCH_RATIO * std::sin(theta + get_angle(velocity[sprite->id()]));
+					if (abs(theta - M_PI) >= BLIND_ANGLE) {
+						x = VISION_X_RADIUS * std::cos(theta + get_angle(velocity[sprite->id()]));
+						y = VISION_Y_RADIUS * std::sin(theta + get_angle(velocity[sprite->id()]));
 					}
 					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 				}
@@ -681,8 +652,8 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			glBegin(GL_LINE_LOOP);
 			for (int i = 0; i < 20; i++) {
 				double theta = 2.0 * M_PI * i / 20.0;
-				double x = desired_separation[sprite->id()] / 2.0 * std::cos(theta);
-				double y = desired_separation[sprite->id()] / 2.0 / STRETCH_RATIO * std::sin(theta);
+				double x = SEPARATION_X_RADIUS / 2.0 * std::cos(theta);
+				double y = SEPARATION_Y_RADIUS / 2.0 * std::sin(theta);
 				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
 			}
 			glEnd();
