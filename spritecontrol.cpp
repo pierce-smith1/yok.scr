@@ -400,13 +400,15 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 6.5 + 15.0));
 		const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
 		const static double BLIND_ANGLE = 45.0 * M_PI / 180.0;
-		const static double EDGE_PUSH_Y_RADIUS = (18.0 / (cfg[Cfg::SpriteCount] / 7.5 + 40.0));
+		const static double EDGE_PUSH_Y_RADIUS = 0.2;
 		const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
+		const static double EDGE_PUSH_Y_SCALE = 0.2;	// How fast to scale the push force based on distance past the edge (lower = faster)
+		const static double EDGE_PUSH_X_SCALE = EDGE_PUSH_Y_SCALE * STRETCH_RATIO;
 
 		const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
 		const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 2.0;			// How strongly to separate sprites that are too close
 		const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to align sprites that are in a pack
-		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 7.5;				// How strongly to pull sprites towards the middle of their pack
+		const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 2.5;				// How strongly to pull sprites towards the middle of their pack
 		const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
 		const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.5;	// How strongly to accelerate sprites towards their desired velocity
 
@@ -473,11 +475,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 		}
 
-		std::map<Sprite *, Point> separation_velocity_changes;
-		std::map<Sprite *, Point> alignment_velocity_changes;
-		std::map<Sprite *, Point> cohesion_velocity_changes;
-		std::map<Sprite *, Point> edge_push_velocity_changes;
-
 		size_t sprite_num = 0;	// debug shit
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
@@ -521,93 +518,69 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 				}
 			}
 
-			separation_velocity_changes[current_sprite] = separation_velocity;
-
-			if (sprites_seen > 1) {
-				average_velocity /= (double) sprites_seen;
-				average_pos /= (double) sprites_seen;
-
-				alignment_velocity_changes[current_sprite] = average_velocity;
-
-				Point relative_average_pos = average_pos - Point(current_sprite->final<X>(), current_sprite->final<Y>());
-				cohesion_velocity_changes[current_sprite] = relative_average_pos;
-
-				if (sprite_num == random_sprite) {	// debug shit
-					random_average_position = relative_average_pos;
-				}
-			}
-
 			Point edge_push = Point(0.0, 0.0);
 
 			if (-1.0 + EDGE_PUSH_X_RADIUS > get<X>(current_final)) {
-				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
 			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<X>(current_final)) {
-				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_RADIUS;
+				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
 			}
 
-			if (-1.0 + EDGE_PUSH_X_RADIUS > get<Y>(current_final)) {
-				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
-			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<Y>(current_final)) {
-				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_X_RADIUS;
+			if (-1.0 + EDGE_PUSH_Y_RADIUS > get<Y>(current_final)) {
+				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
+			} else if (1.0 - EDGE_PUSH_Y_RADIUS < get<Y>(current_final)) {
+				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
 			}
 
 			if (edge_push != Point(0.0, 0.0)) {
 				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
 				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
-				edge_push_velocity_changes[current_sprite] = edge_push;
 			}
 
-			// debug shit
-			if (sprite_num == random_sprite) {
-				if (alignment_velocity_changes.contains(current_sprite)) {
-					random_average_velocity = alignment_velocity_changes[current_sprite];
-				} else {
-					random_average_velocity = Point(current_velocity);
-				}
-				random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
+			double scale = get_vector_magnitude(separation_velocity);
+			scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[current_sprite->id()] += separation_velocity * scale;
 
-				if (!cohesion_velocity_changes.contains(current_sprite)) {
-					random_average_position = Point(0, 0);
+			scale = get_vector_magnitude(edge_push);
+			scale *= desired_speed[current_sprite->id()] * EDGE_PUSH_FORCE_MULT;
+			velocity[current_sprite->id()] += edge_push * scale;
+
+			if (sprites_seen > 1) {
+				average_velocity /= (double) sprites_seen;
+				average_pos /= (double) sprites_seen;
+
+				average_pos -= Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+				Point sprite_velocity = velocity[current_sprite->id()];
+				double magnitude = get_vector_magnitude(sprite_velocity);
+
+				Point diff = average_velocity - sprite_velocity;
+				diff *= ALIGNMENT_FORCE_MULT;
+
+				sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+				// there's probably a better way to do this but i can't be bothered figuring it out now
+
+				average_pos *= COHESION_FORCE_MULT;
+
+				velocity[current_sprite->id()] = normalize_vector(sprite_velocity + average_pos) * magnitude;
+				// refer to previous comment
+
+				// debug shit
+				if (sprite_num == random_sprite) {
+					random_average_velocity = average_velocity;
+					random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
+
+					random_average_position = average_pos / COHESION_FORCE_MULT;
 				}
+			} else if (sprite_num == random_sprite) {
+				random_average_velocity = Point(current_velocity) / (cfg[Cfg::TimeDivisor] / 30.0);
+				random_average_position = Point(0, 0);
 			}
 
 			sprite_num++;
 		}
 
-		for (auto &[sprite, velocity_change] : separation_velocity_changes) {
-			double scale = get_vector_magnitude(velocity_change);
-			scale = min(desired_speed[sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
-			velocity[sprite->id()] += velocity_change * scale;
-		}
-
-		for (auto &[sprite, velocity_change] : alignment_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite->id()];
-			double magnitude = get_vector_magnitude(sprite_velocity);
-
-			Point diff = velocity_change - sprite_velocity;
-			diff *= ALIGNMENT_FORCE_MULT;
-
-			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
-			// there's probably a better way to do this but i can't be bothered figuring it out now
-		}
-
-		for (auto &[sprite, velocity_change] : cohesion_velocity_changes) {
-			Point &sprite_velocity = velocity[sprite->id()];
-			double magnitude = get_vector_magnitude(sprite_velocity);
-
-			velocity_change *= COHESION_FORCE_MULT;
-
-			sprite_velocity = normalize_vector(sprite_velocity + velocity_change) * magnitude;
-			// refer to previous comment
-		}
-
-		for (auto &[sprite, velocity_change] : edge_push_velocity_changes) {
-			double scale = get_vector_magnitude(velocity_change);
-			scale *= desired_speed[sprite->id()] * EDGE_PUSH_FORCE_MULT;
-			velocity[sprite->id()] += velocity_change * scale;
-		}
-
-		sprite_num = 0;
+		sprite_num = 0;	// debug shit
 		for (Sprite *sprite : *sprites) {
 			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
 			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
