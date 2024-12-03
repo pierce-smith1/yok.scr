@@ -22,6 +22,7 @@ enum PatternName {
 	Bubbles,
 	RandomPattern,
 	Boids,
+	Rivers,
 	_PATTERN_COUNT
 };
 
@@ -87,6 +88,8 @@ public:
 protected:
 	using MoveFunction = std::function<void(Sprites *, Context *, std::function<double(Id)>)>;
 	static std::map<PatternName, MoveFunction> move_functions;
+
+	static void boids_move_function(Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset, bool should_screen_wrap);
 };
 
 class SpriteChoreographer {
