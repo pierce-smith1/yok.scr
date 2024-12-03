@@ -415,24 +415,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 		static std::map<Id, Point> velocity;
 		static std::map<Id, double> desired_speed;
 
-		// debug shit
-		static size_t random_sprite = (size_t) (Noise::random() * sprites->size());
-		Point random_average_velocity;
-		Point random_average_position;
-
-		// Gives a random value between (1 - negative_variation; 1 + positive_variation).
-		// Exponent affects the bias of the curve towards 1 before rapidly diverging at the edges.
-		// Slope affects how linear the curve is. Slope = 1 behaves like exponent = 1.
-		// Variation shouldn't result in a number below 0. Exponent must be larger than 0. Slope should be from 0 to 1.
-		auto random_curve = [](double negative_variation, double positive_variation, double exponent = 5.0, double slope = 0.1) {
-			double random = Noise::random();
-			double sign = Noise::random() < 0.5 ? -1.0 : 1.0;
-			double variation = sign < 0 ? negative_variation : positive_variation;
-			random = random * slope + pow(random, exponent) * (1 - slope);
-			return 1.0 + sign * random * variation;
-			// Equation: 1 + sign(rand) * (|rand| * slope + |rand|^exp * (1 - slope)) * (sign(rand) < 0 ? negative_variation : positive_variation)
-		};
-
 		// Converts a vector to an angle in the range (-M_PI, M_PI].
 		auto get_angle = [](const Point &vector) {
 			const auto &[x, y] = vector;
@@ -444,7 +426,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return atan2(y, x);
 		};
 
-		// Wraps angles to be inside the range (-M_PI, M_PI]
+		// Wraps angles to be inside the range [-M_PI, M_PI]
 		auto wrap_angle = [](double angle) {
 			while (angle > M_PI) {
 				angle -= 2.0 * M_PI;
@@ -466,6 +448,11 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			return magnitude != 0.0 ? vector / magnitude : vector;
 		};
 
+		// Returns 1.0 if positive or -1.0 if negative
+		auto sign = [](const double num) {
+			return num < 0.0 ? -1.0 : 1.0;
+		};
+
 		if (velocity.empty() || desired_speed.empty()) {
 			for (const Sprite *sprite : *sprites) {
 				double magnitude = Noise::random() + 0.8;
@@ -475,7 +462,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			}
 		}
 
-		size_t sprite_num = 0;	// debug shit
 		for (Sprite *current_sprite : *sprites) {
 			const Point &current_velocity = velocity[current_sprite->id()];
 
@@ -520,30 +506,26 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			Point edge_push = Point(0.0, 0.0);
 
-			if (-1.0 + EDGE_PUSH_X_RADIUS > get<X>(current_final)) {
-				get<X>(edge_push) += ((-1.0 + EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
-			} else if (1.0 - EDGE_PUSH_X_RADIUS < get<X>(current_final)) {
-				get<X>(edge_push) += ((1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
+			if (abs(get<X>(current_final)) > 1.0 - EDGE_PUSH_X_RADIUS) {
+				get<X>(edge_push) = (sign(get<X>(current_final)) * (1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
+				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * sign(get<X>(edge_push));
+			}
+			if (abs(get<Y>(current_final)) > 1.0 - EDGE_PUSH_Y_RADIUS) {
+				get<Y>(edge_push) = (sign(get<Y>(current_final)) * (1.0 - EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
+				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * sign(get<Y>(edge_push));
 			}
 
-			if (-1.0 + EDGE_PUSH_Y_RADIUS > get<Y>(current_final)) {
-				get<Y>(edge_push) += ((-1.0 + EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
-			} else if (1.0 - EDGE_PUSH_Y_RADIUS < get<Y>(current_final)) {
-				get<Y>(edge_push) += ((1.0 - EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
+			if (separation_velocity != Point(0.0, 0.0)) {
+				double scale = get_vector_magnitude(separation_velocity);
+				scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+				velocity[current_sprite->id()] += separation_velocity * scale;
 			}
 
 			if (edge_push != Point(0.0, 0.0)) {
-				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * (get<X>(edge_push) < 0.0 ? -1.0 : 1.0);
-				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * (get<Y>(edge_push) < 0.0 ? -1.0 : 1.0);
+				double scale = get_vector_magnitude(edge_push);
+				scale *= desired_speed[current_sprite->id()] * EDGE_PUSH_FORCE_MULT;
+				velocity[current_sprite->id()] += edge_push * scale;
 			}
-
-			double scale = get_vector_magnitude(separation_velocity);
-			scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
-			velocity[current_sprite->id()] += separation_velocity * scale;
-
-			scale = get_vector_magnitude(edge_push);
-			scale *= desired_speed[current_sprite->id()] * EDGE_PUSH_FORCE_MULT;
-			velocity[current_sprite->id()] += edge_push * scale;
 
 			if (sprites_seen > 1) {
 				average_velocity /= (double) sprites_seen;
@@ -564,23 +546,9 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 				velocity[current_sprite->id()] = normalize_vector(sprite_velocity + average_pos) * magnitude;
 				// refer to previous comment
-
-				// debug shit
-				if (sprite_num == random_sprite) {
-					random_average_velocity = average_velocity;
-					random_average_velocity /= cfg[Cfg::TimeDivisor] / 30.0;
-
-					random_average_position = average_pos / COHESION_FORCE_MULT;
-				}
-			} else if (sprite_num == random_sprite) {
-				random_average_velocity = Point(current_velocity) / (cfg[Cfg::TimeDivisor] / 30.0);
-				random_average_position = Point(0, 0);
 			}
-
-			sprite_num++;
 		}
 
-		sprite_num = 0;	// debug shit
 		for (Sprite *sprite : *sprites) {
 			double magnitude = get_vector_magnitude(velocity[sprite->id()]);
 			double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
@@ -589,49 +557,6 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 
 			get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
 			get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glColor4d(0.2, 0.2, 0.2, 1.0);
-
-			// temporary visuals
-			if (sprite_num == random_sprite) {
-				glColor4d(0.5, 0.5, 0.5, 1.0);
-
-				glBegin(GL_LINE_LOOP);
-				for (int i = 0; i < 360; i++) {
-					double theta = 2.0 * M_PI * i / 360.0;
-					double x = 0;
-					double y = 0;
-					if (abs(theta - M_PI) >= BLIND_ANGLE) {
-						x = VISION_X_RADIUS * std::cos(theta + get_angle(velocity[sprite->id()]));
-						y = VISION_Y_RADIUS * std::sin(theta + get_angle(velocity[sprite->id()]));
-					}
-					glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
-				}
-				glEnd();
-
-				glBegin(GL_LINES);
-				glColor4d(0.8, 0.2, 0.2, 1.0);	// red: average velocity
-				glVertex2d(sprite->final<X>(), sprite->final<Y>());
-				glVertex2d(get<X>(random_average_velocity) + sprite->final<X>(), get<Y>(random_average_velocity) + sprite->final<Y>());
-
-				glColor4d(0.2, 0.5, 0.8, 1.0);	// blue: average position
-				glVertex2d(sprite->final<X>(), sprite->final<Y>());
-				glVertex2d(get<X>(random_average_position) + sprite->final<X>(), get<Y>(random_average_position) + sprite->final<Y>());
-				glEnd();
-
-				glColor4d(0.2, 0.2, 0.2, 1.0);
-			}
-			glBegin(GL_LINE_LOOP);
-			for (int i = 0; i < 20; i++) {
-				double theta = 2.0 * M_PI * i / 20.0;
-				double x = SEPARATION_X_RADIUS / 2.0 * std::cos(theta);
-				double y = SEPARATION_Y_RADIUS / 2.0 * std::sin(theta);
-				glVertex2d(x + sprite->final<X>(), y + sprite->final<Y>());
-			}
-			glEnd();
-
-			sprite_num++;
 		}
 	}},
 };
