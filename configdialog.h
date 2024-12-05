@@ -140,6 +140,8 @@ const static std::map<PatternName, std::wstring> pattern_strings = {
 	{ Lattice, L"Lattice" },
 	{ Bubbles, L"Bubbles" },
 	{ RandomPattern, L"Random" },
+	{ Boids, L"Boids" },
+	{ Rivers, L"Rivers" },
 };
 
 const static std::map<PaletteGroup, std::wstring> palette_strings = {
