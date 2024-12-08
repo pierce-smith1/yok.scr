@@ -88,7 +88,7 @@ BYTE *Scene::get_background_rgba() {
 		SRCCOPY | CAPTUREBLT
 	);
 
-	BITMAP screenshot_bmp;
+	BITMAP screenshot_bmp { };
 	GetObject(target_bmp, sizeof(BITMAP), &screenshot_bmp);
 
 	BITMAPINFOHEADER bitmap_header = { 0 };

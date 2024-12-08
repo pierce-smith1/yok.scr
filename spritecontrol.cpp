@@ -77,21 +77,29 @@ const PaletteData *SpriteGenerator::next_palette() const {
 }
 
 SpriteChoreographer::SpriteChoreographer(PatternName choreography, Sprites *sprites, Context *ctx)
-	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites)
-{ 
+	: m_pattern(choreography), m_ctx(ctx), m_sprites(sprites), m_enabled_patterns(PatternRepository::load_enabled_patterns())
+{
 	m_players = { new SinglePassPlayer(sprites, ctx), new GlobalPlayer(sprites, ctx) };
+	if (m_pattern == RandomPattern) {
+		change_pattern();
+	}
 	update_player();
 }
 
 void SpriteChoreographer::update() {
 	m_current_player->update();
+	if (non_screen_wrapping_patterns.contains(m_pattern)) {
+		m_current_player->clamp_off_screen_sprites();
+	} else {
+		m_current_player->wrap_off_screen_sprites();
+	}
 	if (should_change_pattern()) {
 		change_pattern();
 	}
 }
 
 bool SpriteChoreographer::should_change_pattern() {
-	if (cfg[Cfg::IsPatternFixed]) {
+	if (m_enabled_patterns.size() <= 1) {
 		return false;
 	}
 
@@ -101,7 +109,13 @@ bool SpriteChoreographer::should_change_pattern() {
 }
 
 void SpriteChoreographer::change_pattern() {
-	m_pattern = (PatternName) (Noise::random() * cast<double>(_PATTERN_COUNT));
+	std::vector<PatternName> candidate_patterns = { };
+	std::copy_if(m_enabled_patterns.begin(), m_enabled_patterns.end(), std::back_inserter(candidate_patterns), [&](const PatternName &pattern) {
+		return pattern != m_pattern;
+	});
+
+	size_t random_index = (size_t) (Noise::random() * candidate_patterns.size());
+	m_pattern = candidate_patterns.at(random_index);
 	update_player();
 }
 
@@ -117,6 +131,50 @@ void SpriteChoreographer::update_player() {
 void PatternPlayer::set_pattern(PatternName pattern) {
 	m_pattern = pattern;
 	m_hash_offset++;
+}
+
+void PatternPlayer::wrap_off_screen_sprites() {
+	auto wrap = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (max - min);
+		} else if (total > max) {
+			return home + (min - max);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = wrap(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = wrap(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
+}
+
+void PatternPlayer::clamp_off_screen_sprites() {
+	auto keep_in_bounds = [](double home, double total, double min, double max) -> double {
+		if (total < min) {
+			return home + (min - total);
+		} else if (total > max) {
+			return home + (max - total);
+		} else {
+			return home;
+		}
+	};
+
+	double edge_boundary = 0.15 + Sprite::get_size() / 1.1;
+	double horizontal_correction = max((double) m_ctx->rect().right / (double) m_ctx->rect().bottom, 1.0);
+	double vertical_correction = max((double) m_ctx->rect().bottom / (double) m_ctx->rect().right, 1.0);
+
+	// Still keep them within bounds if wrapping is not allowed. Should help prevent teleporting on screen when the pattern changes.
+	// Some patterns will be fighting against this, but since it's happening off screen and after pattern movement, it shouldn't matter.
+	for (Sprite *sprite : *m_sprites) {
+		get<X>(sprite->home()) = keep_in_bounds(get<X>(sprite->home()), sprite->final<X>(), -1.0 - (edge_boundary / horizontal_correction), 1.0 + (edge_boundary / horizontal_correction));
+		get<Y>(sprite->home()) = keep_in_bounds(get<Y>(sprite->home()), sprite->final<Y>(), -1.0 - (edge_boundary / vertical_correction), 1.0 + (edge_boundary / vertical_correction));
+	}
 }
 
 PatternPlayer::PatternPlayer(Sprites *sprites, Context *ctx)
@@ -137,7 +195,7 @@ void SinglePassPlayer::update() {
 		sprite->update(*m_ctx);
 	}
 }
- 
+
 std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
 		Roamers,
@@ -153,7 +211,7 @@ std::set<PatternName> &SinglePassPlayer::compatible_patterns() {
 }
 
 std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_functions {
-	{ Roamers, [](Sprite* sprite, Context* ctx, double offset) {
+	{ Roamers, [](Sprite *sprite, Context *ctx, double offset) {
 		// Every pattern is made of three things!
 		// The sprite, the creature who kindly participates -
 		// The context, the timepiece by which we will calculate -
@@ -168,7 +226,7 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 	}},
 	{ Square, [](Sprite *sprite, Context *ctx, double offset) {
 		get<X>(sprite->home()) += offset < 0.5 ? ((1.0 - offset) / cfg[Cfg::TimeDivisor]) : 0.0;
-		get<Y>(sprite->home()) += offset < 0.5 ? 0.0: (offset / cfg[Cfg::TimeDivisor]);
+		get<Y>(sprite->home()) += offset < 0.5 ? 0.0 : (offset / cfg[Cfg::TimeDivisor]);
 	}},
 	{ Bouncy, [](Sprite *sprite, Context *ctx, double offset) {
 		static int NorthWest = 0b01;
@@ -186,14 +244,16 @@ std::map<PatternName, SinglePassPlayer::MoveFunction> SinglePassPlayer::move_fun
 		get<X>(sprite->home()) += (offset / cfg[Cfg::TimeDivisor]) * lateral_modifier;
 		get<Y>(sprite->home()) += (1.0 - offset) / cfg[Cfg::TimeDivisor] * vertical_modifier;
 
-		if (get<X>(sprite->home()) > 1.0 || get<X>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= West;
-			get<X>(sprite->home()) = signbit(get<X>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<X>() > 1.0) {
+			directions[sprite->id()] |= West;
+		} else if (sprite->final<X>() < -1.0) {
+			directions[sprite->id()] &= ~West;
 		}
 
-		if (get<Y>(sprite->home()) > 1.0 || get<Y>(sprite->home()) < -1.0) {
-			directions[sprite->id()] ^= South;
-			get<Y>(sprite->home()) = signbit(get<Y>(sprite->home())) ? -1.0 : 1.0;
+		if (sprite->final<Y>() > 1.0) {
+			directions[sprite->id()] |= South;
+		} else if (sprite->final<Y>() < -1.0) {
+			directions[sprite->id()] &= ~South;
 		}
 	}},
 	{ Lissajous, [](Sprite *sprite, Context *ctx, double offset) {
@@ -240,7 +300,9 @@ void GlobalPlayer::update() {
 
 std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 	static std::set<PatternName> patterns = {
-		Bubbles
+		Bubbles,
+		Boids,
+		Rivers,
 	};
 
 	return patterns;
@@ -248,9 +310,9 @@ std::set<PatternName> &GlobalPlayer::compatible_patterns() {
 
 std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 	{ Bubbles, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
-		const static double SCREEN_SIZE = ctx->rect().bottom * ctx->rect().right;
+		const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
 		const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
-		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0)) * std::pow(SCREEN_SIZE / (1080 * 1920) / 3.0 + 0.7, 1.1);
+		const static double BUBBLE_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 1.5 + 40.0));
 		const static double BUBBLE_X_RADIUS = BUBBLE_Y_RADIUS * STRETCH_RATIO;
 
 		static std::map<Id, Point> velocity;
@@ -297,7 +359,7 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			get<Y>(N) /= mag_N;
 
 			double cos_theta = get<X>(L_u) * get<X>(N) + get<Y>(L_u) * get<Y>(N);
-			
+
 			if (cos_theta > 0) {
 				cos_theta *= std::signbit(get<X>(L) * get<Y>(N) - get<Y>(L) * get<X>(N)) ? -1.0 : 1.0;
 
@@ -331,4 +393,231 @@ std::map<PatternName, GlobalPlayer::MoveFunction> GlobalPlayer::move_functions {
 			glEnd();
 		}
 	}},
+	{ Boids, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
+		boids_move_function(sprites, ctx, get_offset, false);
+	}},
+	{ Rivers, [](Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset) {
+		boids_move_function(sprites, ctx, get_offset, true);
+	}},
 };
+
+void GlobalPlayer::boids_move_function(Sprites *sprites, Context *ctx, std::function<double(Id)> get_offset, bool should_screen_wrap) {
+	const static double SCREEN_SIZE = (double) ((long long) ctx->rect().bottom * ctx->rect().right);
+	const static double STRETCH_RATIO = (double) (ctx->rect().bottom) / ctx->rect().right;
+	const static double SEPARATION_Y_RADIUS = (6.0 / (cfg[Cfg::SpriteCount] / 2.5 + 40.0));
+	const static double SEPARATION_X_RADIUS = SEPARATION_Y_RADIUS * STRETCH_RATIO;
+	const static double VISION_Y_RADIUS = (10.0 / (cfg[Cfg::SpriteCount] / 6.5 + 15.0));
+	const static double VISION_X_RADIUS = VISION_Y_RADIUS * STRETCH_RATIO;
+	const static double BLIND_ANGLE = 45.0 * M_PI / 180.0;
+	const static double EDGE_PUSH_Y_RADIUS = 0.2;
+	const static double EDGE_PUSH_X_RADIUS = EDGE_PUSH_Y_RADIUS * STRETCH_RATIO;
+	const static double EDGE_PUSH_Y_SCALE = 0.2;	// How fast to scale the push force based on distance past the edge (lower = faster)
+	const static double EDGE_PUSH_X_SCALE = EDGE_PUSH_Y_SCALE * STRETCH_RATIO;
+
+	const static double DEFAULT_FORCE_MULT = 0.1;	// Multiplier for all forces below
+	const static double SEPARATION_FORCE_MULT = DEFAULT_FORCE_MULT * 2.0;			// How strongly to separate sprites that are too close
+	const static double ALIGNMENT_FORCE_MULT = DEFAULT_FORCE_MULT * 1.0;			// How strongly to align sprites that are in a pack
+	const static double COHESION_FORCE_MULT = DEFAULT_FORCE_MULT * 2.5;				// How strongly to pull sprites towards the middle of their pack
+	const static double EDGE_PUSH_FORCE_MULT = DEFAULT_FORCE_MULT * 0.6;			// How strongly to push sprites away from the edges
+	const static double DESIRED_VELOCITY_RETURN_MULT = DEFAULT_FORCE_MULT * 0.5;	// How strongly to accelerate sprites towards their desired velocity
+
+	static std::map<Id, Point> velocity;
+	static std::map<Id, double> desired_speed;
+
+	// Converts a vector to an angle in the range (-M_PI, M_PI].
+	auto get_angle = [](const Point &vector) {
+		const auto &[x, y] = vector;
+
+		if (x == 0.0 && y == 0.0) {
+			return 0.0;
+		}
+
+		return atan2(y, x);
+	};
+
+	// Wraps angles to be inside the range [-M_PI, M_PI]
+	auto wrap_angle = [](double angle) {
+		while (angle > M_PI) {
+			angle -= 2.0 * M_PI;
+		}
+		while (angle < -M_PI) {
+			angle += 2.0 * M_PI;
+		}
+		return angle;
+	};
+
+	auto get_vector_magnitude = [](const Point &vector) {
+		const auto &[x, y] = vector;
+
+		return sqrt(x * x + y * y);
+	};
+
+	auto normalize_vector = [&](const Point &vector) {
+		double magnitude = get_vector_magnitude(vector);
+		return magnitude != 0.0 ? vector / magnitude : vector;
+	};
+
+	// Returns 1.0 if positive or -1.0 if negative
+	auto sign = [](const double num) {
+		return num < 0.0 ? -1.0 : 1.0;
+	};
+
+	if (velocity.empty() || desired_speed.empty()) {
+		for (const Sprite *sprite : *sprites) {
+			double magnitude = Noise::random() + 1.0;
+			double radians = Noise::random() * M_PI * 2;
+			velocity[sprite->id()] = Point(std::cos(radians) * magnitude, std::sin(radians) * magnitude);
+			desired_speed[sprite->id()] = magnitude;
+		}
+	}
+
+	for (Sprite *current_sprite : *sprites) {
+		const Point &current_velocity = velocity[current_sprite->id()];
+
+		Point current_final = Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+		Point separation_velocity = Point(0.0, 0.0);
+		size_t sprites_seen = 1;
+		Point average_velocity = Point(current_velocity);
+		Point average_pos = Point(current_final);
+
+		for (Sprite *other_sprite : *sprites) {		// dejil... i am sorry...
+			if (current_sprite == other_sprite) {
+				continue;
+			}
+
+			Point other_final = Point(other_sprite->final<X>(), other_sprite->final<Y>());
+			Point diff = current_final - other_final;
+			get<Y>(diff) *= STRETCH_RATIO;
+
+			double dist = get_vector_magnitude(diff);
+
+			if (dist > VISION_X_RADIUS) {
+				continue;
+			}
+
+			double current_angle = get_angle(current_velocity);
+			double relative_angle = get_angle(diff);
+			relative_angle = wrap_angle(relative_angle - current_angle);	// 180 deg: straight ahead; 0 deg: straight behind (assuming i'm not bad at math)
+
+			if (abs(relative_angle) >= BLIND_ANGLE) {
+				sprites_seen++;
+				Point other_velocity = velocity[other_sprite->id()];
+				average_velocity += other_velocity;
+				average_pos += other_final;
+			}
+
+			if (dist < SEPARATION_X_RADIUS) {
+				diff /= dist * dist / SEPARATION_X_RADIUS;
+				separation_velocity += diff;
+			}
+		}
+
+		if (separation_velocity != Point(0.0, 0.0)) {
+			double scale = get_vector_magnitude(separation_velocity);
+			scale = min(desired_speed[current_sprite->id()] / scale, 1.0) * SEPARATION_FORCE_MULT;
+			velocity[current_sprite->id()] += separation_velocity * scale;
+		}
+
+		if (!should_screen_wrap) {
+			Point edge_push = Point(0.0, 0.0);
+
+			if (abs(get<X>(current_final)) > 1.0 - EDGE_PUSH_X_RADIUS) {
+				get<X>(edge_push) = (sign(get<X>(current_final)) * (1.0 - EDGE_PUSH_X_RADIUS) - get<X>(current_final)) / EDGE_PUSH_X_SCALE;
+				get<X>(edge_push) = pow(abs(get<X>(edge_push)), 1.0 / 2.5) * sign(get<X>(edge_push));
+			}
+			if (abs(get<Y>(current_final)) > 1.0 - EDGE_PUSH_Y_RADIUS) {
+				get<Y>(edge_push) = (sign(get<Y>(current_final)) * (1.0 - EDGE_PUSH_Y_RADIUS) - get<Y>(current_final)) / EDGE_PUSH_Y_SCALE;
+				get<Y>(edge_push) = pow(abs(get<Y>(edge_push)), 1.0 / 2.5) * sign(get<Y>(edge_push));
+			}
+
+			if (edge_push != Point(0.0, 0.0)) {
+				double scale = get_vector_magnitude(edge_push);
+				scale *= desired_speed[current_sprite->id()] * EDGE_PUSH_FORCE_MULT;
+				velocity[current_sprite->id()] += edge_push * scale;
+			}
+		}
+
+		if (sprites_seen > 1) {
+			average_velocity /= (double) sprites_seen;
+			average_pos /= (double) sprites_seen;
+
+			average_pos -= Point(current_sprite->final<X>(), current_sprite->final<Y>());
+
+			Point sprite_velocity = velocity[current_sprite->id()];
+			double magnitude = get_vector_magnitude(sprite_velocity);
+
+			Point diff = average_velocity - sprite_velocity;
+			diff *= ALIGNMENT_FORCE_MULT;
+
+			sprite_velocity = normalize_vector(sprite_velocity + diff) * magnitude;
+			// there's probably a better way to do this but i can't be bothered figuring it out now
+
+			average_pos *= COHESION_FORCE_MULT;
+
+			velocity[current_sprite->id()] = normalize_vector(sprite_velocity + average_pos) * magnitude;
+			// refer to previous comment
+		}
+	}
+
+	for (Sprite *sprite : *sprites) {
+		double magnitude = get_vector_magnitude(velocity[sprite->id()]);
+		double velocity_change = (desired_speed[sprite->id()] - magnitude) * DESIRED_VELOCITY_RETURN_MULT;
+
+		velocity[sprite->id()] += velocity[sprite->id()] / magnitude * velocity_change;
+
+		get<X>(sprite->home()) += get<X>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] * 0.5;
+		get<Y>(sprite->home()) += get<Y>(velocity[sprite->id()]) / cfg[Cfg::TimeDivisor] / STRETCH_RATIO * 0.5;
+	}
+}
+
+std::vector<PatternName> PatternRepository::load_disabled_patterns() {
+	Registry registry;
+
+	std::vector<PatternName> disabled_patterns = { };
+
+	std::vector<std::wstring> disabled_patterns_strings = split<std::wstring>(registry.get_string(disabled_patterns_name, disabled_patterns_default), disabled_patterns_string_delimiter);
+	for (auto &pattern : pattern_strings) {
+		auto disabled_pattern = std::find_if(disabled_patterns_strings.begin(), disabled_patterns_strings.end(), [&](const std::wstring &string) {
+			return string == pattern.second && pattern.first != RandomPattern;
+		});
+		if (disabled_pattern != disabled_patterns_strings.end()) {
+			disabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	if (get_enabled_patterns(disabled_patterns).size() < 1) {
+		disabled_patterns.erase(std::find(disabled_patterns.begin(), disabled_patterns.end(), default_pattern_all_disabled));
+	}
+
+	return disabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::get_enabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::vector<PatternName> enabled_patterns = { };
+
+	for (auto &pattern : pattern_strings) {
+		if (std::find(disabled_patterns.begin(), disabled_patterns.end(), pattern.first) == disabled_patterns.end() && pattern.first != RandomPattern) {
+			enabled_patterns.push_back(pattern.first);
+		}
+	}
+
+	return enabled_patterns;
+}
+
+std::vector<PatternName> PatternRepository::load_enabled_patterns() {
+	return get_enabled_patterns(load_disabled_patterns());
+}
+
+void PatternRepository::save_disabled_patterns(const std::vector<PatternName> &disabled_patterns) {
+	std::wstring disabled_patterns_string = disabled_patterns_default;
+	for (auto &pattern : disabled_patterns) {
+		if (pattern != *disabled_patterns.begin()) {
+			disabled_patterns_string.append(disabled_patterns_string_delimiter);
+		}
+		disabled_patterns_string.append(pattern_strings.at(pattern));
+	}
+
+	Registry registry;
+	registry.write_string(disabled_patterns_name, disabled_patterns_string);
+}

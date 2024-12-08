@@ -63,6 +63,7 @@ GLubyte *Texture::data() const {
 	for (int i = 0; i < m_bitmap.size(); i++) {
 		Color palette_color = m_palette[m_bitmap.data()[i]];
 
+	#pragma warning ( suppress : 6386 )		// kindly shut the fuck up
 		texture_data[i * 4 + RED] = std::get<RED>(palette_color);
 		texture_data[i * 4 + GREEN] = std::get<GREEN>(palette_color);
 		texture_data[i * 4 + BLUE] = std::get<BLUE>(palette_color);
@@ -70,4 +71,60 @@ GLubyte *Texture::data() const {
 	}
 
 	return texture_data;
+}
+
+Point operator+(const Point &l, const Point &r) {
+	double x = get<X>(l) + get<X>(r);
+	double y = get<Y>(l) + get<Y>(r);
+
+	return Point(x, y);
+}
+
+Point &operator+=(Point &l, const Point &r) {
+	get<X>(l) += get<X>(r);
+	get<Y>(l) += get<Y>(r);
+
+	return l;
+}
+
+Point operator-(const Point &l, const Point &r) {
+	double x = get<X>(l) - get<X>(r);
+	double y = get<Y>(l) - get<Y>(r);
+
+	return Point(x, y);
+}
+
+Point &operator-=(Point &l, const Point &r) {
+	get<X>(l) -= get<X>(r);
+	get<Y>(l) -= get<Y>(r);
+
+	return l;
+}
+
+Point operator*(const Point &l, const GLdouble &r) {
+	double x = get<X>(l) * r;
+	double y = get<Y>(l) * r;
+
+	return Point(x, y);
+}
+
+Point &operator*=(Point &l, const GLdouble &r) {
+	get<X>(l) *= r;
+	get<Y>(l) *= r;
+
+	return l;
+}
+
+Point operator/(const Point &l, const GLdouble &r) {
+	double x = get<X>(l) / r;
+	double y = get<Y>(l) / r;
+
+	return Point(x, y);
+}
+
+Point &operator/=(Point &l, const GLdouble &r) {
+	get<X>(l) /= r;
+	get<Y>(l) /= r;
+
+	return l;
 }

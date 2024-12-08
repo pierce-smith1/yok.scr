@@ -24,43 +24,43 @@ struct Cfg {
 
 	inline const static Definition StepSize = {
 		.index = __COUNTER__,
-		.name = L"YonkStepSize", 
+		.name = L"YonkStepSize",
 		.legacy_id = 1001,
-		.default_ = 0.005, 
+		.default_ = 0.005,
 	};
 
-	inline const static Definition HomeDrift = { 
+	inline const static Definition HomeDrift = {
 		.index = __COUNTER__,
-		.name = L"YonkHomeDrift", 
+		.name = L"YonkHomeDrift",
 		.legacy_id = 1002,
-		.default_= 0.3, 
-		.range = { 0.0, 5.0 },
+		.default_= 0.1,
+		.range = { 0.0, 10.0 },
 		.dialog_control_id = IDC_YONK_HOME_DRIFT,
 	};
 
-	inline const static Definition EmotionScale = { 
+	inline const static Definition EmotionScale = {
 		.index = __COUNTER__,
-		.name = L"YonkEmotionScale", 
+		.name = L"YonkEmotionScale",
 		.legacy_id = 1003,
-		.default_= 5.0, 
+		.default_= 5.0,
 		.range = { 0.0, 10.0 },
 		.dialog_control_id = IDC_YONK_EMOTION_SCALE,
 	};
 
-	inline const static Definition TimeDivisor = { 
+	inline const static Definition TimeDivisor = {
 		.index = __COUNTER__,
-		.name = L"TimeDivisor", 
+		.name = L"TimeDivisor",
 		.legacy_id = 1004,
-		.default_= 180.0, 
+		.default_= 180.0,
 		.range = { 10.0, 300.0 },
 		.dialog_control_id = IDC_TIME_DIVISOR,
 	};
 
-	inline const static Definition MaxColors = { 
+	inline const static Definition MaxColors = {
 		.index = __COUNTER__,
-		.name = L"MaxColors", 
+		.name = L"MaxColors",
 		.legacy_id = 1005,
-		.default_= 5.0, 
+		.default_= 5.0,
 		.range = { 2.0, 47.0 },
 		.dialog_control_id = IDC_MAX_COLORS,
 	};
@@ -107,14 +107,6 @@ struct Cfg {
 		.default_ = 60.0 * 15.0,
 		.range = { 30.0, 60.0 * 30.0 },
 		.dialog_control_id = IDC_PATTERN_CHANGE_INTERVAL,
-	};
-
-	inline const static Definition IsPatternFixed = {
-		.index = __COUNTER__,
-		.name = L"IsPatternFixed",
-		.legacy_id = 1011,
-		.default_ = 0.0,
-		.dialog_control_id = IDC_PATTERN_FIX,
 	};
 
 	inline const static Definition ImpostorChance = {
@@ -197,7 +189,6 @@ struct Cfg {
 		ShakeFactor,
 		Pattern,
 		PatternChangeInterval,
-		IsPatternFixed,
 		ImpostorChance,
 		Palette,
 		PlayOverDesktop,
