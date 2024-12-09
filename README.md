@@ -19,3 +19,5 @@ There are two steps to building:
 I certainly don't expect anyone to, but I encourage you to! :) You don't need to be familiar with Win32 or OpenGL, since they make up relatively little of the project and they're well isolated from the core logic, which is all good old fashioned C++ (20).
 
 There are no hard rules for contributing - just open a PR. I'll be nice, I promise.
+
+Pretend this is some useful change.
