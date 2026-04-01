@@ -78,6 +78,7 @@
 #define IDC_VERSION_LABEL               1020
 #define IDC_TRAILS_ENABLED              1021
 #define IDC_PLAY_OVER_DESKTOP           1022
+#define IDC_TRAILS_EXACT_FOLLOW         1023
 #define IDC_PALDLG_PALETTE_LIST         1025
 #define IDC_PALETTE_CUSTOMIZE           1031
 #define IDC_PALDLG_NEW_PALETTE          1036
